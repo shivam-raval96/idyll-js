@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="distill.bundle.js" type="module" fetchpriority="high" blocking></script>
+    <script src="main.bundle.js" type="module" fetchpriority="low" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf8">
+    <base target="_blank">
+    <title>FineWeb: decanting the web for the finest text data at scale</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+<d-front-matter>
+    <script id='distill-front-matter' type="text/json">{
+    "title": "Nanotron Gigablogpost",
+    "description": "This blog covers everything.",
+    "published": "May 28, 2024",
+    "affiliation": {"name": "HuggingFace"},
+    "authors": [
+      {
+        "author":"John Doe",
+        "authorURL":"https://huggingface.co/"
+      },
+    ],
+    "katex": {
+      "delimiters": [
+        {"left": "$$", "right": "$$", "display": false}
+      ]
+    }
+  }
+    </script>
+</d-front-matter>
+<d-title>
+    <h1 class="l-page" style="text-align: center;">Nanotron Gigablogpost</h1>
+    <div id="title-plot" class="main-plot-container l-screen">
+        <figure>
+            <img src="assets/images/banner.png" alt="FineWeb">
+        </figure>
+        <div id="clusters-plot">
+            <img src="assets/images/clusters.png" alt="Clusters">
+        </div>
+    </div>
+</d-title>
+<d-byline></d-byline>
+<d-article>
+    <d-contents>
+    </d-contents>
+
+    <p>The performance of a large language model (LLM) depends heavily on the quality and size of its pretraining framework.</p>
+</d-article>
+
+<d-appendix>
+    <d-bibliography src="bibliography.bib"></d-bibliography>
+</d-appendix>
+
+<script>
+    const article = document.querySelector('d-article');
+    const toc = document.querySelector('d-contents');
+    if (toc) {
+        const headings = article.querySelectorAll('h2, h3, h4');
+        let ToC = `<nav role="navigation" class="l-text figcaption"><h3>Table of contents</h3>`;
+        let prevLevel = 0;
+
+        for (const el of headings) {
+            // should element be included in TOC?
+            const isInTitle = el.parentElement.tagName == 'D-TITLE';
+            const isException = el.getAttribute('no-toc');
+            if (isInTitle || isException) continue;
+            el.setAttribute('id', el.textContent.toLowerCase().replaceAll(" ", "_"))
+            const link = '<a target="_self" href="' + '#' + el.getAttribute('id') + '">' + el.textContent + '</a>';
+
+            const level = el.tagName === 'H2' ? 0 : (el.tagName === 'H3' ? 1 : 2);
+            while (prevLevel < level) {
+                ToC += '<ul>'
+                prevLevel++;
+            }
+            while (prevLevel > level) {
+                ToC += '</ul>'
+                prevLevel--;
+            }
+            if (level === 0)
+                ToC += '<div>' + link + '</div>';
+            else
+                ToC += '<li>' + link + '</li>';
+        }
+
+        while (prevLevel > 0) {
+            ToC += '</ul>'
+            prevLevel--;
+        }
+        ToC += '</nav>';
+        toc.innerHTML = ToC;
+        toc.setAttribute('prerendered', 'true');
+        const toc_links = document.querySelectorAll('d-contents > nav a');
+
+        window.addEventListener('scroll', (_event) => {
+            if (typeof (headings) != 'undefined' && headings != null && typeof (toc_links) != 'undefined' && toc_links != null) {
+                // Then iterate forwards, on the first match highlight it and break
+                find_active: {
+                    for (let i = headings.length - 1; i >= 0; i--) {
+                        if (headings[i].getBoundingClientRect().top - 50 <= 0) {
+                            if (!toc_links[i].classList.contains("active")) {
+                                toc_links.forEach((link, _index) => {
+                                    link.classList.remove("active");
+                                });
+                                toc_links[i].classList.add('active');
+                            }
+                            break find_active;
+                        }
+                    }
+                    toc_links.forEach((link, _index) => {
+                        link.classList.remove("active");
+                    });
+                }
+            }
+        });
+    }
+</script>
+</body>
+</html>
