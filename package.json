@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "katex": "^0.16.11",
     "lodash": "^4.17.21",
     "papaparse": "^5.4.1",
     "plotly.js-basic-dist-min": "^2.33.0"
