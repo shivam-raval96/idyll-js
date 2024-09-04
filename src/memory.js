@@ -89,14 +89,14 @@ export function activationMemory(
     return data;
 }
 
-export function paramGradsOpt(h, L, s, v, k = 8, dp = 1, zero = "Optimizer", mixed = true) {
+export function paramGradsOpt(h, L, s, v, k = 8, dp = 1, zero = 0, mixed = true) {
     // h, # hidden dimension size
     // L, # number of layers
     // s, # sequence length
     // v, # vocab size
     // k=8, # parameters for optimizer (Adam: 8 = 4 bytes moments + 4 bytes variance)
     // dp=1, # data parallelism
-    // zero = "Optimizer", # zero data parallelism
+    // zero = 0, 1, 2, 3, # zero data parallelism
     // mixed=True # mixed precision training
     console.log('paramGradsOpt called with:', { h, L, s, v, k, dp, zero, mixed });
     const emb = h * (v + s);
@@ -113,9 +113,9 @@ export function paramGradsOpt(h, L, s, v, k = 8, dp = 1, zero = "Optimizer", mix
     const data = {
         name: "ParametersGradientOps",
         children: [
-            { name: 'Parameters', value: zero === "Parameters" ? bytesPerParameter * n / dp : bytesPerParameter * n },
-            { name: 'Gradients', value: zero === "Gradients" ? bytesPerParameter * n / dp : bytesPerParameter * n },
-            { name: 'OptimizerAverages', value: zero === "Optimizer" ? k * n / dp : k * n }
+            { name: 'Parameters', value: zero >= 3 ? bytesPerParameter * n / dp : bytesPerParameter * n },
+            { name: 'Gradients', value: zero >= 2 ? bytesPerParameter * n / dp : bytesPerParameter * n },
+            { name: 'OptimizerAverages', value: zero >= 1 ? k * n / dp : k * n }
         ]
     };
     console.log('paramGradsOpt result:', data);
@@ -319,7 +319,7 @@ function setPresetValues(preset) {
         }
     });
 
-    updateGraph();
+    updateGraph();  // Add this line to ensure the graph updates when a preset is selected
 }
 
 function syncSliderAndInput(sliderId, inputId) {
@@ -369,6 +369,13 @@ export const init_memory_plot = function () {
         ffActivationSelect.addEventListener('change', updateGraph);
     } else {
         console.warn('FF Activation select not found');
+    }
+
+    const zeroSelect = document.getElementById('zero');
+    if (zeroSelect) {
+        zeroSelect.addEventListener('change', updateGraph);
+    } else {
+        console.warn('Zero select not found');
     }
 
     const mixedCheckbox = document.getElementById('mixed');
