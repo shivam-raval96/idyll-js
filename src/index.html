@@ -9,6 +9,26 @@
     <title>FineWeb: decanting the web for the finest text data at scale</title>
     <link rel="stylesheet" href="style.css">
     <style>
+        #controls {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 5px;
+            align-items: center;
+            max-width: 600px;
+            margin-bottom: 20px;
+        }
+        #controls label {
+            text-align: right;
+        }
+        #controls input[type="range"] {
+            width: 100%;
+        }
+        #controls input[type="number"] {
+            width: 60px;
+        }
+        #controls .row {
+            display: contents;
+        }
         #graph svg {
             font-family: sans-serif;
         }
@@ -68,61 +88,101 @@
 
         <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating the template on which we based this blog post.</aside>
 
-        <div>
-            <label for="a">Attention Heads (a):</label>
-            <input type="range" id="a" name="a" min="1" max="128" value="8">
-            <input type="number" id="a_input" value="8" min="1" max="128">
-            <br>
-            <label for="b">Micro Batch Size (b):</label>
-            <input type="range" id="b" name="b" min="1" max="53248" value="32">
-            <input type="number" id="b_input" value="32" min="1" max="53248">
-            <br>
-            <label for="h">Hidden Dimension Size (h):</label>
-            <input type="range" id="h" name="h" min="1" max="16384" value="512">
-            <input type="number" id="h_input" value="512" min="128" max="16384">
-            <br>
-            <label for="h_ff">Feedforward Dimension Size (h_ff):</label>
-            <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
-            <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
-            <br>
-            <label for="L">Number of Layers (L):</label>
-            <input type="range" id="L" name="L" min="1" max="126" value="12">
-            <input type="number" id="L_input" value="12" min="1" max="126">
-            <br>
-            <label for="s">Sequence Length (s):</label>
-            <input type="range" id="s" name="s" min="1" max="128000" value="128">
-            <input type="number" id="s_input" value="128" min="64" max="128000">
-            <br>
-            <label for="v">Vocabulary Size (v):</label>
-            <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
-            <input type="number" id="v_input" value="30522" min="1000" max="100000">
-            <br>
-            <label for="mixed">Mixed Precision:</label>
-            <input type="checkbox" id="mixed" name="mixed" checked>
-            <br>
-            <label for="recomputation">Recomputation:</label>
-            <select id="recomputation" name="recomputation">
-                <option value="none">None</option>
-                <option value="selective">Selective</option>
-                <option value="full">Full</option>
-            </select>
-            <br>
-            <label for="ff_activation">FF Activation:</label>
-            <select id="ff_activation" name="ff_activation">
-                <option value="relu">ReLU</option>
-                <option value="gelu">GELU</option>
-                <option value="swiglu">SwiGLU</option>
-            </select>
-            <br>
-            <label for="presets">Presets:</label>
-            <select id="presets" name="presets">
-                <option value="Tiny">Tiny</option>
-                <option value="8B">8B</option>
-                <option value="70B">70B</option>
-                <option value="405B">405B</option>
-            </select>
+        <div id="graph" style="position: relative; width: 700px; height: 500px;"></div>
+        <div id="controls">
+            <div class="row">
+                <label for="a">Attention Heads (a):</label>
+                <input type="range" id="a" name="a" min="1" max="128" value="8">
+                <input type="number" id="a_input" value="8" min="1" max="128">
+            </div>
+            <div class="row">
+                <label for="b">Micro Batch Size (b):</label>
+                <input type="range" id="b" name="b" min="1" max="53248" value="32">
+                <input type="number" id="b_input" value="32" min="1" max="53248">
+            </div>
+            <div class="row">
+                <label for="h">Hidden Dimension Size (h):</label>
+                <input type="range" id="h" name="h" min="1" max="16384" value="512">
+                <input type="number" id="h_input" value="512" min="128" max="16384">
+            </div>
+            <div class="row">
+                <label for="h_ff">Feedforward Dimension Size (h_ff):</label>
+                <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
+                <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
+            </div>
+            <div class="row">
+                <label for="L">Number of Layers (L):</label>
+                <input type="range" id="L" name="L" min="1" max="126" value="12">
+                <input type="number" id="L_input" value="12" min="1" max="126">
+            </div>
+            <div class="row">
+                <label for="s">Sequence Length (s):</label>
+                <input type="range" id="s" name="s" min="1" max="128000" value="128">
+                <input type="number" id="s_input" value="128" min="64" max="128000">
+            </div>
+            <div class="row">
+                <label for="v">Vocabulary Size (v):</label>
+                <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
+                <input type="number" id="v_input" value="30522" min="1000" max="100000">
+            </div>
+            <div class="row">
+                <label for="k">Optimizer Parameters (k):</label>
+                <input type="range" id="k" name="k" min="1" max="16" value="8">
+                <input type="number" id="k_input" value="8" min="1" max="16">
+            </div>
+            <div class="row">
+                <label for="tp">Tensor Model Parallelism (t):</label>
+                <input type="range" id="tp" name="tp" min="1" max="16" value="8">
+                <input type="number" id="tp_input" value="8" min="1" max="16">
+            </div>
+            <div class="row">
+                <label for="dp">Data Model Parallelism (d):</label>
+                <input type="range" id="dp" name="dp" min="1" max="256" value="1">
+                <input type="number" id="dp_input" value="1" min="1" max="256">
+            </div>
+            <div class="row">
+                <label for="mixed">Mixed Precision:</label>
+                <input type="checkbox" id="mixed" name="mixed" checked>
+                <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="row">
+                <label for="recomputation">Recomputation:</label>
+                <select id="recomputation" name="recomputation">
+                    <option value="none">None</option>
+                    <option value="selective">Selective</option>
+                    <option value="full">Full</option>
+                </select>
+                <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="row">
+                <label for="zero">Zero:</label>
+                <select id="zero" name="zero">
+                    <option value="Optimizer">Optimizer</option>
+                    <option value="Gradients">Gradients</option>
+                    <option value="Parameters">Parameters</option>
+                </select>
+                <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="row">
+                <label for="ff_activation">FF Activation:</label>
+                <select id="ff_activation" name="ff_activation">
+                    <option value="relu">ReLU</option>
+                    <option value="gelu">GELU</option>
+                    <option value="swiglu">SwiGLU</option>
+                </select>
+                <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="row">
+                <label for="presets">Presets:</label>
+                <select id="presets" name="presets">
+                    <option value="Llama 3 Tiny">Llama 3 Tiny</option>
+                    <option value="Llama 3 8B">Llama 3 8B</option>
+                    <option value="Llama 3 70B">Llama 3 70B</option>
+                    <option value="Llama 3 405B">Llama 3 405B</option>
+                </select>
+                <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
         </div>
-        <div id="graph" style="position: relative; width: 960px; height: 500px;"></div>
         
     <p><strong>TLDR:</strong> This blog covers a discussion on processing and evaluating data quality at scale, the 🍷 FineWeb
         recipe (listing and explaining all of our design choices), and the process followed to create its 📚 FineWeb-Edu subset.</p>
@@ -357,13 +417,13 @@ m_{act} =  2 * L* seq * bs * h * (34 +   \frac{5*n_{heads}*seq}{h})
 
 <p>Most frameworks these days use FlashAttention (TODO: see later) which makes the attention computation less memory intensive through kernel fusion, thus most trainings use the <code>full</code> settings.</p>
 
-<p>We can save some GPU memory with activation recomputation but this only delays by a bit the next bottleneck: as hinted earlier for LLM training there is usually a sweet spot for the GBST and we need to work out the training configuration backward from there. However, you can’t choose MBS to be an arbitrary large number on your GPU; at some point you will run out of GPU memory again since you need to store at least some of the activations in memory.</p>
+<p>We can save some GPU memory with activation recomputation but this only delays by a bit the next bottleneck: as hinted earlier for LLM training there is usually a sweet spot for the GBST and we need to work out the training configuration backward from there. However, you can't choose MBS to be an arbitrary large number on your GPU; at some point you will run out of GPU memory again since you need to store at least some of the activations in memory.</p>
 
 <p>There is a useful trick to compensate for that: <strong>gradient accumulation</strong> (<em>GradAcc</em>). With gradient accumulation we will split our batch in micro-batch, do forward and backward passes repeatedly on each micro-batch, compute the gradients, and, as the name suggests, sum the gradients step by step before doing a final optimizer step.</p>
 
-<p>We call the <code>micro batch size</code> (MBS) the batch size for each forward pass on a single node (the number of samples flowing through the model in one forward pass). We’ll refer to the overall batch size between each optimizer step as the <code>global batch size</code> (GBS). If we do one optimizer step each 8 forward/backward pass, the <code>global batch size</code> will be 8 times the <code>micro batch size</code>.</p>
+<p>We call the <code>micro batch size</code> (MBS) the batch size for each forward pass on a single node (the number of samples flowing through the model in one forward pass). We'll refer to the overall batch size between each optimizer step as the <code>global batch size</code> (GBS). If we do one optimizer step each 8 forward/backward pass, the <code>global batch size</code> will be 8 times the <code>micro batch size</code>.</p>
 
-<p>What we now call <code>global batch size</code> thus corresponds to what we’ve called up to now just <code>batch size</code> for simplicity (we now make the terms more precise to avoid ambiguity).</p>
+<p>What we now call <code>global batch size</code> thus corresponds to what we've called up to now just <code>batch size</code> for simplicity (we now make the terms more precise to avoid ambiguity).</p>
 
 <p>With gradient accumulation the global batch size can be computed as follows:</p>
 
@@ -377,7 +437,7 @@ BS = GBS=MBS * GradAcc
 
 <p>This is actually a bummer since the forward/backward passes for each micro-batch could actually totally be run in parallel. They are independent from each other and the only changing parameter are the input samples.</p>
 
-<p>Here comes data parallelism to solve exactly this problem! Let’s take a look, you say? Okay sure!</p>
+<p>Here comes data parallelism to solve exactly this problem! Let's take a look, you say? Okay sure!</p>
 
 <h3>Data Parallelism</h3>
 
@@ -387,7 +447,7 @@ BS = GBS=MBS * GradAcc
 GBS=MBS * GradAcc * DP
 </d-math>
 
-<p>This means that we can reduce the number of gradient accumulation steps in favor of data parallel processes which speeds up training. In practice, people will tend to max out the number of data parallel nodes (the DP above) as much as possible as it’s inherently parallel versus the sequential Gradient Accumulation. Gradient accumulation is then added only to achieve a target batch size if DP alone is not sufficient. One exception to that is pipeline parallelism which we’ll discuss later.</p>
+<p>This means that we can reduce the number of gradient accumulation steps in favor of data parallel processes which speeds up training. In practice, people will tend to max out the number of data parallel nodes (the DP above) as much as possible as it's inherently parallel versus the sequential Gradient Accumulation. Gradient accumulation is then added only to achieve a target batch size if DP alone is not sufficient. One exception to that is pipeline parallelism which we'll discuss later.</p>
 
 <img src="assets/images/IMG_A95961668B3F-1.jpeg" alt="Data Parallelism">
 
@@ -403,17 +463,17 @@ GBS=MBS * GradAcc * DP
 
 <p>If the gradient accumulation ratio is lower than one, i.e. you have too many GPUs (!), you can either choose to not use all your GPUs or test if a lower MBS will speed up training. In these cases, you may want to prioritize throughput over the individual GPU utilization, you can then choose DP first and use a smaller MBS than possible in order to speed up training.</p>
 
-<p>Time to take a concrete example: We want to train a model with a GBS of 4M tokens and a sequence length of 4k. This means our batch size will be 1024 samples (we pick powers of two). We observe that a single of our GPU can fit MBS=2 in memory and we have 128 GPUs available for training. This means with 4 gradient accumulation steps we’ll achieve our goal of 1024 samples or 4M tokens per training step. Now what if we suddenly have 1024 GPUs available? We can achieve the same GBS and thus identical training by setting both MBS and gradient accumulation to 1 speeding up training significantly.</p>
+<p>Time to take a concrete example: We want to train a model with a GBS of 4M tokens and a sequence length of 4k. This means our batch size will be 1024 samples (we pick powers of two). We observe that a single of our GPU can fit MBS=2 in memory and we have 128 GPUs available for training. This means with 4 gradient accumulation steps we'll achieve our goal of 1024 samples or 4M tokens per training step. Now what if we suddenly have 1024 GPUs available? We can achieve the same GBS and thus identical training by setting both MBS and gradient accumulation to 1 speeding up training significantly.</p>
 
 <p>[EXPERIMENTS WHERE WE INCREASE DP AND SHOW THROUGHPUT FOR SEVERAL MODELS]</p>
 
-<p>We’ve explored data parallelism, a simple strategy to scale training across more GPUs and gives consistent speed improvements. The keen reader might have noticed however that it rests on the assumption that we can fit at least one input sample forward pass (<em>MBS=1</em>) into our GPU memory. This is not always the case! In particular for larger models which often don’t fit into a single GPU anymore even with activation recomputations activated.</p>
+<p>We've explored data parallelism, a simple strategy to scale training across more GPUs and gives consistent speed improvements. The keen reader might have noticed however that it rests on the assumption that we can fit at least one input sample forward pass (<em>MBS=1</em>) into our GPU memory. This is not always the case! In particular for larger models which often don't fit into a single GPU anymore even with activation recomputations activated.</p>
 
-<p>In such case, we need to shard the model across devices! We’ll now study two complementary sharding methods, tensor and pipeline parallelism which are doing that. Let’s start by the simplest, tensor parallelism!</p>
+<p>In such case, we need to shard the model across devices! We'll now study two complementary sharding methods, tensor and pipeline parallelism which are doing that. Let's start by the simplest, tensor parallelism!</p>
 
 <h3>Tensor Parallelism</h3>
 
-<p>So you’ve exhausted all the previous textbook tricks to try to fit your model on a single GPU but it still doesn’t fit? Let’s try to distribute this model across several GPUs. Unlike DP we will not simply duplicate the model but various parts of the model instance will be living on various GPUs.</p>
+<p>So you've exhausted all the previous textbook tricks to try to fit your model on a single GPU but it still doesn't fit? Let's try to distribute this model across several GPUs. Unlike DP we will not simply duplicate the model but various parts of the model instance will be living on various GPUs.</p>
 
 <p>If we take a look at a typical matrix multiplication (the core of a neural network), we can get an idea about how we could split the model:</p>
 
@@ -470,6 +530,8 @@ GeLU(XW1 + XW2) \neq GeLU(XW1) + GeLU(XW2)
 <p>If you rather like code, note that we can prove this with the following snippet as well:</p>
 
 <d-code block language="python">
+```
+</region_of_file_to_rewritten_file>
 def example_gelu():
     from torch.nn.functional import gelu
     
@@ -495,9 +557,9 @@ def example_gelu():
     torch.testing.assert_close(y_row_1, y_row_2, rtol=1e-5, atol=1e-5)
 </d-code>
 
-<p>To avoid a synchronization step directly after the first MLP, we’ll thus start with Column Parallel and be able to directly perform parallel GELU.</p>
+<p>To avoid a synchronization step directly after the first MLP, we'll thus start with Column Parallel and be able to directly perform parallel GELU.</p>
 
-<p>Now, what about the second MLP? Should it be column or row parallel? Let’s draft both options:</p>
+<p>Now, what about the second MLP? Should it be column or row parallel? Let's draft both options:</p>
 <ul>
     <li>Column Parallel followed by Column Parallel</li>
     <img src="assets/images/image%2013.png" alt="Column Parallel Schema 1">
@@ -505,9 +567,9 @@ def example_gelu():
     <img src="assets/images/image%2014.png" alt="Column Parallel Schema 2">
 </ul>
 
-<p>We see that the “Column Parallel followed by Row Parallel” schema only involves two communications instead of four. It’s thus the most efficient schema in terms of communications.</p>
+<p>We see that the "Column Parallel followed by Row Parallel" schema only involves two communications instead of four. It's thus the most efficient schema in terms of communications.</p>
 
-<p>Let’s take a quick look at the backward pass:</p>
+<p>Let's take a quick look at the backward pass:</p>
 <img src="assets/images/image%2015.png" alt="Backward Pass 1">
 <img src="assets/images/image%2016.png" alt="Backward Pass 2">
 
@@ -586,7 +648,7 @@ if __name__ == "__main__":
     example_column_row_linear()
 </d-code>
 
-<p>Now that we’ve found the most efficient schema for the Feedforward part of the transformer, let’s take a look at the multi-head attention block (MHA).</p>
+<p>Now that we've found the most efficient schema for the Feedforward part of the transformer, let's take a look at the multi-head attention block (MHA).</p>
 
 <p>We can generally follow a similar approach where the Q, K, V will be split in a Column Parallel fashion and the output projection will be split along the Row dimension.</p>
 
@@ -604,7 +666,7 @@ if __name__ == "__main__":
 
 <p>Could we push this approach further?</p>
 
-<p>Sequence parallelism applies this same idea to other parts of our model. We’ve applied tensor parallelism to two main parts in our models where combination of MLP allowed to naturally split the weights along major axis.</p>
+<p>Sequence parallelism applies this same idea to other parts of our model. We've applied tensor parallelism to two main parts in our models where combination of MLP allowed to naturally split the weights along major axis.</p>
 
 <p>The rest of the model mostly comprises layer norms, dropout and various summation of residuals, these contribute little to the computation but come with rather large forward activations to store.</p>
 
@@ -640,14 +702,14 @@ if __name__ == "__main__":
 
 <p>In the transformer model, tokens have no inherent information about their positional information. For these reasons, we need to use a positional encoding function.</p>
 
-<p>Assuming that in the multi-head attention layer, <em>q_m</em> is the “position-aware” query vector corresponding to a token at position <em>m</em>, <em>k_n</em> the “position-aware” key vector corresponding to the token at position <em>n</em> and <em>f</em> is our position embedding function, we would like our position vector to be a function of the input vectors and absolute positions like this:</p>
+<p>Assuming that in the multi-head attention layer, <em>q_m</em> is the "position-aware" query vector corresponding to a token at position <em>m</em>, <em>k_n</em> the "position-aware" key vector corresponding to the token at position <em>n</em> and <em>f</em> is our position embedding function, we would like our position vector to be a function of the input vectors and absolute positions like this:</p>
 
 <d-math>
 q_m = f(q,m)
 k_n = f(k,n)
 </d-math>
 
-<p>We may also want the positional encoding to model relative positional information between two input tokens. Relative positions help the model to operate across longer context spans and even context lengths not seen during training. The attention operation is generally a dot product operation between “position-aware” vectors <em>q</em> and <em>k</em>, so for a positional encoding that contains relative positional information, we’ll want to have:</p>
+<p>We may also want the positional encoding to model relative positional information between two input tokens. Relative positions help the model to operate across longer context spans and even context lengths not seen during training. The attention operation is generally a dot product operation between "position-aware" vectors <em>q</em> and <em>k</em>, so for a positional encoding that contains relative positional information, we'll want to have:</p>
 
 <d-math>
 <q_m, k_n> = g(q, k, m-n)
@@ -655,7 +717,7 @@ k_n = f(k,n)
 
 <p>In other words, we want the result of <em>⟨ 𝑞_𝑚 , 𝑘_𝑛 ⟩</em> to depend on the values of <em>q</em> and <em>k</em> themselves, as well as their relative position <em>m − n</em>, but not <em>m</em> and <em>n</em>. This way, the model can focus on the relative difference between two tokens rather than their absolute positions.</p>
 
-<p>Let’s show that the RoPE positional embedding formulation satisfies the above formula.</p>
+<p>Let's show that the RoPE positional embedding formulation satisfies the above formula.</p>
 
 <p><strong>Rotation matrix</strong></p>
 
@@ -695,9 +757,9 @@ R(θ) =
 
 <p><strong>Implementation</strong></p>
 
-<p>In our case, our internal vectors (the activations in our model) have much more than two elements. Let’s pair elements to get 2D vectors and apply the 2D rotation operation on these pairs.</p>
+<p>In our case, our internal vectors (the activations in our model) have much more than two elements. Let's pair elements to get 2D vectors and apply the 2D rotation operation on these pairs.</p>
 
-<p>There are combinatorially many ways we can pair elements but generally two options are the most popular for implementing RoPE: we call them the <em>interleaved</em> and <em>non-interleaved</em> versions. (It’s still rather unfortunate to have two popular options)</p>
+<p>There are combinatorially many ways we can pair elements but generally two options are the most popular for implementing RoPE: we call them the <em>interleaved</em> and <em>non-interleaved</em> versions. (It's still rather unfortunate to have two popular options)</p>
 
 <ol>
     <li>In the interleaved version, we pair consecutive elements <em>(x<sub>0</sub>, x<sub>1</sub>),(x<sub>2</sub>,x<sub>3</sub>),…</em> before applying the rotation matrix:</li>
@@ -860,13 +922,13 @@ x_{d-1}\cos mθ_{d/2-1} + x_{d-1}\sin mθ_{d/2-1}  \\
 <h2>References</h2>
 
 <ul>
-    <li>Harm’s posts:
+    <li>Harm's posts:
         <ul>
             <li><a href="https://www.harmdevries.com/post/context-length/">https://www.harmdevries.com/post/context-length/</a></li>
             <li><a href="https://www.harmdevries.com/post/model-size-vs-compute-overhead/">https://www.harmdevries.com/post/model-size-vs-compute-overhead/</a></li>
         </ul>
     </li>
-    <li>Stas’ guides:
+    <li>Stas' guides:
         <ul>
             <li><a href="https://github.com/stas00/ml-engineering">https://github.com/stas00/ml-engineering</a></li>
             <li><a href="https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md">https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md</a></li>

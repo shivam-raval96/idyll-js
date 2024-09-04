@@ -8,27 +8,35 @@ export function activationMemory(
     L, // number of layers
     s, // sequence length
     v, // vocab size
+    tp = 1, // tensor model parallelism
     mixed = true,
     recomputation = "none",
     ff_activation = "relu"
 ) {
-    console.log('activationMemory called with:', { a, b, h, h_ff, L, s, v, mixed, recomputation, ff_activation });
+    console.log('activationMemory called with:', { a, b, h, h_ff, L, s, v, tp, mixed, recomputation, ff_activation });
     // https://arxiv.org/pdf/2205.05198
     const bytesPerValue = mixed ? 2 : 4;
 
-    const oneLayerAttention = s * b * h * (bytesPerValue * 5 + 1) + ((2 * bytesPerValue + 1) * a * s * s * b); // eq (2)
+    let oneLayerAttention;
+    if (recomputation === "none" || recomputation === "full") {
+        oneLayerAttention = s * b * h * (bytesPerValue * 4 / tp + bytesPerValue + 1) + ((2 * bytesPerValue + 1) * a * s * s * b); // eq (2)
+    } else if (recomputation === "selective") {
+        oneLayerAttention = s * b * h * (bytesPerValue * 4 / tp + bytesPerValue + 1); // table 2
+    } else {
+        throw new Error("Invalid recomputation value");
+    }
 
     let oneLayerFeedforward;
     if (ff_activation === "relu") {
-        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue) // inputs of 1st/2nd linear layers
+        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
             + s * b * h);  // dropout
     } else if (ff_activation === "gelu") {
-        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue) // inputs of 1st/2nd linear layers
-            + s * b * h_ff * bytesPerValue // inputs of activation function (not really necessary for Relu)
+        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
+            + s * b * h_ff * bytesPerValue / tp // inputs of activation function (not really necessary for Relu)
             + s * b * h);  // dropout
     } else if (ff_activation === "swiglu") {
-        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue) // inputs of input/output linear layers
-            + s * b * h_ff * bytesPerValue * 3 // inputs of activation function
+        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of input/output linear layers
+            + s * b * h_ff * bytesPerValue * 3 / tp // inputs of activation function
             + s * b * h);  // dropout (note that dropout is lower-precision - boolean)
     }
 
@@ -41,41 +49,56 @@ export function activationMemory(
 
 
     let oneLayer;
-    if (recomputation === "none") {
-        oneLayer = oneLayerAttention + oneLayerFeedforward + 2 * layerNorm; // eq (2)
-    } else if (recomputation === "selective") {
-        oneLayer = s * b * h * 34; // eq (6)
+    let data
+    if (recomputation === "none" || recomputation === "selective") {
+
+         data = {
+            name: "activationMemory",
+            children: [
+                ...Array.from({ length: L }, (_, index) => ({
+                    name: `Layer ${index + 1}`,
+                    children: [
+                        { name: 'Attention', value: oneLayerAttention },
+                        { name: 'Feedforward', value: oneLayerFeedforward },
+                        { name: 'LayerNorm', value: 2 * layerNorm },
+                    ]
+                })),
+                { name: 'Dropout', value: inputDropout },
+                { name: 'LayerNorm', value: outputLayerNorm },
+                { name: 'Projection', value: outputLayerProjection },
+                { name: 'Cross Entropy', value: outputCrossEntropy }
+            ]
+        };
     } else if (recomputation === "full") {
-        oneLayer = s * b * h * 2;
-    } else {
+         data = {
+            name: "activationMemory",
+            children: [
+                { name: 'LayerInput', value: s * b * h * bytesPerValue * L},
+                { name: 'Dropout', value: inputDropout },
+                { name: 'LayerNorm', value: outputLayerNorm },
+                { name: 'Projection', value: outputLayerProjection },
+                { name: 'Cross Entropy', value: outputCrossEntropy }
+            ]
+        };
+        } else {
         throw new Error("Invalid recomputation value");
     }
 
-    const data = {
-        name: "activationMemory",
-        children: [
-            ...Array.from({ length: L }, (_, index) => ({
-                name: `Layer ${index + 1}`,
-                children: [
-                    { name: 'Attention', value: oneLayerAttention },
-                    { name: 'Feedforward', value: oneLayerFeedforward },
-                    { name: 'LayerNorm', value: 2 * layerNorm },
-                ]
-            })),
-            { name: 'Dropout', value: inputDropout },
-            { name: 'LayerNorm', value: outputLayerNorm },
-            { name: 'Projection', value: outputLayerProjection },
-            { name: 'Cross Entropy', value: outputCrossEntropy }
-        ]
-    };
 
-    const total = L * oneLayer + inputDropout + outputLayerNorm + outputLayerProjection + outputCrossEntropy;
 
     return data;
 }
 
-export function paramGradsOpt(h, L, s, v, k = 8, mixed = true) {
-    console.log('paramGradsOpt called with:', { h, L, s, v, k, mixed });
+export function paramGradsOpt(h, L, s, v, k = 8, dp = 1, zero = "Optimizer", mixed = true) {
+    // h, # hidden dimension size
+    // L, # number of layers
+    // s, # sequence length
+    // v, # vocab size
+    // k=8, # parameters for optimizer (Adam: 8 = 4 bytes moments + 4 bytes variance)
+    // dp=1, # data parallelism
+    // zero = "Optimizer", # zero data parallelism
+    // mixed=True # mixed precision training
+    console.log('paramGradsOpt called with:', { h, L, s, v, k, dp, zero, mixed });
     const emb = h * (v + s);
     const oneLayer = 12 * h ** 2 + 13 * h;
     const other = 2 * h;
@@ -87,9 +110,16 @@ export function paramGradsOpt(h, L, s, v, k = 8, mixed = true) {
     }
     const bytesPerParameter = mixed ? 2 : 4;
 
-    const result = [bytesPerParameter * n, bytesPerParameter * n, k * n];
-    console.log('paramGradsOpt result:', result);
-    return result;
+    const data = {
+        name: "ParametersGradientOps",
+        children: [
+            { name: 'Parameters', value: zero === "Parameters" ? bytesPerParameter * n / dp : bytesPerParameter * n },
+            { name: 'Gradients', value: zero === "Gradients" ? bytesPerParameter * n / dp : bytesPerParameter * n },
+            { name: 'OptimizerAverages', value: zero === "Optimizer" ? k * n / dp : k * n }
+        ]
+    };
+    console.log('paramGradsOpt result:', data);
+    return data;
 }
 
 export function updateGraph() {
@@ -101,15 +131,18 @@ export function updateGraph() {
     const L = +document.getElementById('L').value;
     const s = +document.getElementById('s').value;
     const v = +document.getElementById('v').value;
+    const k = +document.getElementById('k').value;
+    const tp = +document.getElementById('tp').value;  // New: t parameter
+    const zero = document.getElementById('zero').value;
+    const dp = document.getElementById('dp').value;
     const mixed = document.getElementById('mixed').checked;
     const recomputation = document.getElementById('recomputation').value;
     const ff_activation = document.getElementById('ff_activation').value;
 
-    console.log('Slider values:', { a, b, h, h_ff, L, s, v, mixed, recomputation, ff_activation });
+    console.log('Slider values:', { a, b, h, h_ff, L, s, v, k, tp, zero, dp, mixed, recomputation, ff_activation });
 
-    const fixedSize100GB = 100 * 1024 * 1024 * 1024; // 100GB in bytes
-    const activationMemoryData = activationMemory(a, b, h, h_ff, L, s, v, mixed, recomputation, ff_activation);
-    const paramGradsOptValue = paramGradsOpt(h, L, s, v)[0];
+    const activationMemoryData = activationMemory(a, b, h, h_ff, L, s, v, tp, mixed, recomputation, ff_activation);
+    const paramGradsOptValue = paramGradsOpt(h, L, s, v, k, dp, zero, mixed);
 
     const data = {
         name: "root",
@@ -119,7 +152,7 @@ export function updateGraph() {
                 value: 0,
                 children: [
                     activationMemoryData,
-                    { name: 'paramGradsOpt', value: paramGradsOptValue }
+                    paramGradsOptValue
                 ]
             }
         ]
@@ -147,9 +180,11 @@ export function updateGraph() {
         .sum(d => d.value);
         // .sort((a, b) => b.value - a.value);
 
-    if (root.children[0].value < fixedSize100GB) {
-        root.children[0].value = fixedSize100GB;
-    }
+        // const fixedSize100GB = 100 * 1024 * 1024 * 1024; // 100GB in bytes
+        // if (root.children[0].value < fixedSize100GB) {
+    //     root.value = fixedSize100GB;
+    //     root.children[0].value = fixedSize100GB;
+    // }
 
     console.log('Treemap root:', root);
 
@@ -157,16 +192,20 @@ export function updateGraph() {
 
     const color = d => {
         switch(d.data.name) {
-            case 'paramGradsOpt': return '#4e79a7';  // Blue
+            case 'Parameters': return '#4e79a7';  // Blue
+            case 'Gradients': return '#f28e2c';  // Orange
+            case 'OptimizerAverages': return '#e15759';  // Green
             case 'activationMemory': return '#f28e2c';  // Orange
             case 'fixed100GB': return '#59a14f';  // Green
             case 'Attention': return '#e15759';  // Red
-            case 'Feedforward': return '#f28e2c';  // Orange
-            case 'LayerNorm': return '#9b59b6';  // Purple
-            case 'Dropout': return '#e15759';  // Red
-            case 'Projection': return '#f28e2c';  // Orange
-            case 'Cross Entropy': return '#e15759';  // Red
-            default: return '#59a14f';  // Red (for unexpected cases)
+            case 'Feedforward': return '#1f77b4';  // Light Blue
+            case 'LayerNorm': return '#ff7f0e';  // Dark Orange
+            case 'Dropout': return '#2ca02c';  // Dark Green
+            case 'Projection': return '#d62728';  // Dark Red
+            case 'Cross Entropy': return '#9467bd';  // Violet
+            case 'Total': return '#59a14f';  // Green
+            case 'root': return '#d3d3d3';  // Light Grey
+            default: return '#a0c4ff';  // Lighter Blue (for unexpected cases)
         }
     };
 
@@ -178,7 +217,7 @@ export function updateGraph() {
     cell.append("rect")
         .attr("width", d => d.x1 - d.x0)
         .attr("height", d => d.y1 - d.y0)
-        .attr("fill", d => d.depth === 1 ? "none" : color(d))
+        .attr("fill", d => color(d))
         .attr("stroke", d => d.depth === 1 ? color(d) : "none")
         .attr("stroke-width", 2);
 
@@ -196,8 +235,7 @@ export function updateGraph() {
             const name = d.data.name;
             const value = formatBytes(d.value);
             
-            if (d.depth === 1) {
-                // Parent node (fixed100GB)
+            if (d.depth === 1 || d.depth === 2) {
                 node.attr("transform", `translate(${padding},${fontSize + padding})`)
                     .attr("font-weight", "bold")
                     .text(`${name}: ${value}`);
@@ -235,8 +273,8 @@ export function updateGraph() {
         .attr("x", 0)
         .attr("width", 19)
         .attr("height", 19)
-        .attr("fill", d => d.data.name === 'fixed100GB' ? 'none' : color(d))
-        .attr("stroke", d => d.data.name === 'fixed100GB' ? color(d) : 'none')
+        .attr("fill", d => color(d))
+        .attr("stroke", 'grey')
         .attr("stroke-width", 2);
 
     legend.append("text")
@@ -256,10 +294,10 @@ function formatBytes(bytes) {
 }
 
 const presets = {
-    "Tiny": { a: 16, b: 3, h: 1024, h_ff: 4096, L: 1, s: 7, v: 30522, mixed: true, recomputation: "none", ff_activation: "gelu" },
-    "8B": { a: 32, b: 32, h: 4096, h_ff: 16384, L: 32, s: 256, v: 30522, mixed: true, recomputation: "none", ff_activation: "swiglu" },
-    "70B": { a: 64, b: 32, h: 8192, h_ff: 32768, L: 80, s: 256, v: 30522, mixed: true, recomputation: "none", ff_activation: "swiglu" },
-    "405B": { a: 128, b: 32, h: 16384, h_ff: 65536, L: 126, s: 256, v: 30522, mixed: true, recomputation: "none", ff_activation: "swiglu" }
+    "Llama 3 Tiny": { a: 16, b: 3, h: 1024, h_ff: 4096, L: 1, s: 7, v: 30522, k: 8, tp: 1, zero: "Optimizer", dp: 1, mixed: true, recomputation: "none", ff_activation: "gelu" },
+    "Llama 3 8B": { a: 32, b: 32, h: 4096, h_ff: 16384, L: 32, s: 256, v: 30522, k: 8, tp: 1, zero: "Optimizer", dp: 1, mixed: true, recomputation: "none", ff_activation: "swiglu" },
+    "Llama 3 70B": { a: 64, b: 32, h: 8192, h_ff: 32768, L: 80, s: 256, v: 30522, k: 8, tp: 1, zero: "Optimizer", dp: 1, mixed: true, recomputation: "none", ff_activation: "swiglu" },
+    "Llama 3 405B": { a: 128, b: 32, h: 16384, h_ff: 65536, L: 126, s: 256, v: 30522, k: 8, t: 1, mixed: true, recomputation: "none", ff_activation: "swiglu" }
 };
 
 function setPresetValues(preset) {
@@ -306,41 +344,80 @@ function syncSliderAndInput(sliderId, inputId) {
 }
 
 export const init_memory_plot = function () {
-    console.log('DOM fully loaded and parsed');
+    console.log('Initializing memory plot');
     
-    const sliderIds = ['a', 'b', 'h', 'h_ff', 'L', 's', 'v'];  // Added 'v'
+    const sliderIds = ['a', 'b', 'h', 'h_ff', 'L', 's', 'v', 'k', 'tp', 'dp'];
     sliderIds.forEach(id => {
-        syncSliderAndInput(id, `${id}_input`);
+        const slider = document.getElementById(id);
+        const input = document.getElementById(`${id}_input`);
+        if (slider && input) {
+            syncSliderAndInput(id, `${id}_input`);
+        } else {
+            console.warn(`Elements for ${id} not found`);
+        }
     });
 
     const recomputationSelect = document.getElementById('recomputation');
-    recomputationSelect.addEventListener('change', updateGraph);
+    if (recomputationSelect) {
+        recomputationSelect.addEventListener('change', updateGraph);
+    } else {
+        console.warn('Recomputation select not found');
+    }
 
     const ffActivationSelect = document.getElementById('ff_activation');
-    ffActivationSelect.addEventListener('change', updateGraph);
+    if (ffActivationSelect) {
+        ffActivationSelect.addEventListener('change', updateGraph);
+    } else {
+        console.warn('FF Activation select not found');
+    }
 
     const mixedCheckbox = document.getElementById('mixed');
-    mixedCheckbox.addEventListener('change', updateGraph);
+    if (mixedCheckbox) {
+        mixedCheckbox.addEventListener('change', updateGraph);
+    } else {
+        console.warn('Mixed checkbox not found');
+    }
 
     const presetSelect = document.getElementById('presets');
-    presetSelect.addEventListener('change', (event) => {
-        setPresetValues(event.target.value);
+    if (presetSelect) {
+        presetSelect.addEventListener('change', (event) => {
+            setPresetValues(event.target.value);
+        });
+    } else {
+        console.warn('Preset select not found');
+    }
+
+    // Set max values for sliders
+    sliderIds.forEach(id => {
+        const slider = document.getElementById(id);
+        if (slider) {
+            switch(id) {
+                case 'a': slider.max = '128'; break;
+                case 'b': slider.max = '53248'; break;
+                case 'h': slider.max = '16384'; break;
+                case 'h_ff': slider.max = '65536'; break;
+                case 'L': slider.max = '126'; break;
+                case 's': slider.max = '128000'; break;
+                case 'v': slider.max = '100000'; break;
+                case 'k': slider.max = '16'; break;
+                case 'tp': slider.max = '16'; break;
+                case 'dp': slider.max = '256'; break;
+            }
+        } else {
+            console.warn(`Slider ${id} not found`);
+        }
     });
 
-    // Set max values for sliders based on the highest values in the presets
-    document.getElementById('a').max = 128;
-    document.getElementById('b').max = 53248;
-    document.getElementById('h').max = 16384;
-    document.getElementById('h_ff').max = 65536;
-    document.getElementById('L').max = 126;
-    document.getElementById('s').max = 128000;
-    document.getElementById('v').max = 100000;  // Set a reasonable max for vocabulary size
-
     console.log('Adding svg');
-    const svg = d3.select("#graph")
-        .append("svg")
-        .attr("width", 960)
-        .attr("height", 500);
+    const graphContainer = document.getElementById('graph');
+    if (graphContainer) {
+        const svg = d3.select("#graph")
+            .append("svg")
+            .attr("width", 960)
+            .attr("height", 500);
+    } else {
+        console.warn('Graph container not found');
+    }
 
     updateGraph();
 };
