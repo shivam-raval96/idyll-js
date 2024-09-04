@@ -8,6 +8,14 @@
     <base target="_blank">
     <title>FineWeb: decanting the web for the finest text data at scale</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        #graph svg {
+            font-family: sans-serif;
+        }
+        #graph svg rect {
+            cursor: pointer;
+        }
+    </style>
 </head>
 
 <body>
@@ -60,12 +68,68 @@
 
         <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating the template on which we based this blog post.</aside>
 
+        <div>
+            <label for="a">Attention Heads (a):</label>
+            <input type="range" id="a" name="a" min="1" max="128" value="8">
+            <input type="number" id="a_input" value="8" min="1" max="128">
+            <br>
+            <label for="b">Micro Batch Size (b):</label>
+            <input type="range" id="b" name="b" min="1" max="53248" value="32">
+            <input type="number" id="b_input" value="32" min="1" max="53248">
+            <br>
+            <label for="h">Hidden Dimension Size (h):</label>
+            <input type="range" id="h" name="h" min="1" max="16384" value="512">
+            <input type="number" id="h_input" value="512" min="128" max="16384">
+            <br>
+            <label for="h_ff">Feedforward Dimension Size (h_ff):</label>
+            <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
+            <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
+            <br>
+            <label for="L">Number of Layers (L):</label>
+            <input type="range" id="L" name="L" min="1" max="126" value="12">
+            <input type="number" id="L_input" value="12" min="1" max="126">
+            <br>
+            <label for="s">Sequence Length (s):</label>
+            <input type="range" id="s" name="s" min="1" max="128000" value="128">
+            <input type="number" id="s_input" value="128" min="64" max="128000">
+            <br>
+            <label for="v">Vocabulary Size (v):</label>
+            <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
+            <input type="number" id="v_input" value="30522" min="1000" max="100000">
+            <br>
+            <label for="mixed">Mixed Precision:</label>
+            <input type="checkbox" id="mixed" name="mixed" checked>
+            <br>
+            <label for="recomputation">Recomputation:</label>
+            <select id="recomputation" name="recomputation">
+                <option value="none">None</option>
+                <option value="selective">Selective</option>
+                <option value="full">Full</option>
+            </select>
+            <br>
+            <label for="ff_activation">FF Activation:</label>
+            <select id="ff_activation" name="ff_activation">
+                <option value="relu">ReLU</option>
+                <option value="gelu">GELU</option>
+                <option value="swiglu">SwiGLU</option>
+            </select>
+            <br>
+            <label for="presets">Presets:</label>
+            <select id="presets" name="presets">
+                <option value="Tiny">Tiny</option>
+                <option value="8B">8B</option>
+                <option value="70B">70B</option>
+                <option value="405B">405B</option>
+            </select>
+        </div>
+        <div id="graph" style="position: relative; width: 960px; height: 500px;"></div>
+        
     <p><strong>TLDR:</strong> This blog covers a discussion on processing and evaluating data quality at scale, the 🍷 FineWeb
         recipe (listing and explaining all of our design choices), and the process followed to create its 📚 FineWeb-Edu subset.</p>
 
     <h2>Scaling Models and Hardware</h2>
 
-    <p>Now that we know the basics of distributed communication and computations it’s time to apply this to training LLMs at scale. Here’s the plan of action: we’ll go through increasingly complex distribution strategies, namely data, then tensor and finally pipeline parallelism, and show three things:</p>
+    <p>Now that we know the basics of distributed communication and computations it's time to apply this to training LLMs at scale. Here's the plan of action: we'll go through increasingly complex distribution strategies, namely data, then tensor and finally pipeline parallelism, and show three things:</p>
 
     <ol>
         <li>conceptual explanations with diagrams</li>
@@ -75,7 +139,7 @@
 
     <p>For the experiments we scale across two dimensions: we make the models larger and larger and add more and more compute nodes and measure how throughput changes.</p>
 
-    <p>So this is a good point to get ☕ #2 and we’ll have a look at the setup for the practical experiments.</p>
+    <p>So this is a good point to get ☕ #2 and we'll have a look at the setup for the practical experiments.</p>
 
     <h2>Experiment setup</h2>
 
@@ -127,12 +191,12 @@
 
     <p>Efficiently training LLMs now requires amounts of compute which exceed in most case single GPUs or machine. Large distributed clusters are thus used to train these models and can range from hundreds to thousands of nodes each usually equipped with up to 8 GPUs. To make the best use of such an expensive hardware, a range of distributed training methods have been developed with the goal of ensuring that GPUs are highly utilized at all times and not waiting for data/synchronization/etc.</p>
 
-    <p>Several methods can be used to distribute training and we’ll start with 4D parallelism followed-up by DeepSpeed stages. While we explain these strategies we’ll also run experiments to determine the trade-offs and understand the optimal settings.</p>
-<p>The name “4D parallelism” originates from the fact that it involves combining up to 4 distribution methods: data, tensor, pipeline, and sequence parallelism (each of these techniques can be used independently of the other). You may thus ask “So which one should I use?”.</p>
+    <p>Several methods can be used to distribute training and we'll start with 4D parallelism followed-up by DeepSpeed stages. While we explain these strategies we'll also run experiments to determine the trade-offs and understand the optimal settings.</p>
+<p>The name "4D parallelism" originates from the fact that it involves combining up to 4 distribution methods: data, tensor, pipeline, and sequence parallelism (each of these techniques can be used independently of the other). You may thus ask "So which one should I use?".</p>
 
-<p>Unfortunately, there is no universal answer as the response will actually depend on the cluster setup as well as the model architecture. But do not despair for in this section we’ll develop strategies to figure out the best setting experimentally!</p>
+<p>Unfortunately, there is no universal answer as the response will actually depend on the cluster setup as well as the model architecture. But do not despair for in this section we'll develop strategies to figure out the best setting experimentally!</p>
 
-<p>In addition to 4D parallelism we’ll also take a look at “DeepSpeed”, a method developed by Microsoft which is generally complimentary to 4D parallelism and can be leveraged on top of it.</p>
+<p>In addition to 4D parallelism we'll also take a look at "DeepSpeed", a method developed by Microsoft which is generally complimentary to 4D parallelism and can be leveraged on top of it.</p>
 
 <p><strong>Idea: show two things in every section</strong></p>
 <ol>
@@ -142,14 +206,15 @@
 
 <h3>No Parallelism</h3>
 
-<p>Let’s quickly go over the basics before going into distributed training. When a model is trained on a single GPU, the training consists of 3 steps in the simplest case:</p>
+<p>Let's quickly go over the basics before going into distributed training. When a model is trained on a single GPU, the training consists of 3 steps in the simplest case:</p>
 <ol>
     <li>one forward pass,</li>
     <li>one backward pass to compute the gradients, and</li>
     <li>an optimization step using the gradients to update the parameters</li>
 </ol>
 
-<p>As we’ll see in the future, these steps may be repeated or intertwined but for now we’ll start simple:</p>
+<p>As we'll see in the future, these steps may be repeated or intertwined but for now we'll start simple:</p>
+<p>As we'll see in the future, these steps may be repeated or intertwined but for now we'll start simple:</p>
 
 <img src="assets/images/IMG_7537D08D7F41-1.jpeg" alt="Training Steps">
 
@@ -157,9 +222,9 @@
 
 <p>The batch size (<em>bs</em>) is one of the most important hyper-parameters in machine learning, affecting both model convergence and throughput.</p>
 
-<p>If the batch size is too small, gradients will tend to be noisy and the model may not be able to converge to optimal performances while a batch size too large can make the convergence of the model slower and waste compute. You can find a nice discussion of this topic in OpenAI’s paper on large batch training (<a href="https://arxiv.org/abs/1812.06162">https://arxiv.org/pdf/1812.06162</a>).</p>
+<p>If the batch size is too small, gradients will tend to be noisy and the model may not be able to converge to optimal performances while a batch size too large can make the convergence of the model slower and waste compute. You can find a nice discussion of this topic in OpenAI's paper on large batch training (<a href="https://arxiv.org/abs/1812.06162">https://arxiv.org/pdf/1812.06162</a>).</p>
 
-<p>The batch size also affects the throughput: a small batch size will require more optimizer steps to train on a given amount of samples. Optimizer steps are costly (in compute time) and the throughput will thus be lower than when using a larger batch size. On the other hand, larger batches, while leading to higher throughput may suffer from slow convergence in the limits as we’ve just seen. There is generally an optimal batch size from a convergence/performance point of view (note that the batch size can usually still be changed around the optimal batch size without major impact to the performance of the model).</p>
+<p>The batch size also affects the throughput: a small batch size will require more optimizer steps to train on a given amount of samples. Optimizer steps are costly (in compute time) and the throughput will thus be lower than when using a larger batch size. On the other hand, larger batches, while leading to higher throughput may suffer from slow convergence in the limits as we've just seen. There is generally an optimal batch size from a convergence/performance point of view (note that the batch size can usually still be changed around the optimal batch size without major impact to the performance of the model).</p>
 
 <p>Note that in the LLM community, batch sizes are commonly reported in terms of tokens instead of number of samples (BST - Batch Size Tokens) as each token has a label and thus a loss term and can thus be considered individual (although highly correlated) samples.</p>
 
@@ -169,17 +234,17 @@
 bst=bs *seq
 </d-math>
 
-<p>(note that from here on forward we’ll show the formulas for the batch size in number of samples but you can always get its token-unit counterpart by multiplying it with the sequence length)</p>
+<p>(note that from here on forward we'll show the formulas for the batch size in number of samples but you can always get its token-unit counterpart by multiplying it with the sequence length)</p>
 
-<p>And we’re now hitting our first scaling problem:</p>
+<p>And we're now hitting our first scaling problem:</p>
 
 <blockquote>
-    <p>what if we can’t fit the model into GPU memory even with <code>BS=1</code>?</p>
+    <p>what if we can't fit the model into GPU memory even with <code>BS=1</code>?</p>
 </blockquote>
 
 <p>Good question, reader!</p>
 
-<p>Let’s start by understanding what led to our out-of-memory issue in the first place.</p>
+<p>Let's start by understanding what led to our out-of-memory issue in the first place.</p>
 
 <h2>A brief overview of memory usage in Transformers</h2>
 
@@ -190,22 +255,22 @@ bst=bs *seq
     <li>optimizer states</li>
     <li>activations computed during the forward pass and which are needed to compute the backward pass</li>
     <li>also CUDA Kernels require 1-2GB of GPU memory which you can quickly check yourself by running <code>import torch; torch.ones((1, 1)).to("cuda")</code> and then checking the GPU memory with <code>nvidia-smi</code></li>
-    <li>lower rest memory usage from buffers, intermediate results and some memory that can’t be used due to fragmentation</li>
+    <li>lower rest memory usage from buffers, intermediate results and some memory that can't be used due to fragmentation</li>
 </ul>
 
-<p>Scaling up training is usually a question of playing with those constituents to keep memory low while not impacting performance too much. We’ll neglect the last two contributors as there’s usually not that much you can do about them unless you dive deep in the code.</p>
+<p>Scaling up training is usually a question of playing with those constituents to keep memory low while not impacting performance too much. We'll neglect the last two contributors as there's usually not that much you can do about them unless you dive deep in the code.</p>
 
-<p>For the rest, they are usually different types of tensors that can have various sizes (usually multiples of one or several of batch size, sequence length, model hidden dimension and some potential sharding) and various precisions (with optimizer states and weights copy being often kept in full FP32 precision while activations can be of lower precision like BF16 or FP8). Let’s try to get some intuition for the memory requirement of these various elements.</p>
+<p>For the rest, they are usually different types of tensors that can have various sizes (usually multiples of one or several of batch size, sequence length, model hidden dimension and some potential sharding) and various precisions (with optimizer states and weights copy being often kept in full FP32 precision while activations can be of lower precision like BF16 or FP8). Let's try to get some intuition for the memory requirement of these various elements.</p>
 
-<p>Let’s first look at the weights, gradients and optimizer states. They are all dependent on the number of parameters in a model. For a simple LLM the number of parameters is given by the following formula:</p>
+<p>Let's first look at the weights, gradients and optimizer states. They are all dependent on the number of parameters in a model. For a simple LLM the number of parameters is given by the following formula:</p>
 
 <d-math>
 N = h*v + L * (12 * h^2 + 13*h) + 2*h
 </d-math>
 
-<p>In that equation, <em>h</em> corresponds to the hidden dimension, <em>v</em> to the vocabulary size, and <em>L</em> the number of layers in the model. Note that looking at the equation we can see that the term that will dominate at large model scales is the one with <em>h^2</em> since it’s the only term growing quadratically as we scale the models.</p>
+<p>In that equation, <em>h</em> corresponds to the hidden dimension, <em>v</em> to the vocabulary size, and <em>L</em> the number of layers in the model. Note that looking at the equation we can see that the term that will dominate at large model scales is the one with <em>h^2</em> since it's the only term growing quadratically as we scale the models.</p>
 
-<p>Let’s see how the number of parameters translates to memory usage. The memory requirements for the parameters and gradients are the number of parameters multiplied by the number of bytes per parameter. Mixed precision training with BF16 is the default nowadays which requires 2 bytes per parameter. In addition, there are a number of values necessary for the optimizer states: for ADAM it requires the momentum and the variance in FP32, each using 4 bytes, and an additional copy of the model weights in FP32, thus 12 bytes per parameter (ref: <a href="https://arxiv.org/pdf/1910.02054">ZeRO</a>):</p>
+<p>Let's see how the number of parameters translates to memory usage. The memory requirements for the parameters and gradients are the number of parameters multiplied by the number of bytes per parameter. Mixed precision training with BF16 is the default nowadays which requires 2 bytes per parameter. In addition, there are a number of values necessary for the optimizer states: for ADAM it requires the momentum and the variance in FP32, each using 4 bytes, and an additional copy of the model weights in FP32, thus 12 bytes per parameter (ref: <a href="https://arxiv.org/pdf/1910.02054">ZeRO</a>):</p>
 
 <d-math>
 m_{params} = 2 * N 
@@ -213,7 +278,7 @@ m_{grad} = 2 * N
 m_{opt} = (4+4+4) * N
 </d-math>
 
-<p>In old-fashioned full precision training both parameters and gradients would require 4 bytes each but the optimizer on the other hand wouldn’t need to store an extra full precision copy of the weights:</p>
+<p>In old-fashioned full precision training both parameters and gradients would require 4 bytes each but the optimizer on the other hand wouldn't need to store an extra full precision copy of the weights:</p>
 
 <d-math>
 m_{params} = 4 * N 
@@ -221,7 +286,8 @@ m_{grad} = 4 * N
 m_{opt} = (4+4) * N
 </d-math>
 
-<p>So we can easily see that mixed precision itself doesn’t save memory as it just distributes the memory differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can quickly get a sense of how much GPU memory we need for a model:</p>
+<p>So we can easily see that mixed precision itself doesn't save memory as it just distributes the memory differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can quickly get a sense of how much GPU memory we need for a model:</p>
+<p>So we can easily see that mixed precision itself doesn't save memory as it just distributes the memory differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can quickly get a sense of how much GPU memory we need for a model:</p>
 
 <table>
     <thead>
@@ -250,24 +316,24 @@ m_{opt} = (4+4) * N
     </tbody>
 </table>
 
-<p>We can further decrease the memory usage if we choose FP8 training instead of BF16 but it is much less stable and a very active research topic (see <a href="https://x.com/xariusrke/status/1826669126955278401">here</a>) thus we won’t go in details here.</p>
+<p>We can further decrease the memory usage if we choose FP8 training instead of BF16 but it is much less stable and a very active research topic (see <a href="https://x.com/xariusrke/status/1826669126955278401">here</a>) thus we won't go in details here.</p>
 
-<p>But we are not done yet, we’ll also need to store the forward pass activations which are used during the backward pass to compute the gradients. The total memory required for the activations in mixed precision (which contributes the leading factor of 2 below) is given by the following equation:</p>
+<p>But we are not done yet, we'll also need to store the forward pass activations which are used during the backward pass to compute the gradients. The total memory required for the activations in mixed precision (which contributes the leading factor of 2 below) is given by the following equation:</p>
 
 <d-math>
 m_{act} =  2 * L* seq * bs * h * (34 +   \frac{5*n_{heads}*seq}{h})
 </d-math>
 
-<p>You can follow <a href="https://arxiv.org/pdf/2205.05198">this NVIDIA paper</a> for a complete derivation, it essentially requires you to do some accounting of all the sizes of intermediate activations between each operation. What’s interesting here is that the memory is not static for a given model but depends critically on the sequence length. We can use the memory formulas and have a look how the memory usage changes for a model for various sequence lengths:</p>
+<p>You can follow <a href="https://arxiv.org/pdf/2205.05198">this NVIDIA paper</a> for a complete derivation, it essentially requires you to do some accounting of all the sizes of intermediate activations between each operation. What's interesting here is that the memory is not static for a given model but depends critically on the sequence length. We can use the memory formulas and have a look how the memory usage changes for a model for various sequence lengths:</p>
 
 <img src="assets/images/image%206.png" alt="Memory Usage Graph 1">
 <img src="assets/images/image%207.png" alt="Memory Usage Graph 2">
 
 <p>This graph tells a striking story: for short sequences, activations are almost negligible, but starting at around 2-4k tokens they start to take up a significant amount of memory while parameter, gradient and optimizer state are roughly independent of the sequence length and batch size. For large batch/sequence, activations however become by far the largest memory burden.</p>
 
-<p>Is there a way to tame this “activation explosion”?</p>
+<p>Is there a way to tame this "activation explosion"?</p>
 
-<p>Good question, reader! I see you’re following well and you’re lucky as the answer is “Yes”! Let’s talk about a technique called <strong>gradient checkpointing</strong> or more frequently <strong>activation recomputation</strong> which can help us cap activation memory footprint and is an essential tool in today’s large model training toolbox.</p>
+<p>Good question, reader! I see you're following well and you're lucky as the answer is "Yes"! Let's talk about a technique called <strong>gradient checkpointing</strong> or more frequently <strong>activation recomputation</strong> which can help us cap activation memory footprint and is an essential tool in today's large model training toolbox.</p>
 
 <h3>Activation recomputation</h3>
 
@@ -277,12 +343,13 @@ m_{act} =  2 * L* seq * bs * h * (34 +   \frac{5*n_{heads}*seq}{h})
 
 <p>We can select these key activations according to several strategies and modern frameworks usually choose among the following three strategies:</p>
 <ul>
-    <li><strong>None</strong>: We don’t recompute activations during the backward pass and keep all activations in memory. While this is the fastest and thus computationally cheapest option, it also requires the most memory.</li>
+    <li><strong>None</strong>: We don't recompute activations during the backward pass and keep all activations in memory. While this is the fastest and thus computationally cheapest option, it also requires the most memory.</li>
     <li><strong>Full</strong>: The simplest strategy from a conceptual point of view is to checkpoint activations between each Transformer layer. This is usually called the <code>full</code> strategy since it requires a forward pass through each layer essentially adding a full forward pass during the backward pass. This strategy saves the most memory but is the most expensive one in terms of compute. This increases the compute cost by up to 30-40% which is very noticeable.</li>
     <li><strong>Selective</strong>: In general we can do better than full. The authors of <a href="https://arxiv.org/pdf/2205.05198">this paper</a> did a detailed analysis studying which activations grow the largest and have the cheapest recomputation cost in terms of FLOPs. Turns out that the attention computations fall in that category, and thus we can usually discard them and focus on checkpointing expensive feedforward computations. Note: for a GPT-3 (175B) model this means 70% activation memory reduction at a 2.7% compute cost.</li>
 </ul>
 
-<p>Let’s see how recomputation strategies can drastically reduce the memory footprint while selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
+<p>Let's see how recomputation strategies can drastically reduce the memory footprint while selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
+<p>Let's see how recomputation strategies can drastically reduce the memory footprint while selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
 
 <img src="assets/images/image%208.png" alt="Recomputation Strategies">
 
@@ -402,7 +469,7 @@ GeLU(XW1 + XW2) \neq GeLU(XW1) + GeLU(XW2)
 
 <p>If you rather like code, note that we can prove this with the following snippet as well:</p>
 
-<pre>
+<d-code block language="python">
 def example_gelu():
     from torch.nn.functional import gelu
     
@@ -426,7 +493,7 @@ def example_gelu():
     
     # Mismatch
     torch.testing.assert_close(y_row_1, y_row_2, rtol=1e-5, atol=1e-5)
-</pre>
+</d-code>
 
 <p>To avoid a synchronization step directly after the first MLP, we’ll thus start with Column Parallel and be able to directly perform parallel GELU.</p>
 
@@ -444,7 +511,7 @@ def example_gelu():
 <img src="assets/images/image%2015.png" alt="Backward Pass 1">
 <img src="assets/images/image%2016.png" alt="Backward Pass 2">
 
-<pre>
+<d-code block language="python">
 def column_linear_forward(X, local_W, group):
     Y_local = X @ local_W.t()
     return Y_local
@@ -517,7 +584,7 @@ if __name__ == "__main__":
     torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
 
     example_column_row_linear()
-</pre>
+</d-code>
 
 <p>Now that we’ve found the most efficient schema for the Feedforward part of the transformer, let’s take a look at the multi-head attention block (MHA).</p>
 
@@ -746,7 +813,7 @@ x_{d-1}\cos mθ_{d/2-1} + x_{d-1}\sin mθ_{d/2-1}  \\
     </d-math>
     <p>The angle of rotation, <em>θ<sub>i</sub></em> is defined as follows, where <em>d</em> is the dimension of the attention head:</p>
     <d-math>
-θ<sub>i</sub> = base<sup>-2(i-1)/d</sup>, i∈  [1,2,...,d/2]
+θ<sub>i</sub> = base<sup>-2(i-1)/d</sup>, i \in [1,2,...,d/2]
     </d-math>
     <p>How does this look? When moving the same distance, vectors in some dimensions rotate faster than vectors in other dimensions.</p>
     <img src="assets/images/rotation_speed.jpeg" alt="Rotation Speed">
@@ -913,5 +980,6 @@ x_{d-1}\cos mθ_{d/2-1} + x_{d-1}\sin mθ_{d/2-1}  \\
         });
     }
 </script>
+
 </body>
 </html>
