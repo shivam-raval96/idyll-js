@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <script src="distill.bundle.js" type="module" fetchpriority="high" blocking></script>
     <script src="main.bundle.js" type="module" fetchpriority="low" defer></script>
@@ -9,45 +10,77 @@
     <title>FineWeb: decanting the web for the finest text data at scale</title>
     <link rel="stylesheet" href="style.css">
     <style>
-    #controls {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        gap: 5px;
-        align-items: center;
-        max-width: 700px;
-        margin-bottom: 10px;
-    }
-    #controls .row {
-        display: contents;
-    }
-    #controls label {
-        text-align: right;
-        padding-right: 10px;
-    }
-    #controls input[type="range"] {
-        width: 100%;
-    }
-    #controls input[type="number"] {
-        width: 60px;
-    }
-    #controls select {
-        width: 100%;
-    }
-    #controls .column {
-        display: contents;
-    }
-    #graph svg {
-        font-family: sans-serif;
-    }
-    #graph svg rect {
-        cursor: pointer;
-    }
+        #controls {
+            display: grid;
+            grid-template-columns: 350px 350px;
+            gap: 1px;
+            align-items: center;
+            max-width: 700px;
+            margin: 0 auto 20px;
+            padding: 0 10px;
+        }
+
+        #controls .row {
+            display: contents;
+        }
+
+        #controls .cell {
+            padding: 1px;
+            box-sizing: border-box;
+        }
+
+        #controls .column-1 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #controls .column-2 {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        #controls label {
+            text-align: right;
+            padding-right: 10px;
+            flex: 0 0 auto;
+            width: 150px;
+            line-height: 1.5em;
+            font-size: 0.8em;
+        }
+
+        #controls input[type="range"] {
+            width: 50%;
+            margin: 0 10px;
+        }
+
+        #controls input[type="number"] {
+            width: 60px;
+            height: 20px;
+        }
+
+        #controls select {
+            width: 100%;
+        }
+
+        #controls .column {
+            display: contents;
+        }
+
+        #graph svg {
+            font-family: sans-serif;
+        }
+
+        #graph svg rect {
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
-<d-front-matter>
-    <script id='distill-front-matter' type="text/json">{
+    <d-front-matter>
+        <script id='distill-front-matter' type="text/json">{
     "title": "🔭 Ultra-Guide to Scaling LLM training",
     "description": "This blog covers everything about scaling LLMs in 2024.",
     "published": "Sept 28, 2024",
@@ -69,93 +102,71 @@
     }
   }
     </script>
-</d-front-matter>
-<d-title>
-    <h1 class="l-page" style="text-align: center;">🔭 Ultra-Guide to Scaling LLM training</h1>
-    <div id="title-plot" class="main-plot-container l-screen">
-        <figure>
-            <img src="assets/images/banner.png" alt="FineWeb">
-        </figure>
-        <!-- <div id="clusters-plot">
+    </d-front-matter>
+    <d-title>
+        <h1 class="l-page" style="text-align: center;">🔭 Ultra-Guide to Scaling LLM training</h1>
+        <div id="title-plot" class="main-plot-container l-screen">
+            <figure>
+                <img src="assets/images/banner.png" alt="FineWeb">
+            </figure>
+            <!-- <div id="clusters-plot">
             <img src="assets/images/clusters.png" alt="Clusters">
         </div> -->
-    </div>
-</d-title>
-<d-byline></d-byline>
-<d-article>
-    <d-contents>
-    </d-contents>
+        </div>
+    </d-title>
+    <d-byline></d-byline>
+    <d-article>
+        <d-contents>
+        </d-contents>
 
-    <p>The performance of a large language model (LLM) depends heavily on the quality and size of the LLMs.
-        However, the pretraining datasets for state-of-the-art open LLMs like Llama 3<d-cite bibtex-key="llama3modelcard"></d-cite> and Mixtral<d-cite bibtex-key="jiang2024mixtral"></d-cite> are not publicly available and very little is known about how they were created.</p>
+        <p>The performance of a large language model (LLM) depends heavily on the quality and size of the LLMs.
+            However, the pretraining datasets for state-of-the-art open LLMs like Llama 3<d-cite
+                bibtex-key="llama3modelcard"></d-cite> and Mixtral<d-cite bibtex-key="jiang2024mixtral"></d-cite> are
+            not publicly available and very little is known about how they were created.</p>
         <aside>Reading time: 7 days. For the best reading experience, we recommend not using a mobile phone.</aside>
 
-        <p>Recently, we released <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb"><strong>🍷 FineWeb</strong></a>, a new, large-scale
-        (<strong>15-trillion tokens, 44TB disk space</strong>) dataset for LLM pretraining. FineWeb is derived from 96 <a href="https://commoncrawl.org/">CommonCrawl</a> snapshots and produces <strong>better-performing LLMs than other open pretraining datasets</strong>.
+        <p>Recently, we released <a href="https://huggingface.co/datasets/HuggingFaceFW/fineweb"><strong>🍷
+                    FineWeb</strong></a>, a new, large-scale
+            (<strong>15-trillion tokens, 44TB disk space</strong>) dataset for LLM pretraining. FineWeb is derived from
+            96 <a href="https://commoncrawl.org/">CommonCrawl</a> snapshots and produces <strong>better-performing LLMs
+                than other open pretraining datasets</strong>.
 
-        <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating the template on which we based this blog post.</aside>
+        <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating
+            the template on which we based this blog post.</aside>
 
         <div id="graph" style="position: relative; width: 700px; height: 500px;"></div>
         <div id="controls">
-            <div class="column">
-                <div class="row">
+            <div class="row">
+                <div class="cell column-1">
                     <label for="a">Attention Heads (a):</label>
                     <input type="range" id="a" name="a" min="1" max="128" value="8">
                     <input type="number" id="a_input" value="8" min="1" max="128">
                 </div>
-                <div class="row">
-                    <label for="b">Micro Batch Size (b):</label>
-                    <input type="range" id="b" name="b" min="1" max="53248" value="32">
-                    <input type="number" id="b_input" value="32" min="1" max="53248">
-                </div>
-                <div class="row">
-                    <label for="h">Hidden Dimension Size (h):</label>
-                    <input type="range" id="h" name="h" min="1" max="16384" value="512">
-                    <input type="number" id="h_input" value="512" min="128" max="16384">
-                </div>
-                <div class="row">
-                    <label for="h_ff">Feedforward Dimension Size (h_ff):</label>
-                    <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
-                    <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
-                </div>
-                <div class="row">
-                    <label for="L">Number of Layers (L):</label>
-                    <input type="range" id="L" name="L" min="1" max="126" value="12">
-                    <input type="number" id="L_input" value="12" min="1" max="126">
-                </div>
-                <div class="row">
-                    <label for="s">Sequence Length (s):</label>
-                    <input type="range" id="s" name="s" min="1" max="128000" value="128">
-                    <input type="number" id="s_input" value="128" min="64" max="128000">
-                </div>
-                <div class="row">
-                    <label for="v">Vocabulary Size (v):</label>
-                    <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
-                    <input type="number" id="v_input" value="30522" min="1000" max="100000">
-                </div>
-                <div class="row">
-                    <label for="k">Optimizer Parameters (k):</label>
-                    <input type="range" id="k" name="k" min="1" max="16" value="8">
-                    <input type="number" id="k_input" value="8" min="1" max="16">
-                </div>
-                <div class="row">
-                    <label for="tp">Tensor Model Parallelism (t):</label>
-                    <input type="range" id="tp" name="tp" min="1" max="16" value="8">
-                    <input type="number" id="tp_input" value="8" min="1" max="16">
-                </div>
-                <div class="row">
-                    <label for="dp">Data Model Parallelism (d):</label>
-                    <input type="range" id="dp" name="dp" min="1" max="256" value="1">
-                    <input type="number" id="dp_input" value="1" min="1" max="256">
-                </div>
-            </div>
-            <div class="column">
-                <div class="row">
+                <div class="cell column-2">
                     <label for="mixed">Mixed Precision:</label>
                     <input type="checkbox" id="mixed" name="mixed" checked>
                     <span></span> <!-- Empty span to maintain grid alignment -->
                 </div>
-                <div class="row">
+            </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="b">Micro Batch Size (b):</label>
+                    <input type="range" id="b" name="b" min="1" max="53248" value="32">
+                    <input type="number" id="b_input" value="32" min="1" max="53248">
+                </div>
+                <div class="cell column-2">
+                    <label for="seq_parallel">Sequence Parallelism:</label>
+                    <input type="checkbox" id="seq_parallel" name="seq_parallel">
+                    <span></span> <!-- Empty span to maintain grid alignment -->
+                </div>
+            </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="h">Hidden Dimension (h):</label>
+                    <input type="range" id="h" name="h" min="1" max="16384" value="512">
+                    <input type="number" id="h_input" value="512" min="128" max="16384">
+                </div>
+                <div class="cell column-2">
                     <label for="recomputation">Recomputation:</label>
                     <select id="recomputation" name="recomputation">
                         <option value="none">None</option>
@@ -163,8 +174,16 @@
                         <option value="full">Full</option>
                     </select>
                     <span></span> <!-- Empty span to maintain grid alignment -->
+
                 </div>
-                <div class="row">
+            </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="h_ff">Feedforward Dimension (h_ff):</label>
+                    <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
+                    <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
+                </div>
+                <div class="cell column-2">
                     <label for="zero">Zero:</label>
                     <select id="zero" name="zero">
                         <option value="0">0</option>
@@ -174,7 +193,14 @@
                     </select>
                     <span></span> <!-- Empty span to maintain grid alignment -->
                 </div>
-                <div class="row">
+            </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="L">Number of Layers (L):</label>
+                    <input type="range" id="L" name="L" min="1" max="126" value="12">
+                    <input type="number" id="L_input" value="12" min="1" max="126">
+                </div>
+                <div class="cell column-2">
                     <label for="ff_activation">FF Activation:</label>
                     <select id="ff_activation" name="ff_activation">
                         <option value="relu">ReLU</option>
@@ -183,7 +209,14 @@
                     </select>
                     <span></span> <!-- Empty span to maintain grid alignment -->
                 </div>
-                <div class="row">
+            </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="s">Sequence Length (s):</label>
+                    <input type="range" id="s" name="s" min="1" max="128000" value="128">
+                    <input type="number" id="s_input" value="128" min="64" max="128000">
+                </div>
+                <div class="cell column-2">
                     <label for="presets">Presets:</label>
                     <select id="presets" name="presets">
                         <option value="Llama 3 Tiny">Llama 3 Tiny</option>
@@ -194,793 +227,1026 @@
                     <span></span> <!-- Empty span to maintain grid alignment -->
                 </div>
             </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="v">Vocabulary Size (v):</label>
+                    <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
+                    <input type="number" id="v_input" value="30522" min="1000" max="100000">
+                </div>
+                <div class="cell column-2">
+                    <label for="tp">Tensor Parallelism (t):</label>
+                    <input type="range" id="tp" name="tp" min="1" max="16" value="8">
+                    <input type="number" id="tp_input" value="8" min="1" max="16">
+                </div>
+            </div>
+            <div class="row">
+                <div class="cell column-1">
+                    <label for="k">Optimizer Parameters (k):</label>
+                    <input type="range" id="k" name="k" min="1" max="16" value="8">
+                    <input type="number" id="k_input" value="8" min="1" max="16">
+                </div>
+                <div class="cell column-2">
+                    <label for="dp">Data Parallelism (d):</label>
+                    <input type="range" id="dp" name="dp" min="1" max="256" value="1">
+                    <input type="number" id="dp_input" value="1" min="1" max="256">
+                </div>
+            </div>
         </div>
-        
-    <p><strong>TLDR:</strong> This blog covers a discussion on processing and evaluating data quality at scale, the 🍷 FineWeb
-        recipe (listing and explaining all of our design choices), and the process followed to create its 📚 FineWeb-Edu subset.</p>
-
-    <h2>Scaling Models and Hardware</h2>
-
-    <p>Now that we know the basics of distributed communication and computations it's time to apply this to training LLMs at scale. Here's the plan of action: we'll go through increasingly complex distribution strategies, namely data, then tensor and finally pipeline parallelism, and show three things:</p>
-
-    <ol>
-        <li>conceptual explanations with diagrams</li>
-        <li>a minimal coding example illustrating how to implement said strategy</li>
-        <li>scaling experiments show casing strengths and limits of the method with real data</li>
-    </ol>
-
-    <p>For the experiments we scale across two dimensions: we make the models larger and larger and add more and more compute nodes and measure how throughput changes.</p>
 
-    <p>So this is a good point to get ☕ #2 and we'll have a look at the setup for the practical experiments.</p>
-
-    <h2>Experiment setup</h2>
+        <p><strong>TLDR:</strong> This blog covers a discussion on processing and evaluating data quality at scale, the
+            🍷 FineWeb
+            recipe (listing and explaining all of our design choices), and the process followed to create its 📚
+            FineWeb-Edu subset.</p>
+
+        <h2>Scaling Models and Hardware</h2>
+
+        <p>Now that we know the basics of distributed communication and computations it's time to apply this to training
+            LLMs at scale. Here's the plan of action: we'll go through increasingly complex distribution strategies,
+            namely data, then tensor and finally pipeline parallelism, and show three things:</p>
+
+        <ol>
+            <li>conceptual explanations with diagrams</li>
+            <li>a minimal coding example illustrating how to implement said strategy</li>
+            <li>scaling experiments show casing strengths and limits of the method with real data</li>
+        </ol>
+
+        <p>For the experiments we scale across two dimensions: we make the models larger and larger and add more and
+            more compute nodes and measure how throughput changes.</p>
+
+        <p>So this is a good point to get ☕ #2 and we'll have a look at the setup for the practical experiments.</p>
+
+        <h2>Experiment setup</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><strong>1B (1)</strong></th>
+                    <th><strong>7B</strong></th>
+                    <th><strong>70B</strong></th>
+                    <th><strong>340B (2)</strong></th>
+                    <th><strong>400B (3)</strong></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>N Layers</strong></td>
+                    <td>24</td>
+                    <td>32</td>
+                    <td>80</td>
+                    <td>96</td>
+                    <td>126</td>
+                </tr>
+                <tr>
+                    <td><strong>N Heads</strong></td>
+                    <td>32</td>
+                    <td>32</td>
+                    <td>64</td>
+                    <td>96</td>
+                    <td>128</td>
+                </tr>
+                <tr>
+                    <td><strong>Dimension</strong></td>
+                    <td>2048</td>
+                    <td>4096</td>
+                    <td>8192</td>
+                    <td>18432</td>
+                    <td>16384</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>(1) FineWeb ablation models</p>
+        <p>(2) Nemotron-340B architecture (without GQA)</p>
+        <p>(3) Llama-400B, ffn dim = 1.2 hidden dim (without GQA)</p>
+
+
+        <h2>Distribution Methods</h2>
+
+        <p>Efficiently training LLMs now requires amounts of compute which exceed in most case single GPUs or machine.
+            Large distributed clusters are thus used to train these models and can range from hundreds to thousands of
+            nodes each usually equipped with up to 8 GPUs. To make the best use of such an expensive hardware, a range
+            of distributed training methods have been developed with the goal of ensuring that GPUs are highly utilized
+            at all times and not waiting for data/synchronization/etc.</p>
+
+        <p>Several methods can be used to distribute training and we'll start with 4D parallelism followed-up by
+            DeepSpeed stages. While we explain these strategies we'll also run experiments to determine the trade-offs
+            and understand the optimal settings.</p>
+        <p>The name "4D parallelism" originates from the fact that it involves combining up to 4 distribution methods:
+            data, tensor, pipeline, and sequence parallelism (each of these techniques can be used independently of the
+            other). You may thus ask "So which one should I use?".</p>
+
+        <p>Unfortunately, there is no universal answer as the response will actually depend on the cluster setup as well
+            as the model architecture. But do not despair for in this section we'll develop strategies to figure out the
+            best setting experimentally!</p>
+
+        <p>In addition to 4D parallelism we'll also take a look at "DeepSpeed", a method developed by Microsoft which is
+            generally complimentary to 4D parallelism and can be leveraged on top of it.</p>
+
+        <p><strong>Idea: show two things in every section</strong></p>
+        <ol>
+            <li>a small toy model (e.g. 4 layer FFN) we can interactively show with every approach</li>
+            <li>a benchmark showing the improvement/limits of the approach (e.g. when you cross 1 node with TP)</li>
+        </ol>
+
+        <h3>No Parallelism</h3>
+
+        <p>Let's quickly go over the basics before going into distributed training. When a model is trained on a single
+            GPU, the training consists of 3 steps in the simplest case:</p>
+        <ol>
+            <li>one forward pass,</li>
+            <li>one backward pass to compute the gradients, and</li>
+            <li>an optimization step using the gradients to update the parameters</li>
+        </ol>
 
-    <table>
-        <thead>
-            <tr>
-                <th></th>
-                <th><strong>1B (1)</strong></th>
-                <th><strong>7B</strong></th>
-                <th><strong>70B</strong></th>
-                <th><strong>340B (2)</strong></th>
-                <th><strong>400B (3)</strong></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><strong>N Layers</strong></td>
-                <td>24</td>
-                <td>32</td>
-                <td>80</td>
-                <td>96</td>
-                <td>126</td>
-            </tr>
-            <tr>
-                <td><strong>N Heads</strong></td>
-                <td>32</td>
-                <td>32</td>
-                <td>64</td>
-                <td>96</td>
-                <td>128</td>
-            </tr>
-            <tr>
-                <td><strong>Dimension</strong></td>
-                <td>2048</td>
-                <td>4096</td>
-                <td>8192</td>
-                <td>18432</td>
-                <td>16384</td>
-            </tr>
-        </tbody>
-    </table>
+        <p>As we'll see in the future, these steps may be repeated or intertwined but for now we'll start simple:</p>
+        <p>As we'll see in the future, these steps may be repeated or intertwined but for now we'll start simple:</p>
 
-    <p>(1) FineWeb ablation models</p>
-    <p>(2) Nemotron-340B architecture (without GQA)</p>
-    <p>(3) Llama-400B, ffn dim = 1.2 hidden dim (without GQA)</p>
+        <img src="assets/images/IMG_7537D08D7F41-1.jpeg" alt="Training Steps">
 
+        <p>In this figure the successive blue boxes on the top line can be seen as successive layers inside a model
+            (same for the last line). The red boxes are the associated gradients for each of these layers.</p>
 
-    <h2>Distribution Methods</h2>
+        <p>The batch size (<em>bs</em>) is one of the most important hyper-parameters in machine learning, affecting
+            both model convergence and throughput.</p>
 
-    <p>Efficiently training LLMs now requires amounts of compute which exceed in most case single GPUs or machine. Large distributed clusters are thus used to train these models and can range from hundreds to thousands of nodes each usually equipped with up to 8 GPUs. To make the best use of such an expensive hardware, a range of distributed training methods have been developed with the goal of ensuring that GPUs are highly utilized at all times and not waiting for data/synchronization/etc.</p>
+        <p>If the batch size is too small, gradients will tend to be noisy and the model may not be able to converge to
+            optimal performances while a batch size too large can make the convergence of the model slower and waste
+            compute. You can find a nice discussion of this topic in OpenAI's paper on large batch training (<a
+                href="https://arxiv.org/abs/1812.06162">https://arxiv.org/pdf/1812.06162</a>).</p>
 
-    <p>Several methods can be used to distribute training and we'll start with 4D parallelism followed-up by DeepSpeed stages. While we explain these strategies we'll also run experiments to determine the trade-offs and understand the optimal settings.</p>
-<p>The name "4D parallelism" originates from the fact that it involves combining up to 4 distribution methods: data, tensor, pipeline, and sequence parallelism (each of these techniques can be used independently of the other). You may thus ask "So which one should I use?".</p>
+        <p>The batch size also affects the throughput: a small batch size will require more optimizer steps to train on
+            a given amount of samples. Optimizer steps are costly (in compute time) and the throughput will thus be
+            lower than when using a larger batch size. On the other hand, larger batches, while leading to higher
+            throughput may suffer from slow convergence in the limits as we've just seen. There is generally an optimal
+            batch size from a convergence/performance point of view (note that the batch size can usually still be
+            changed around the optimal batch size without major impact to the performance of the model).</p>
 
-<p>Unfortunately, there is no universal answer as the response will actually depend on the cluster setup as well as the model architecture. But do not despair for in this section we'll develop strategies to figure out the best setting experimentally!</p>
+        <p>Note that in the LLM community, batch sizes are commonly reported in terms of tokens instead of number of
+            samples (BST - Batch Size Tokens) as each token has a label and thus a loss term and can thus be considered
+            individual (although highly correlated) samples.</p>
 
-<p>In addition to 4D parallelism we'll also take a look at "DeepSpeed", a method developed by Microsoft which is generally complimentary to 4D parallelism and can be leveraged on top of it.</p>
+        <p>A sweet spot for LLM training is usually on the order of 4-20 million tokens per batch (links GPT-3,
+            DeepSeek, Llama). In the simplest case, training on a single machine, the <em>BS</em> and <em>BST</em> can
+            be computed from the model input sequence length as follows:</p>
 
-<p><strong>Idea: show two things in every section</strong></p>
-<ol>
-    <li>a small toy model (e.g. 4 layer FFN) we can interactively show with every approach</li>
-    <li>a benchmark showing the improvement/limits of the approach (e.g. when you cross 1 node with TP)</li>
-</ol>
-
-<h3>No Parallelism</h3>
-
-<p>Let's quickly go over the basics before going into distributed training. When a model is trained on a single GPU, the training consists of 3 steps in the simplest case:</p>
-<ol>
-    <li>one forward pass,</li>
-    <li>one backward pass to compute the gradients, and</li>
-    <li>an optimization step using the gradients to update the parameters</li>
-</ol>
-
-<p>As we'll see in the future, these steps may be repeated or intertwined but for now we'll start simple:</p>
-<p>As we'll see in the future, these steps may be repeated or intertwined but for now we'll start simple:</p>
-
-<img src="assets/images/IMG_7537D08D7F41-1.jpeg" alt="Training Steps">
-
-<p>In this figure the successive blue boxes on the top line can be seen as successive layers inside a model (same for the last line). The red boxes are the associated gradients for each of these layers.</p>
-
-<p>The batch size (<em>bs</em>) is one of the most important hyper-parameters in machine learning, affecting both model convergence and throughput.</p>
-
-<p>If the batch size is too small, gradients will tend to be noisy and the model may not be able to converge to optimal performances while a batch size too large can make the convergence of the model slower and waste compute. You can find a nice discussion of this topic in OpenAI's paper on large batch training (<a href="https://arxiv.org/abs/1812.06162">https://arxiv.org/pdf/1812.06162</a>).</p>
-
-<p>The batch size also affects the throughput: a small batch size will require more optimizer steps to train on a given amount of samples. Optimizer steps are costly (in compute time) and the throughput will thus be lower than when using a larger batch size. On the other hand, larger batches, while leading to higher throughput may suffer from slow convergence in the limits as we've just seen. There is generally an optimal batch size from a convergence/performance point of view (note that the batch size can usually still be changed around the optimal batch size without major impact to the performance of the model).</p>
+        <d-math>
+            bst=bs *seq
+        </d-math>
 
-<p>Note that in the LLM community, batch sizes are commonly reported in terms of tokens instead of number of samples (BST - Batch Size Tokens) as each token has a label and thus a loss term and can thus be considered individual (although highly correlated) samples.</p>
+        <p>(note that from here on forward we'll show the formulas for the batch size in number of samples but you can
+            always get its token-unit counterpart by multiplying it with the sequence length)</p>
 
-<p>A sweet spot for LLM training is usually on the order of 4-20 million tokens per batch (links GPT-3, DeepSeek, Llama). In the simplest case, training on a single machine, the <em>BS</em> and <em>BST</em> can be computed from the model input sequence length as follows:</p>
+        <p>And we're now hitting our first scaling problem:</p>
 
-<d-math>
-bst=bs *seq
-</d-math>
+        <blockquote>
+            <p>what if we can't fit the model into GPU memory even with <code>BS=1</code>?</p>
+        </blockquote>
 
-<p>(note that from here on forward we'll show the formulas for the batch size in number of samples but you can always get its token-unit counterpart by multiplying it with the sequence length)</p>
+        <p>Good question, reader!</p>
 
-<p>And we're now hitting our first scaling problem:</p>
+        <p>Let's start by understanding what led to our out-of-memory issue in the first place.</p>
 
-<blockquote>
-    <p>what if we can't fit the model into GPU memory even with <code>BS=1</code>?</p>
-</blockquote>
+        <h2>A brief overview of memory usage in Transformers</h2>
 
-<p>Good question, reader!</p>
-
-<p>Let's start by understanding what led to our out-of-memory issue in the first place.</p>
-
-<h2>A brief overview of memory usage in Transformers</h2>
-
-<p>To train a neural network model, one needs to store many elements in memory besides the weights themselves. Generally, the memory usage is made up from the following elements:</p>
-<ul>
-    <li>model weights</li>
-    <li>model gradients</li>
-    <li>optimizer states</li>
-    <li>activations computed during the forward pass and which are needed to compute the backward pass</li>
-    <li>also CUDA Kernels require 1-2GB of GPU memory which you can quickly check yourself by running <code>import torch; torch.ones((1, 1)).to("cuda")</code> and then checking the GPU memory with <code>nvidia-smi</code></li>
-    <li>lower rest memory usage from buffers, intermediate results and some memory that can't be used due to fragmentation</li>
-</ul>
-
-<p>Scaling up training is usually a question of playing with those constituents to keep memory low while not impacting performance too much. We'll neglect the last two contributors as there's usually not that much you can do about them unless you dive deep in the code.</p>
-
-<p>For the rest, they are usually different types of tensors that can have various sizes (usually multiples of one or several of batch size, sequence length, model hidden dimension and some potential sharding) and various precisions (with optimizer states and weights copy being often kept in full FP32 precision while activations can be of lower precision like BF16 or FP8). Let's try to get some intuition for the memory requirement of these various elements.</p>
-
-<p>Let's first look at the weights, gradients and optimizer states. They are all dependent on the number of parameters in a model. For a simple LLM the number of parameters is given by the following formula:</p>
-
-<d-math>
-N = h*v + L * (12 * h^2 + 13*h) + 2*h
-</d-math>
-
-<p>In that equation, <em>h</em> corresponds to the hidden dimension, <em>v</em> to the vocabulary size, and <em>L</em> the number of layers in the model. Note that looking at the equation we can see that the term that will dominate at large model scales is the one with <em>h^2</em> since it's the only term growing quadratically as we scale the models.</p>
-
-<p>Let's see how the number of parameters translates to memory usage. The memory requirements for the parameters and gradients are the number of parameters multiplied by the number of bytes per parameter. Mixed precision training with BF16 is the default nowadays which requires 2 bytes per parameter. In addition, there are a number of values necessary for the optimizer states: for ADAM it requires the momentum and the variance in FP32, each using 4 bytes, and an additional copy of the model weights in FP32, thus 12 bytes per parameter (ref: <a href="https://arxiv.org/pdf/1910.02054">ZeRO</a>):</p>
-
-<d-math>
-m_{params} = 2 * N 
-m_{grad} = 2 * N 
-m_{opt} = (4+4+4) * N
-</d-math>
-
-<p>In old-fashioned full precision training both parameters and gradients would require 4 bytes each but the optimizer on the other hand wouldn't need to store an extra full precision copy of the weights:</p>
-
-<d-math>
-m_{params} = 4 * N 
-m_{grad} = 4 * N 
-m_{opt} = (4+4) * N
-</d-math>
-
-<p>So we can easily see that mixed precision itself doesn't save memory as it just distributes the memory differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can quickly get a sense of how much GPU memory we need for a model:</p>
-<p>So we can easily see that mixed precision itself doesn't save memory as it just distributes the memory differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can quickly get a sense of how much GPU memory we need for a model:</p>
-
-<table>
-    <thead>
-        <tr>
-            <th>Model parameters</th>
-            <th>Memory requirements</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>1B</td>
-            <td>16 GB</td>
-        </tr>
-        <tr>
-            <td>7B</td>
-            <td>112 GB</td>
-        </tr>
-        <tr>
-            <td>70B</td>
-            <td>1120 GB</td>
-        </tr>
-        <tr>
-            <td>405B</td>
-            <td>6480 GB</td>
-        </tr>
-    </tbody>
-</table>
-
-<p>We can further decrease the memory usage if we choose FP8 training instead of BF16 but it is much less stable and a very active research topic (see <a href="https://x.com/xariusrke/status/1826669126955278401">here</a>) thus we won't go in details here.</p>
-
-<p>But we are not done yet, we'll also need to store the forward pass activations which are used during the backward pass to compute the gradients. The total memory required for the activations in mixed precision (which contributes the leading factor of 2 below) is given by the following equation:</p>
-
-<d-math>
-m_{act} =  2 * L* seq * bs * h * (34 +   \frac{5*n_{heads}*seq}{h})
-</d-math>
-
-<p>You can follow <a href="https://arxiv.org/pdf/2205.05198">this NVIDIA paper</a> for a complete derivation, it essentially requires you to do some accounting of all the sizes of intermediate activations between each operation. What's interesting here is that the memory is not static for a given model but depends critically on the sequence length. We can use the memory formulas and have a look how the memory usage changes for a model for various sequence lengths:</p>
-
-<img src="assets/images/image%206.png" alt="Memory Usage Graph 1">
-<img src="assets/images/image%207.png" alt="Memory Usage Graph 2">
-
-<p>This graph tells a striking story: for short sequences, activations are almost negligible, but starting at around 2-4k tokens they start to take up a significant amount of memory while parameter, gradient and optimizer state are roughly independent of the sequence length and batch size. For large batch/sequence, activations however become by far the largest memory burden.</p>
-
-<p>Is there a way to tame this "activation explosion"?</p>
-
-<p>Good question, reader! I see you're following well and you're lucky as the answer is "Yes"! Let's talk about a technique called <strong>gradient checkpointing</strong> or more frequently <strong>activation recomputation</strong> which can help us cap activation memory footprint and is an essential tool in today's large model training toolbox.</p>
-
-<h3>Activation recomputation</h3>
-
-<p>The general idea behind gradient checkpointing is to discard some activations to save memory if we are willing to spend some extra compute to recompute them when needed. Typically we will save activations at some key points in memory and discard the rest and recompute them during the backward pass from the nearest activations:</p>
-
-<img src="assets/images/IMG_C4260C5C58DC-1.jpeg" alt="Activation Recompute">
-
-<p>We can select these key activations according to several strategies and modern frameworks usually choose among the following three strategies:</p>
-<ul>
-    <li><strong>None</strong>: We don't recompute activations during the backward pass and keep all activations in memory. While this is the fastest and thus computationally cheapest option, it also requires the most memory.</li>
-    <li><strong>Full</strong>: The simplest strategy from a conceptual point of view is to checkpoint activations between each Transformer layer. This is usually called the <code>full</code> strategy since it requires a forward pass through each layer essentially adding a full forward pass during the backward pass. This strategy saves the most memory but is the most expensive one in terms of compute. This increases the compute cost by up to 30-40% which is very noticeable.</li>
-    <li><strong>Selective</strong>: In general we can do better than full. The authors of <a href="https://arxiv.org/pdf/2205.05198">this paper</a> did a detailed analysis studying which activations grow the largest and have the cheapest recomputation cost in terms of FLOPs. Turns out that the attention computations fall in that category, and thus we can usually discard them and focus on checkpointing expensive feedforward computations. Note: for a GPT-3 (175B) model this means 70% activation memory reduction at a 2.7% compute cost.</li>
-</ul>
-
-<p>Let's see how recomputation strategies can drastically reduce the memory footprint while selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
-<p>Let's see how recomputation strategies can drastically reduce the memory footprint while selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
-
-<img src="assets/images/image%208.png" alt="Recomputation Strategies">
-
-<p>Note: Hardware vs Model flops.</p>
-
-<p>Most frameworks these days use FlashAttention (TODO: see later) which makes the attention computation less memory intensive through kernel fusion, thus most trainings use the <code>full</code> settings.</p>
-
-<p>We can save some GPU memory with activation recomputation but this only delays by a bit the next bottleneck: as hinted earlier for LLM training there is usually a sweet spot for the GBST and we need to work out the training configuration backward from there. However, you can't choose MBS to be an arbitrary large number on your GPU; at some point you will run out of GPU memory again since you need to store at least some of the activations in memory.</p>
-
-<p>There is a useful trick to compensate for that: <strong>gradient accumulation</strong> (<em>GradAcc</em>). With gradient accumulation we will split our batch in micro-batch, do forward and backward passes repeatedly on each micro-batch, compute the gradients, and, as the name suggests, sum the gradients step by step before doing a final optimizer step.</p>
-
-<p>We call the <code>micro batch size</code> (MBS) the batch size for each forward pass on a single node (the number of samples flowing through the model in one forward pass). We'll refer to the overall batch size between each optimizer step as the <code>global batch size</code> (GBS). If we do one optimizer step each 8 forward/backward pass, the <code>global batch size</code> will be 8 times the <code>micro batch size</code>.</p>
-
-<p>What we now call <code>global batch size</code> thus corresponds to what we've called up to now just <code>batch size</code> for simplicity (we now make the terms more precise to avoid ambiguity).</p>
-
-<p>With gradient accumulation the global batch size can be computed as follows:</p>
-
-<d-math>
-BS = GBS=MBS * GradAcc 
-</d-math>
-
-<p>Gradient accumulation allows us to effectively increase our batch size up to infinity (!) while the memory footprint stays constant. Gradient accumulation is also compatible with activation recomputation for further memory reduction. One drawback however, is that gradient accumulation requires multiple consecutive forward/backward passes per optimization step thereby increasing the compute overhead and slowing down training. No free lunch!</p>
-
-<img src="assets/images/IMG_DA188FF29F45-1.jpeg" alt="Gradient Accumulation">
-
-<p>This is actually a bummer since the forward/backward passes for each micro-batch could actually totally be run in parallel. They are independent from each other and the only changing parameter are the input samples.</p>
-
-<p>Here comes data parallelism to solve exactly this problem! Let's take a look, you say? Okay sure!</p>
-
-<h3>Data Parallelism</h3>
-
-<p>The idea behind data parallelism (DP) is to parallelize forward and backward passes across GPUs, passing different batches of data per GPU (or groups of GPUs) to the same model instance. Just like for gradient accumulation, we need to average gradients across instances before we do the optimization step. The GBS equation can then be extended to:</p>
-
-<d-math>
-GBS=MBS * GradAcc * DP
-</d-math>
-
-<p>This means that we can reduce the number of gradient accumulation steps in favor of data parallel processes which speeds up training. In practice, people will tend to max out the number of data parallel nodes (the DP above) as much as possible as it's inherently parallel versus the sequential Gradient Accumulation. Gradient accumulation is then added only to achieve a target batch size if DP alone is not sufficient. One exception to that is pipeline parallelism which we'll discuss later.</p>
-
-<img src="assets/images/IMG_A95961668B3F-1.jpeg" alt="Data Parallelism">
-
-<p>As you can see on the figure above, some gradients can already be gathered and summed (red boxes) even before gradients down the line (red boxes on the left of the current gradient) are still being computed. This significantly speeds up data parallelism. For instance, as soon as the backward pass of the last layer is done (last boxes on the right) those gradients can already be gathered/summed while the backward pass computations move to earlier layers, aka to the left. This lowers the communication/bandwidth pressure to sync gradients of the full model as it can be performed in part in parallel to the computation of said gradients. See <a href="https://siboehm.com/articles/22/data-parallel-training">this article</a> for more information.</p>
-
-<p>A general recipe to determine an optimal data-parallel setup can be as follows:</p>
-<ol>
-    <li>Determine the best (global) batch size in tokens to use either by consulting literature or running experiments? This determines the GBST.</li>
-    <li>Select a sequence length for training, again by either consulting literature or running experiments. Generally 2-8k tokens works reliably well.</li>
-    <li>You now know the batch size (GBS=GBST/SeqLen). Find the maximum MBS on a single GPU by increasing the local batch size until you run out of memory. This determines the MBS.</li>
-    <li>Finally, the number of available GPUs corresponds to the potential DP. The ratio of GPT to DP determines the remaining number of gradient accumulation steps needed for the desired GBS.</li>
-</ol>
-
-<p>If the gradient accumulation ratio is lower than one, i.e. you have too many GPUs (!), you can either choose to not use all your GPUs or test if a lower MBS will speed up training. In these cases, you may want to prioritize throughput over the individual GPU utilization, you can then choose DP first and use a smaller MBS than possible in order to speed up training.</p>
-
-<p>Time to take a concrete example: We want to train a model with a GBS of 4M tokens and a sequence length of 4k. This means our batch size will be 1024 samples (we pick powers of two). We observe that a single of our GPU can fit MBS=2 in memory and we have 128 GPUs available for training. This means with 4 gradient accumulation steps we'll achieve our goal of 1024 samples or 4M tokens per training step. Now what if we suddenly have 1024 GPUs available? We can achieve the same GBS and thus identical training by setting both MBS and gradient accumulation to 1 speeding up training significantly.</p>
-
-<p>[EXPERIMENTS WHERE WE INCREASE DP AND SHOW THROUGHPUT FOR SEVERAL MODELS]</p>
-
-<p>We've explored data parallelism, a simple strategy to scale training across more GPUs and gives consistent speed improvements. The keen reader might have noticed however that it rests on the assumption that we can fit at least one input sample forward pass (<em>MBS=1</em>) into our GPU memory. This is not always the case! In particular for larger models which often don't fit into a single GPU anymore even with activation recomputations activated.</p>
-
-<p>In such case, we need to shard the model across devices! We'll now study two complementary sharding methods, tensor and pipeline parallelism which are doing that. Let's start by the simplest, tensor parallelism!</p>
-
-<h3>Tensor Parallelism</h3>
-
-<p>So you've exhausted all the previous textbook tricks to try to fit your model on a single GPU but it still doesn't fit? Let's try to distribute this model across several GPUs. Unlike DP we will not simply duplicate the model but various parts of the model instance will be living on various GPUs.</p>
-
-<p>If we take a look at a typical matrix multiplication (the core of a neural network), we can get an idea about how we could split the model:</p>
-
-<img src="assets/images/image%209.png" alt="Matrix Multiplication Example">
-
-<p>Tensor parallelism is a technique in which a tensor is split into N shards along a particular dimension across N GPUs. Matrices can be split either on the column part or row part leading to row and column parallelism. Depending on which splitting strategy we choose will require different communications primitives.</p>
-
-<p><strong>Column linear:</strong></p>
-<ul>
-    <li>Splitting by column or row involves different synchronization primitives:
+        <p>To train a neural network model, one needs to store many elements in memory besides the weights themselves.
+            Generally, the memory usage is made up from the following elements:</p>
         <ul>
-            <li>column:
+            <li>model weights</li>
+            <li>model gradients</li>
+            <li>optimizer states</li>
+            <li>activations computed during the forward pass and which are needed to compute the backward pass</li>
+            <li>also CUDA Kernels require 1-2GB of GPU memory which you can quickly check yourself by running
+                <code>import torch; torch.ones((1, 1)).to("cuda")</code> and then checking the GPU memory with
+                <code>nvidia-smi</code>
+            </li>
+            <li>lower rest memory usage from buffers, intermediate results and some memory that can't be used due to
+                fragmentation</li>
+        </ul>
+
+        <p>Scaling up training is usually a question of playing with those constituents to keep memory low while not
+            impacting performance too much. We'll neglect the last two contributors as there's usually not that much you
+            can do about them unless you dive deep in the code.</p>
+
+        <p>For the rest, they are usually different types of tensors that can have various sizes (usually multiples of
+            one or several of batch size, sequence length, model hidden dimension and some potential sharding) and
+            various precisions (with optimizer states and weights copy being often kept in full FP32 precision while
+            activations can be of lower precision like BF16 or FP8). Let's try to get some intuition for the memory
+            requirement of these various elements.</p>
+
+        <p>Let's first look at the weights, gradients and optimizer states. They are all dependent on the number of
+            parameters in a model. For a simple LLM the number of parameters is given by the following formula:</p>
+
+        <d-math>
+            N = h*v + L * (12 * h^2 + 13*h) + 2*h
+        </d-math>
+
+        <p>In that equation, <em>h</em> corresponds to the hidden dimension, <em>v</em> to the vocabulary size, and
+            <em>L</em> the number of layers in the model. Note that looking at the equation we can see that the term
+            that will dominate at large model scales is the one with <em>h^2</em> since it's the only term growing
+            quadratically as we scale the models.
+        </p>
+
+        <p>Let's see how the number of parameters translates to memory usage. The memory requirements for the parameters
+            and gradients are the number of parameters multiplied by the number of bytes per parameter. Mixed precision
+            training with BF16 is the default nowadays which requires 2 bytes per parameter. In addition, there are a
+            number of values necessary for the optimizer states: for ADAM it requires the momentum and the variance in
+            FP32, each using 4 bytes, and an additional copy of the model weights in FP32, thus 12 bytes per parameter
+            (ref: <a href="https://arxiv.org/pdf/1910.02054">ZeRO</a>):</p>
+
+        <d-math>
+            m_{params} = 2 * N
+            m_{grad} = 2 * N
+            m_{opt} = (4+4+4) * N
+        </d-math>
+
+        <p>In old-fashioned full precision training both parameters and gradients would require 4 bytes each but the
+            optimizer on the other hand wouldn't need to store an extra full precision copy of the weights:</p>
+
+        <d-math>
+            m_{params} = 4 * N
+            m_{grad} = 4 * N
+            m_{opt} = (4+4) * N
+        </d-math>
+
+        <p>So we can easily see that mixed precision itself doesn't save memory as it just distributes the memory
+            differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can
+            quickly get a sense of how much GPU memory we need for a model:</p>
+        <p>So we can easily see that mixed precision itself doesn't save memory as it just distributes the memory
+            differently across the three components. So by multiplying the number of parameters by 16 (=2+2+12) you can
+            quickly get a sense of how much GPU memory we need for a model:</p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Model parameters</th>
+                    <th>Memory requirements</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1B</td>
+                    <td>16 GB</td>
+                </tr>
+                <tr>
+                    <td>7B</td>
+                    <td>112 GB</td>
+                </tr>
+                <tr>
+                    <td>70B</td>
+                    <td>1120 GB</td>
+                </tr>
+                <tr>
+                    <td>405B</td>
+                    <td>6480 GB</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p>We can further decrease the memory usage if we choose FP8 training instead of BF16 but it is much less stable
+            and a very active research topic (see <a href="https://x.com/xariusrke/status/1826669126955278401">here</a>)
+            thus we won't go in details here.</p>
+
+        <p>But we are not done yet, we'll also need to store the forward pass activations which are used during the
+            backward pass to compute the gradients. The total memory required for the activations in mixed precision
+            (which contributes the leading factor of 2 below) is given by the following equation:</p>
+
+        <d-math>
+            m_{act} = 2 * L* seq * bs * h * (34 + \frac{5*n_{heads}*seq}{h})
+        </d-math>
+
+        <p>You can follow <a href="https://arxiv.org/pdf/2205.05198">this NVIDIA paper</a> for a complete derivation, it
+            essentially requires you to do some accounting of all the sizes of intermediate activations between each
+            operation. What's interesting here is that the memory is not static for a given model but depends critically
+            on the sequence length. We can use the memory formulas and have a look how the memory usage changes for a
+            model for various sequence lengths:</p>
+
+        <img src="assets/images/image%206.png" alt="Memory Usage Graph 1">
+        <img src="assets/images/image%207.png" alt="Memory Usage Graph 2">
+
+        <p>This graph tells a striking story: for short sequences, activations are almost negligible, but starting at
+            around 2-4k tokens they start to take up a significant amount of memory while parameter, gradient and
+            optimizer state are roughly independent of the sequence length and batch size. For large batch/sequence,
+            activations however become by far the largest memory burden.</p>
+
+        <p>Is there a way to tame this "activation explosion"?</p>
+
+        <p>Good question, reader! I see you're following well and you're lucky as the answer is "Yes"! Let's talk about
+            a technique called <strong>gradient checkpointing</strong> or more frequently <strong>activation
+                recomputation</strong> which can help us cap activation memory footprint and is an essential tool in
+            today's large model training toolbox.</p>
+
+        <h3>Activation recomputation</h3>
+
+        <p>The general idea behind gradient checkpointing is to discard some activations to save memory if we are
+            willing to spend some extra compute to recompute them when needed. Typically we will save activations at
+            some key points in memory and discard the rest and recompute them during the backward pass from the nearest
+            activations:</p>
+
+        <img src="assets/images/IMG_C4260C5C58DC-1.jpeg" alt="Activation Recompute">
+
+        <p>We can select these key activations according to several strategies and modern frameworks usually choose
+            among the following three strategies:</p>
+        <ul>
+            <li><strong>None</strong>: We don't recompute activations during the backward pass and keep all activations
+                in memory. While this is the fastest and thus computationally cheapest option, it also requires the most
+                memory.</li>
+            <li><strong>Full</strong>: The simplest strategy from a conceptual point of view is to checkpoint
+                activations between each Transformer layer. This is usually called the <code>full</code> strategy since
+                it requires a forward pass through each layer essentially adding a full forward pass during the backward
+                pass. This strategy saves the most memory but is the most expensive one in terms of compute. This
+                increases the compute cost by up to 30-40% which is very noticeable.</li>
+            <li><strong>Selective</strong>: In general we can do better than full. The authors of <a
+                    href="https://arxiv.org/pdf/2205.05198">this paper</a> did a detailed analysis studying which
+                activations grow the largest and have the cheapest recomputation cost in terms of FLOPs. Turns out that
+                the attention computations fall in that category, and thus we can usually discard them and focus on
+                checkpointing expensive feedforward computations. Note: for a GPT-3 (175B) model this means 70%
+                activation memory reduction at a 2.7% compute cost.</li>
+        </ul>
+
+        <p>Let's see how recomputation strategies can drastically reduce the memory footprint while selective
+            recomputation strikes a nice balance between memory saving and recomputation cost:</p>
+        <p>Let's see how recomputation strategies can drastically reduce the memory footprint while selective
+            recomputation strikes a nice balance between memory saving and recomputation cost:</p>
+
+        <img src="assets/images/image%208.png" alt="Recomputation Strategies">
+
+        <p>Note: Hardware vs Model flops.</p>
+
+        <p>Most frameworks these days use FlashAttention (TODO: see later) which makes the attention computation less
+            memory intensive through kernel fusion, thus most trainings use the <code>full</code> settings.</p>
+
+        <p>We can save some GPU memory with activation recomputation but this only delays by a bit the next bottleneck:
+            as hinted earlier for LLM training there is usually a sweet spot for the GBST and we need to work out the
+            training configuration backward from there. However, you can't choose MBS to be an arbitrary large number on
+            your GPU; at some point you will run out of GPU memory again since you need to store at least some of the
+            activations in memory.</p>
+
+        <p>There is a useful trick to compensate for that: <strong>gradient accumulation</strong> (<em>GradAcc</em>).
+            With gradient accumulation we will split our batch in micro-batch, do forward and backward passes repeatedly
+            on each micro-batch, compute the gradients, and, as the name suggests, sum the gradients step by step before
+            doing a final optimizer step.</p>
+
+        <p>We call the <code>micro batch size</code> (MBS) the batch size for each forward pass on a single node (the
+            number of samples flowing through the model in one forward pass). We'll refer to the overall batch size
+            between each optimizer step as the <code>global batch size</code> (GBS). If we do one optimizer step each 8
+            forward/backward pass, the <code>global batch size</code> will be 8 times the <code>micro batch size</code>.
+        </p>
+
+        <p>What we now call <code>global batch size</code> thus corresponds to what we've called up to now just
+            <code>batch size</code> for simplicity (we now make the terms more precise to avoid ambiguity).
+        </p>
+
+        <p>With gradient accumulation the global batch size can be computed as follows:</p>
+
+        <d-math>
+            BS = GBS=MBS * GradAcc
+        </d-math>
+
+        <p>Gradient accumulation allows us to effectively increase our batch size up to infinity (!) while the memory
+            footprint stays constant. Gradient accumulation is also compatible with activation recomputation for further
+            memory reduction. One drawback however, is that gradient accumulation requires multiple consecutive
+            forward/backward passes per optimization step thereby increasing the compute overhead and slowing down
+            training. No free lunch!</p>
+
+        <img src="assets/images/IMG_DA188FF29F45-1.jpeg" alt="Gradient Accumulation">
+
+        <p>This is actually a bummer since the forward/backward passes for each micro-batch could actually totally be
+            run in parallel. They are independent from each other and the only changing parameter are the input samples.
+        </p>
+
+        <p>Here comes data parallelism to solve exactly this problem! Let's take a look, you say? Okay sure!</p>
+
+        <h3>Data Parallelism</h3>
+
+        <p>The idea behind data parallelism (DP) is to parallelize forward and backward passes across GPUs, passing
+            different batches of data per GPU (or groups of GPUs) to the same model instance. Just like for gradient
+            accumulation, we need to average gradients across instances before we do the optimization step. The GBS
+            equation can then be extended to:</p>
+
+        <d-math>
+            GBS=MBS * GradAcc * DP
+        </d-math>
+
+        <p>This means that we can reduce the number of gradient accumulation steps in favor of data parallel processes
+            which speeds up training. In practice, people will tend to max out the number of data parallel nodes (the DP
+            above) as much as possible as it's inherently parallel versus the sequential Gradient Accumulation. Gradient
+            accumulation is then added only to achieve a target batch size if DP alone is not sufficient. One exception
+            to that is pipeline parallelism which we'll discuss later.</p>
+
+        <img src="assets/images/IMG_A95961668B3F-1.jpeg" alt="Data Parallelism">
+
+        <p>As you can see on the figure above, some gradients can already be gathered and summed (red boxes) even before
+            gradients down the line (red boxes on the left of the current gradient) are still being computed. This
+            significantly speeds up data parallelism. For instance, as soon as the backward pass of the last layer is
+            done (last boxes on the right) those gradients can already be gathered/summed while the backward pass
+            computations move to earlier layers, aka to the left. This lowers the communication/bandwidth pressure to
+            sync gradients of the full model as it can be performed in part in parallel to the computation of said
+            gradients. See <a href="https://siboehm.com/articles/22/data-parallel-training">this article</a> for more
+            information.</p>
+
+        <p>A general recipe to determine an optimal data-parallel setup can be as follows:</p>
+        <ol>
+            <li>Determine the best (global) batch size in tokens to use either by consulting literature or running
+                experiments? This determines the GBST.</li>
+            <li>Select a sequence length for training, again by either consulting literature or running experiments.
+                Generally 2-8k tokens works reliably well.</li>
+            <li>You now know the batch size (GBS=GBST/SeqLen). Find the maximum MBS on a single GPU by increasing the
+                local batch size until you run out of memory. This determines the MBS.</li>
+            <li>Finally, the number of available GPUs corresponds to the potential DP. The ratio of GPT to DP determines
+                the remaining number of gradient accumulation steps needed for the desired GBS.</li>
+        </ol>
+
+        <p>If the gradient accumulation ratio is lower than one, i.e. you have too many GPUs (!), you can either choose
+            to not use all your GPUs or test if a lower MBS will speed up training. In these cases, you may want to
+            prioritize throughput over the individual GPU utilization, you can then choose DP first and use a smaller
+            MBS than possible in order to speed up training.</p>
+
+        <p>Time to take a concrete example: We want to train a model with a GBS of 4M tokens and a sequence length of
+            4k. This means our batch size will be 1024 samples (we pick powers of two). We observe that a single of our
+            GPU can fit MBS=2 in memory and we have 128 GPUs available for training. This means with 4 gradient
+            accumulation steps we'll achieve our goal of 1024 samples or 4M tokens per training step. Now what if we
+            suddenly have 1024 GPUs available? We can achieve the same GBS and thus identical training by setting both
+            MBS and gradient accumulation to 1 speeding up training significantly.</p>
+
+        <p>[EXPERIMENTS WHERE WE INCREASE DP AND SHOW THROUGHPUT FOR SEVERAL MODELS]</p>
+
+        <p>We've explored data parallelism, a simple strategy to scale training across more GPUs and gives consistent
+            speed improvements. The keen reader might have noticed however that it rests on the assumption that we can
+            fit at least one input sample forward pass (<em>MBS=1</em>) into our GPU memory. This is not always the
+            case! In particular for larger models which often don't fit into a single GPU anymore even with activation
+            recomputations activated.</p>
+
+        <p>In such case, we need to shard the model across devices! We'll now study two complementary sharding methods,
+            tensor and pipeline parallelism which are doing that. Let's start by the simplest, tensor parallelism!</p>
+
+        <h3>Tensor Parallelism</h3>
+
+        <p>So you've exhausted all the previous textbook tricks to try to fit your model on a single GPU but it still
+            doesn't fit? Let's try to distribute this model across several GPUs. Unlike DP we will not simply duplicate
+            the model but various parts of the model instance will be living on various GPUs.</p>
+
+        <p>If we take a look at a typical matrix multiplication (the core of a neural network), we can get an idea about
+            how we could split the model:</p>
+
+        <img src="assets/images/image%209.png" alt="Matrix Multiplication Example">
+
+        <p>Tensor parallelism is a technique in which a tensor is split into N shards along a particular dimension
+            across N GPUs. Matrices can be split either on the column part or row part leading to row and column
+            parallelism. Depending on which splitting strategy we choose will require different communications
+            primitives.</p>
+
+        <p><strong>Column linear:</strong></p>
+        <ul>
+            <li>Splitting by column or row involves different synchronization primitives:
                 <ul>
-                    <li>A <strong>Broadcast</strong> operation is used to send the same input to different GPUs,</li>
-                    <li>Multiplications are done independently on the GPUs, and finally</li>
-                    <li>An <strong>All-gather</strong> operation is used to gather the output results.</li>
+                    <li>column:
+                        <ul>
+                            <li>A <strong>Broadcast</strong> operation is used to send the same input to different GPUs,
+                            </li>
+                            <li>Multiplications are done independently on the GPUs, and finally</li>
+                            <li>An <strong>All-gather</strong> operation is used to gather the output results.</li>
+                        </ul>
+                    </li>
+                    <li>Row:
+                        <ul>
+                            <li>A <strong>Scatter</strong> operation is used to split the input and send it to different
+                                GPUs (we split the weight row-wise),</li>
+                            <li>Multiplications are done independently on the GPUs, and finally</li>
+                            <li>An <strong>All-reduce</strong> operation is used to add the results together and the
+                                full output results.</li>
+                        </ul>
+                    </li>
                 </ul>
             </li>
-            <li>Row:
+        </ul>
+
+        <p>This was for an example matrix multiplication. How do we apply this in practice to a real model? In the
+            Transformer, there are 2 basic building blocks where tensor parallel can be applied:</p>
+        <ul>
+            <li>Feedforward layers (MLP)</li>
+            <li>Multi-Head Attention (MHA)</li>
+        </ul>
+
+        <p>Feedforward layers comprise 2 successive MLPs with a non-linearity in-between. Here is the first part of it:
+        </p>
+
+        <img src="assets/images/image%2012.png" alt="Feedforward Layers">
+
+        <p>Should we use row or column parallelization for the first MLP?</p>
+
+        <p>Well it turns out parallelized GeLU only works in Column schema:</p>
+
+        <p>In column schema:</p>
+        <d-math>
+            GeLU(cat([XW1, XW2])) = cat([GeLU(XW1), GeLU(XW2)])
+        </d-math>
+
+        <p>In row schema:</p>
+        <d-math>
+            GeLU(XW1 + XW2) \neq GeLU(XW1) + GeLU(XW2)
+        </d-math>
+
+        <p>If you rather like code, note that we can prove this with the following snippet as well:</p>
+
+        <d-code block language="python">
+            ```
+            </region_of_file_to_rewritten_file>
+            def example_gelu():
+            from torch.nn.functional import gelu
+
+            X = torch.randn(4, 2, device="cuda", dtype=torch.float32)
+            W = torch.randn(2, 2, device="cuda", dtype=torch.float32)
+
+            W_0, W_1 = W.chunk(2, dim=1)
+
+            # Column linear
+            y_col_1 = torch.cat([gelu(X @ W_0), gelu(X @ W_1)], dim=1)
+            y_col_2 = gelu(torch.cat([X @ W_0, X @ W_1], dim=1))
+
+            # All match
+            torch.testing.assert_close(y_col_1, y_col_2, rtol=1e-5, atol=1e-5)
+
+            # Row linear
+            X_0, X_1 = X.chunk(2, dim=1)
+            W_0, W_1 = W.chunk(2, dim=0)
+            y_row_1 = gelu(X_0 @ W_0) + gelu(X_1 @ W_1)
+            y_row_2 = gelu(X_0 @ W_0 + X_1 @ W_1)
+
+            # Mismatch
+            torch.testing.assert_close(y_row_1, y_row_2, rtol=1e-5, atol=1e-5)
+        </d-code>
+
+        <p>To avoid a synchronization step directly after the first MLP, we'll thus start with Column Parallel and be
+            able to directly perform parallel GELU.</p>
+
+        <p>Now, what about the second MLP? Should it be column or row parallel? Let's draft both options:</p>
+        <ul>
+            <li>Column Parallel followed by Column Parallel</li>
+            <img src="assets/images/image%2013.png" alt="Column Parallel Schema 1">
+            <li>Column Parallel followed by Row Parallel</li>
+            <img src="assets/images/image%2014.png" alt="Column Parallel Schema 2">
+        </ul>
+
+        <p>We see that the "Column Parallel followed by Row Parallel" schema only involves two communications instead of
+            four. It's thus the most efficient schema in terms of communications.</p>
+
+        <p>Let's take a quick look at the backward pass:</p>
+        <img src="assets/images/image%2015.png" alt="Backward Pass 1">
+        <img src="assets/images/image%2016.png" alt="Backward Pass 2">
+
+        <d-code block language="python">
+            def column_linear_forward(X, local_W, group):
+            Y_local = X @ local_W.t()
+            return Y_local
+
+            def column_linear_backward(local_grad_Y, X, local_W, group):
+            local_grad_X = local_grad_Y @ local_W
+            grad_W = local_grad_Y.t() @ X
+            return local_grad_X, grad_W
+
+            def row_linear_forward(local_X, local_W, group):
+            Y_local = local_X @ local_W.t()
+            dist.all_reduce(Y_local, group=group)
+            Y = Y_local
+            return Y
+
+            def row_linear_backward(grad_Y, X, local_W, group):
+            local_grad_X = grad_Y @ local_W
+            grad_W = grad_Y.t() @ X
+            return local_grad_X, grad_W
+
+            def example_column_row_linear():
+            # torchrun --nproc_per_node=2 tp_all_reduce.py
+            group = dist.distributed_c10d._get_default_group()
+
+            X_ref = torch.arange(4 * 2, device="cuda", dtype=torch.float32, requires_grad=True).reshape(4, 2)
+            W_ref_layer1 = torch.arange(1, 5, device="cuda", dtype=torch.float32, requires_grad=True).reshape(2, 2) * 10
+            W_ref_layer2 = torch.arange(1, 5, device="cuda", dtype=torch.float32, requires_grad=True).reshape(2, 2)
+
+            X_ref.retain_grad()
+            W_ref_layer1.retain_grad()
+            W_ref_layer2.retain_grad()
+
+            dist.broadcast(X_ref, src=0, group=group)
+            dist.broadcast(W_ref_layer1, src=0, group=group)
+            dist.broadcast(W_ref_layer2, src=0, group=group)
+
+            X = X_ref.clone()
+            W_layer1 = W_ref_layer1.clone()
+            W_layer2 = W_ref_layer2.clone()
+
+            # Forward
+            Y_ref_linear1 = X_ref @ W_ref_layer1.t()
+            Y_ref_linear1.retain_grad()
+
+            # We will transpose for matrix multiplication. As a result, we need to split row-wise
+            Y_local_linear1 = column_linear_forward(X, split_tensor(W_layer1, dim=0), group)
+
+            torch.testing.assert_close(Y_local_linear1, split_tensor(Y_ref_linear1, dim=1), rtol=1e-5, atol=1e-5)
+
+            Y_local_linear2 = row_linear_forward(Y_local_linear1, split_tensor(W_ref_layer2, dim=1), group)
+            Y_ref_linear2 = Y_ref_linear1 @ W_ref_layer2.t()
+            torch.testing.assert_close(Y_local_linear2, Y_ref_linear2, rtol=1e-5, atol=1e-5)
+
+            # Backward
+            Y_ref_linear2.sum().backward()
+
+            grad_Y = torch.ones_like(Y_ref_linear2)
+            grad_X_linear2, grad_W_linear2 = row_linear_backward(grad_Y, Y_local_linear1, split_tensor(W_layer2, dim=1),
+            group)
+
+            torch.testing.assert_close(grad_X_linear2, split_tensor(Y_ref_linear1.grad, dim=1), rtol=1e-5, atol=1e-5)
+            torch.testing.assert_close(grad_W_linear2, split_tensor(W_ref_layer2.grad, dim=1), rtol=1e-5, atol=1e-5)
+
+            grad_X, grad_W = column_linear_backward(grad_X_linear2, X, split_tensor(W_layer1, dim=0), group)
+
+            torch.testing.assert_close(grad_X, X_ref.grad, rtol=1e-5, atol=1e-5)
+            torch.testing.assert_close(grad_W, split_tensor(W_ref_layer1.grad, dim=0), rtol=1e-5, atol=1e-5)
+
+            if __name__ == "__main__":
+            dist.init_process_group("nccl", rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"]))
+            torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
+
+            example_column_row_linear()
+        </d-code>
+
+        <p>Now that we've found the most efficient schema for the Feedforward part of the transformer, let's take a look
+            at the multi-head attention block (MHA).</p>
+
+        <p>We can generally follow a similar approach where the Q, K, V will be split in a Column Parallel fashion and
+            the output projection will be split along the Row dimension.</p>
+
+        <img src="assets/images/image%2017.png" alt="Multi-Head Attention Block">
+
+        <p>To dive in further particularities, a nice reference paper detailing TP is for instance <a
+                href="https://arxiv.org/abs/2205.05198">Megatron-LM: Training Multi-Billion Parameter Language Models
+                Using Model Parallelism</a>.</p>
+
+        <p>Note: Sequence Parallel</p>
+
+        <h3>Sequence Parallelism</h3>
+
+        <p>Tensor parallelism has been a great help to parallelize some of our computation on several GPU nodes with the
+            limited cost of a few communication operations.</p>
+
+        <p>It also had the additional benefit of reducing memory usage by splitting intermediate activations inside the
+            feedforward elements across GPUs and thereby reducing the activations to store on each node.</p>
+
+        <p>Could we push this approach further?</p>
+
+        <p>Sequence parallelism applies this same idea to other parts of our model. We've applied tensor parallelism to
+            two main parts in our models where combination of MLP allowed to naturally split the weights along major
+            axis.</p>
+
+        <p>The rest of the model mostly comprises layer norms, dropout and various summation of residuals, these
+            contribute little to the computation but come with rather large forward activations to store.</p>
+
+        <p>[Add some illustration of the forward activations to store for each part]</p>
+
+        <h3>Context Parallelism</h3>
+
+        <p>Even though TP-SP mode helps reduce the memory used by activation values, it has two main drawbacks:</p>
+        <ol>
+            <li>Internode connections are usually slow, so the TP degree shouldn't typically exceed 8</li>
+            <li>The TP degree is limited by the number of Key/Value heads, which is 8 for LLaMA 3 8B.</li>
+        </ol>
+
+        <p>An empirical estimation is that with TP=8, you can only train an 8B model with a 20K context length. However,
+            LLaMA 3.1 has managed to scale the context length to 128K by using context parallelism.</p>
+
+        <p>There are several ways to implement sequence parallelism. We used ring attention, which overlaps
+            communication and computation. LLaMA3.1 uses all-gather along the sequence dimension because it is easier
+            and more flexible to support different types of attention masks in all-gather based CP attention, such as
+            the document mask.</p>
+
+        <h3>Pipeline Parallelism</h3>
+
+        <h3>Overlapping computation and communication</h3>
+
+        <h3>ZeRO</h3>
+
+        <h2>II – Architecture</h2>
+
+        <h3>Transformers</h3>
+
+        <h3>Choosing the right dimensions</h3>
+
+        <h3>Positional Embeddings (Learned, RoPE, ALiBi)</h3>
+
+        <h3>RoPE</h3>
+
+        <p>In the transformer model, tokens have no inherent information about their positional information. For these
+            reasons, we need to use a positional encoding function.</p>
+
+        <p>Assuming that in the multi-head attention layer, <em>q_m</em> is the "position-aware" query vector
+            corresponding to a token at position <em>m</em>, <em>k_n</em> the "position-aware" key vector corresponding
+            to the token at position <em>n</em> and <em>f</em> is our position embedding function, we would like our
+            position vector to be a function of the input vectors and absolute positions like this:</p>
+
+        <d-math>
+            q_m = f(q,m)
+            k_n = f(k,n)
+        </d-math>
+
+        <p>We may also want the positional encoding to model relative positional information between two input tokens.
+            Relative positions help the model to operate across longer context spans and even context lengths not seen
+            during training. The attention operation is generally a dot product operation between "position-aware"
+            vectors <em>q</em> and <em>k</em>, so for a positional encoding that contains relative positional
+            information, we'll want to have:</p>
+
+        <d-math>
+            <q_m, k_n> = g(q, k, m-n)
+        </d-math>
+
+        <p>In other words, we want the result of <em>⟨ 𝑞_𝑚 , 𝑘_𝑛 ⟩</em> to depend on the values of <em>q</em> and
+            <em>k</em> themselves, as well as their relative position <em>m − n</em>, but not <em>m</em> and <em>n</em>.
+            This way, the model can focus on the relative difference between two tokens rather than their absolute
+            positions.
+        </p>
+
+        <p>Let's show that the RoPE positional embedding formulation satisfies the above formula.</p>
+
+        <p><strong>Rotation matrix</strong></p>
+
+        <p>RoPE are based on rotation matrices which have simple and interesting properties for us. In a 2D space, a
+            rotation matrix has the following form:</p>
+
+        <d-math>
+            R(θ) =
+            \begin{pmatrix}
+            \cosθ & -\sinθ \\
+            \sinθ & \cosθ
+            \end{pmatrix}
+        </d-math>
+
+        <p>The rotation matrix has the following properties:</p>
+        <ul>
+            <li><em>R(θ)</em><sup>T</sup> = <em>R(-θ)</em></li>
+            <li><em>R(θ<sub>1</sub>)R(θ<sub>2</sub>) = R(θ<sub>1</sub>+θ<sub>2</sub>)</li>
+        </ul>
+
+        <img src="assets/images/rotation.jpeg" alt="Rotation Matrix">
+
+        <p><strong>RoPE in 2D space</strong></p>
+
+        <p>Assuming <em>q</em> and <em>k</em> are 2D column vectors, we can show that:</p>
+
+        <d-math>
+            <R(θ_1)q, R(θ_2)k> = (R(θ_1)q)<sup>T</sup> (R(θ_2)k) = q<sup>T</sup>R(-θ_1)R(θ_2)k =
+                q<sup>T</sup>R(θ_2-θ_1)k = (R(θ_1-θ_2)q)<sup>T</sup>k = <R(θ_1-θ_2)q,k>
+        </d-math>
+
+        <p>Therefore, if we define our position embedding like this: <em>f(x, m) = R(mθ)x</em> where <em>R</em> is a 2D
+            rotation matrix, we have <em>q_m = R(mθ)q</em> and <em>k_n = R(nθ)k</em> and then:</p>
+
+        <d-math>
+            <q_m, k_n> = <R(mθ)q, R(nθ)k> = <R((m-n)θ)q, k>
+        </d-math>
+
+        <p>We can see that a multiplication with a rotation matrix is exactly the positional encoding we were looking
+            for. The result of <em>⟨ 𝑞_𝑚 , 𝑘_𝑛 ⟩</em> only depends on <em>q</em>, <em>k</em> and <em>m-n</em>.</p>
+
+        <p><strong>Implementation</strong></p>
+
+        <p>In our case, our internal vectors (the activations in our model) have much more than two elements. Let's pair
+            elements to get 2D vectors and apply the 2D rotation operation on these pairs.</p>
+
+        <p>There are combinatorially many ways we can pair elements but generally two options are the most popular for
+            implementing RoPE: we call them the <em>interleaved</em> and <em>non-interleaved</em> versions. (It's still
+            rather unfortunate to have two popular options)</p>
+
+        <ol>
+            <li>In the interleaved version, we pair consecutive elements <em>(x<sub>0</sub>,
+                    x<sub>1</sub>),(x<sub>2</sub>,x<sub>3</sub>),…</em> before applying the rotation matrix:</li>
+            <d-math>
+                R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
+                x_0 \\
+                x_1 \\
+                x_2 \\
+                x_3 \\
+                \vdots \\
+                x_{d-2} \\
+                x_{d-1}
+                \end{pmatrix}
+                \odot
+                \begin{pmatrix}
+                \cos mθ_0 \\
+                \cos mθ_0 \\
+                \cos mθ_1 \\
+                \cos mθ_1 \\
+                \vdots \\
+                \cos mθ_{d/2-1} \\
+                \cos mθ_{d/2-1}
+                \end{pmatrix}
+                +
+                \begin{pmatrix}
+                -x_1 \\
+                x_0 \\
+                -x_3 \\
+                x_2 \\
+                \vdots \\
+                -x_{d-1} \\
+                x_{d-2}
+                \end{pmatrix}
+                \odot
+                \begin{pmatrix}
+                \sin mθ_0 \\
+                \sin mθ_0 \\
+                \sin mθ_1 \\
+                \sin mθ_1 \\
+                \vdots \\
+                \sin mθ_{d/2-1} \\
+                \sin mθ_{d/2-1}
+                \end{pmatrix}
+            </d-math>
+            <d-math>
+                R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
+                x_0\cos mθ_0 - x_1\sin mθ_0 \\
+                x_1\cos mθ_0 + x_0\sin mθ_0 \\
+                x_2\cos mθ_1 - x_3\sin mθ_1 \\
+                x_3\cos mθ_1 + x_2\sin mθ_1 \\
+                \vdots \\
+                x_{d-2}\cos mθ_{d/2-1} - x_{d-1}\sin mθ_{d/2-1} \\
+                x_{d-1}\cos mθ_{d/2-1} + x_{d-2}\sin mθ_{d/2-1}
+                \end{pmatrix}
+            </d-math>
+            <li>In the non-interleaved version, we split the vector in two to pair elements as follows:
+                <em>(x<sub>0</sub>, x<sub>d/2</sub>),(x<sub>1</sub>,x<sub>d/2+1</sub>),…</em> This is the implementation
+                used in the <code>transformers</code> library:
+            </li>
+            <d-math>
+                R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
+                x_0 \\
+                x_1 \\
+                \vdots \\
+                x_{d/2-1} \\
+                x_{d/2} \\
+                x_{d/2+1} \\
+                \vdots \\
+                x_{d-1}
+                \end{pmatrix}
+                \odot
+                \begin{pmatrix}
+                \cos mθ_0 \\
+                \cos mθ_1 \\
+                \vdots \\
+                \cos mθ_{d/2-1} \\
+                \cos mθ_{0} \\
+                \cos mθ_{1} \\
+                \vdots \\
+                \cos mθ_{d/2-1}
+                \end{pmatrix}
+                +
+                \begin{pmatrix}
+                -x_{d/2} \\
+                -x_{d/2+1} \\
+                \vdots \\
+                -x_{d-1} \\
+                x_{0} \\
+                x_{1} \\
+                \vdots \\
+                x_{d/2-1}
+                \end{pmatrix}
+                \odot
+                \begin{pmatrix}
+                \sin mθ_0 \\
+                \sin mθ_1 \\
+                \vdots \\
+                \sin mθ_{d/2-1} \\
+                \sin mθ_{0} \\
+                \sin mθ_{1} \\
+                \vdots \\
+                \sin mθ_{d/2-1}
+                \end{pmatrix}
+            </d-math>
+            <d-math>
+                R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
+                x_0\cos mθ_0 - x_{d/2}\sin mθ_0 \\
+                x_1\cos mθ_1 - x_{d/2+1}\sin mθ_1 \\
+                \vdots \\
+                x_{d/2-1}\cos mθ_{d/2-1} - x_{d-1}\sin mθ_{d/2-1} \\
+                x_{d/2}\cos mθ_0 + x_0\sin mθ_0 \\
+                x_{d/2+1}\cos mθ_1 + x_0\sin mθ_1 \\
+                \vdots \\
+                x_{d-1}\cos mθ_{d/2-1} + x_{d-1}\sin mθ_{d/2-1} \\
+                \end{pmatrix}
+            </d-math>
+            <p>The angle of rotation, <em>θ<sub>i</sub></em> is defined as follows, where <em>d</em> is the dimension of
+                the attention head:</p>
+            <d-math>
+                θ<sub>i</sub> = base<sup>-2(i-1)/d</sup>, i \in [1,2,...,d/2]
+            </d-math>
+            <p>How does this look? When moving the same distance, vectors in some dimensions rotate faster than vectors
+                in other dimensions.</p>
+            <img src="assets/images/rotation_speed.jpeg" alt="Rotation Speed">
+        </ol>
+
+        <h3>Attention (MHA, MQA, GQA)</h3>
+
+        <h2>Optimized Operations</h2>
+
+        <h3>Flash Attention 1&2&3</h3>
+
+        <h3>Fused Kernels</h3>
+
+        <h2>III – Training Recipe</h2>
+
+        <h3>Batch Size</h3>
+
+        <h3>Initialization + rescaling activations inside the model</h3>
+
+        <h3>Numerical Precision</h3>
+
+        <h4>FP16/BF16/FP8</h4>
+
+        <p>@Phuc Nguyen?</p>
+
+        <h3>Long Context Training</h3>
+
+        <h3>Evaluation</h3>
+
+        <p>@Haojun Zhao</p>
+
+        <h3>Infini-Attention</h3>
+
+        <p>@Phuc Nguyen</p>
+
+        <h3>Ring Attention</h3>
+
+        <p>@Haojun Zhao</p>
+
+        <h3>RoPE scaling / Yarn</h3>
+
+        <p>@Haojun Zhao maybe?</p>
+
+        <h2>References</h2>
+
+        <ul>
+            <li>Harm's posts:
                 <ul>
-                    <li>A <strong>Scatter</strong> operation is used to split the input and send it to different GPUs (we split the weight row-wise),</li>
-                    <li>Multiplications are done independently on the GPUs, and finally</li>
-                    <li>An <strong>All-reduce</strong> operation is used to add the results together and the full output results.</li>
+                    <li><a
+                            href="https://www.harmdevries.com/post/context-length/">https://www.harmdevries.com/post/context-length/</a>
+                    </li>
+                    <li><a
+                            href="https://www.harmdevries.com/post/model-size-vs-compute-overhead/">https://www.harmdevries.com/post/model-size-vs-compute-overhead/</a>
+                    </li>
                 </ul>
             </li>
+            <li>Stas' guides:
+                <ul>
+                    <li><a href="https://github.com/stas00/ml-engineering">https://github.com/stas00/ml-engineering</a>
+                    </li>
+                    <li><a
+                            href="https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md">https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md</a>
+                    </li>
+                </ul>
+            </li>
+            <li>data parallel: <a
+                    href="https://siboehm.com/articles/22/data-parallel-training">https://siboehm.com/articles/22/data-parallel-training</a>
+            </li>
+            <li>ZeRO: <a href="https://arxiv.org/abs/1910.02054">https://arxiv.org/abs/1910.02054</a></li>
+            <li>TP/SP + Selective Recomputation: <a
+                    href="https://arxiv.org/abs/2205.05198">https://arxiv.org/abs/2205.05198</a></li>
         </ul>
-    </li>
-</ul>
-
-<p>This was for an example matrix multiplication. How do we apply this in practice to a real model? In the Transformer, there are 2 basic building blocks where tensor parallel can be applied:</p>
-<ul>
-    <li>Feedforward layers (MLP)</li>
-    <li>Multi-Head Attention (MHA)</li>
-</ul>
-
-<p>Feedforward layers comprise 2 successive MLPs with a non-linearity in-between. Here is the first part of it:</p>
-
-<img src="assets/images/image%2012.png" alt="Feedforward Layers">
-
-<p>Should we use row or column parallelization for the first MLP?</p>
-
-<p>Well it turns out parallelized GeLU only works in Column schema:</p>
-
-<p>In column schema:</p>
-<d-math>
-GeLU(cat([XW1, XW2])) = cat([GeLU(XW1),  GeLU(XW2)])
-</d-math>
-
-<p>In row schema:</p>
-<d-math>
-GeLU(XW1 + XW2) \neq GeLU(XW1) + GeLU(XW2)
-</d-math>
-
-<p>If you rather like code, note that we can prove this with the following snippet as well:</p>
-
-<d-code block language="python">
-```
-</region_of_file_to_rewritten_file>
-def example_gelu():
-    from torch.nn.functional import gelu
-    
-    X = torch.randn(4, 2, device="cuda", dtype=torch.float32)
-    W = torch.randn(2, 2, device="cuda", dtype=torch.float32)
-    
-    W_0, W_1 = W.chunk(2, dim=1)
-    
-    # Column linear
-    y_col_1 =  torch.cat([gelu(X @ W_0), gelu(X @ W_1)], dim=1)
-    y_col_2 = gelu(torch.cat([X @ W_0, X @ W_1], dim=1))
-    
-    # All match
-    torch.testing.assert_close(y_col_1, y_col_2, rtol=1e-5, atol=1e-5)
-    
-    # Row linear
-    X_0, X_1 = X.chunk(2, dim=1)
-    W_0, W_1 = W.chunk(2, dim=0)
-    y_row_1 = gelu(X_0 @ W_0) +  gelu(X_1 @ W_1)
-    y_row_2 = gelu(X_0 @ W_0 + X_1 @ W_1)
-    
-    # Mismatch
-    torch.testing.assert_close(y_row_1, y_row_2, rtol=1e-5, atol=1e-5)
-</d-code>
-
-<p>To avoid a synchronization step directly after the first MLP, we'll thus start with Column Parallel and be able to directly perform parallel GELU.</p>
-
-<p>Now, what about the second MLP? Should it be column or row parallel? Let's draft both options:</p>
-<ul>
-    <li>Column Parallel followed by Column Parallel</li>
-    <img src="assets/images/image%2013.png" alt="Column Parallel Schema 1">
-    <li>Column Parallel followed by Row Parallel</li>
-    <img src="assets/images/image%2014.png" alt="Column Parallel Schema 2">
-</ul>
-
-<p>We see that the "Column Parallel followed by Row Parallel" schema only involves two communications instead of four. It's thus the most efficient schema in terms of communications.</p>
-
-<p>Let's take a quick look at the backward pass:</p>
-<img src="assets/images/image%2015.png" alt="Backward Pass 1">
-<img src="assets/images/image%2016.png" alt="Backward Pass 2">
-
-<d-code block language="python">
-def column_linear_forward(X, local_W, group):
-    Y_local = X @ local_W.t()
-    return Y_local
-
-def column_linear_backward(local_grad_Y, X, local_W, group):
-    local_grad_X = local_grad_Y @ local_W
-    grad_W = local_grad_Y.t() @ X        
-    return local_grad_X, grad_W
-
-def row_linear_forward(local_X, local_W, group):
-    Y_local = local_X @ local_W.t()
-    dist.all_reduce(Y_local, group=group)
-    Y = Y_local
-    return Y
-
-def row_linear_backward(grad_Y, X, local_W, group):
-    local_grad_X = grad_Y @ local_W
-    grad_W = grad_Y.t() @ X
-    return local_grad_X, grad_W
-
-def example_column_row_linear():
-    # torchrun --nproc_per_node=2 tp_all_reduce.py
-    group = dist.distributed_c10d._get_default_group()
-
-    X_ref = torch.arange(4 * 2, device="cuda", dtype=torch.float32, requires_grad=True).reshape(4, 2)
-    W_ref_layer1 = torch.arange(1, 5, device="cuda", dtype=torch.float32, requires_grad=True).reshape(2, 2) * 10
-    W_ref_layer2 = torch.arange(1, 5, device="cuda", dtype=torch.float32, requires_grad=True).reshape(2, 2)
-
-    X_ref.retain_grad()
-    W_ref_layer1.retain_grad()
-    W_ref_layer2.retain_grad()
-    
-    dist.broadcast(X_ref, src=0, group=group)
-    dist.broadcast(W_ref_layer1, src=0, group=group)
-    dist.broadcast(W_ref_layer2, src=0, group=group)
-    
-    X = X_ref.clone()
-    W_layer1 = W_ref_layer1.clone()
-    W_layer2 = W_ref_layer2.clone()
-    
-    # Forward
-    Y_ref_linear1 = X_ref @ W_ref_layer1.t()
-    Y_ref_linear1.retain_grad()
-
-    # We will transpose for matrix multiplication. As a result, we need to split row-wise
-    Y_local_linear1 = column_linear_forward(X, split_tensor(W_layer1, dim=0), group)
-
-    torch.testing.assert_close(Y_local_linear1, split_tensor(Y_ref_linear1, dim=1), rtol=1e-5, atol=1e-5)
-    
-    Y_local_linear2 = row_linear_forward(Y_local_linear1, split_tensor(W_ref_layer2, dim=1), group)
-    Y_ref_linear2 = Y_ref_linear1 @ W_ref_layer2.t()
-    torch.testing.assert_close(Y_local_linear2, Y_ref_linear2, rtol=1e-5, atol=1e-5)
-    
-    # Backward
-    Y_ref_linear2.sum().backward()
-    
-    grad_Y = torch.ones_like(Y_ref_linear2)
-    grad_X_linear2, grad_W_linear2 = row_linear_backward(grad_Y, Y_local_linear1, split_tensor(W_layer2, dim=1), group)
-
-    torch.testing.assert_close(grad_X_linear2, split_tensor(Y_ref_linear1.grad, dim=1), rtol=1e-5, atol=1e-5)
-    torch.testing.assert_close(grad_W_linear2, split_tensor(W_ref_layer2.grad, dim=1), rtol=1e-5, atol=1e-5)
-
-    grad_X, grad_W = column_linear_backward(grad_X_linear2, X, split_tensor(W_layer1, dim=0), group)
-
-    torch.testing.assert_close(grad_X, X_ref.grad, rtol=1e-5, atol=1e-5)
-    torch.testing.assert_close(grad_W, split_tensor(W_ref_layer1.grad, dim=0), rtol=1e-5, atol=1e-5)
-
-if __name__ == "__main__":
-    dist.init_process_group("nccl", rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"]))
-    torch.cuda.set_device(int(os.environ["LOCAL_RANK"]))
-
-    example_column_row_linear()
-</d-code>
-
-<p>Now that we've found the most efficient schema for the Feedforward part of the transformer, let's take a look at the multi-head attention block (MHA).</p>
-
-<p>We can generally follow a similar approach where the Q, K, V will be split in a Column Parallel fashion and the output projection will be split along the Row dimension.</p>
-
-<img src="assets/images/image%2017.png" alt="Multi-Head Attention Block">
-
-<p>To dive in further particularities, a nice reference paper detailing TP is for instance <a href="https://arxiv.org/abs/2205.05198">Megatron-LM: Training Multi-Billion Parameter Language Models Using Model Parallelism</a>.</p>
-
-<p>Note: Sequence Parallel</p>
-
-<h3>Sequence Parallelism</h3>
-
-<p>Tensor parallelism has been a great help to parallelize some of our computation on several GPU nodes with the limited cost of a few communication operations.</p>
-
-<p>It also had the additional benefit of reducing memory usage by splitting intermediate activations inside the feedforward elements across GPUs and thereby reducing the activations to store on each node.</p>
-
-<p>Could we push this approach further?</p>
-
-<p>Sequence parallelism applies this same idea to other parts of our model. We've applied tensor parallelism to two main parts in our models where combination of MLP allowed to naturally split the weights along major axis.</p>
-
-<p>The rest of the model mostly comprises layer norms, dropout and various summation of residuals, these contribute little to the computation but come with rather large forward activations to store.</p>
-
-<p>[Add some illustration of the forward activations to store for each part]</p>
-
-<h3>Context Parallelism</h3>
-
-<p>Even though TP-SP mode helps reduce the memory used by activation values, it has two main drawbacks:</p>
-<ol>
-    <li>Internode connections are usually slow, so the TP degree shouldn't typically exceed 8</li>
-    <li>The TP degree is limited by the number of Key/Value heads, which is 8 for LLaMA 3 8B.</li>
-</ol>
-
-<p>An empirical estimation is that with TP=8, you can only train an 8B model with a 20K context length. However, LLaMA 3.1 has managed to scale the context length to 128K by using context parallelism.</p>
-
-<p>There are several ways to implement sequence parallelism. We used ring attention, which overlaps communication and computation. LLaMA3.1 uses all-gather along the sequence dimension because it is easier and more flexible to support different types of attention masks in all-gather based CP attention, such as the document mask.</p>
-
-<h3>Pipeline Parallelism</h3>
-
-<h3>Overlapping computation and communication</h3>
-
-<h3>ZeRO</h3>
-
-<h2>II – Architecture</h2>
-
-<h3>Transformers</h3>
-
-<h3>Choosing the right dimensions</h3>
-
-<h3>Positional Embeddings (Learned, RoPE, ALiBi)</h3>
-
-<h3>RoPE</h3>
-
-<p>In the transformer model, tokens have no inherent information about their positional information. For these reasons, we need to use a positional encoding function.</p>
-
-<p>Assuming that in the multi-head attention layer, <em>q_m</em> is the "position-aware" query vector corresponding to a token at position <em>m</em>, <em>k_n</em> the "position-aware" key vector corresponding to the token at position <em>n</em> and <em>f</em> is our position embedding function, we would like our position vector to be a function of the input vectors and absolute positions like this:</p>
-
-<d-math>
-q_m = f(q,m)
-k_n = f(k,n)
-</d-math>
-
-<p>We may also want the positional encoding to model relative positional information between two input tokens. Relative positions help the model to operate across longer context spans and even context lengths not seen during training. The attention operation is generally a dot product operation between "position-aware" vectors <em>q</em> and <em>k</em>, so for a positional encoding that contains relative positional information, we'll want to have:</p>
-
-<d-math>
-<q_m, k_n> = g(q, k, m-n)
-</d-math>
-
-<p>In other words, we want the result of <em>⟨ 𝑞_𝑚 , 𝑘_𝑛 ⟩</em> to depend on the values of <em>q</em> and <em>k</em> themselves, as well as their relative position <em>m − n</em>, but not <em>m</em> and <em>n</em>. This way, the model can focus on the relative difference between two tokens rather than their absolute positions.</p>
-
-<p>Let's show that the RoPE positional embedding formulation satisfies the above formula.</p>
-
-<p><strong>Rotation matrix</strong></p>
-
-<p>RoPE are based on rotation matrices which have simple and interesting properties for us. In a 2D space, a rotation matrix has the following form:</p>
-
-<d-math>
-R(θ) =
-\begin{pmatrix}
-\cosθ & -\sinθ \\
-\sinθ & \cosθ
-\end{pmatrix}
-</d-math>
-
-<p>The rotation matrix has the following properties:</p>
-<ul>
-    <li><em>R(θ)</em><sup>T</sup> = <em>R(-θ)</em></li>
-    <li><em>R(θ<sub>1</sub>)R(θ<sub>2</sub>) = R(θ<sub>1</sub>+θ<sub>2</sub>)</li>
-</ul>
-
-<img src="assets/images/rotation.jpeg" alt="Rotation Matrix">
-
-<p><strong>RoPE in 2D space</strong></p>
-
-<p>Assuming <em>q</em> and <em>k</em> are 2D column vectors, we can show that:</p>
-
-<d-math>
-<R(θ_1)q, R(θ_2)k> = (R(θ_1)q)<sup>T</sup> (R(θ_2)k) = q<sup>T</sup>R(-θ_1)R(θ_2)k = q<sup>T</sup>R(θ_2-θ_1)k = (R(θ_1-θ_2)q)<sup>T</sup>k = <R(θ_1-θ_2)q,k>
-</d-math>
-
-<p>Therefore, if we define our position embedding like this: <em>f(x, m) = R(mθ)x</em> where <em>R</em> is a 2D rotation matrix, we have <em>q_m = R(mθ)q</em> and <em>k_n = R(nθ)k</em> and then:</p>
-
-<d-math>
-<q_m, k_n> = <R(mθ)q, R(nθ)k> = <R((m-n)θ)q, k>
-</d-math>
-
-<p>We can see that a multiplication with a rotation matrix is exactly the positional encoding we were looking for. The result of <em>⟨ 𝑞_𝑚 , 𝑘_𝑛 ⟩</em> only depends on <em>q</em>, <em>k</em> and <em>m-n</em>.</p>
-
-<p><strong>Implementation</strong></p>
-
-<p>In our case, our internal vectors (the activations in our model) have much more than two elements. Let's pair elements to get 2D vectors and apply the 2D rotation operation on these pairs.</p>
-
-<p>There are combinatorially many ways we can pair elements but generally two options are the most popular for implementing RoPE: we call them the <em>interleaved</em> and <em>non-interleaved</em> versions. (It's still rather unfortunate to have two popular options)</p>
-
-<ol>
-    <li>In the interleaved version, we pair consecutive elements <em>(x<sub>0</sub>, x<sub>1</sub>),(x<sub>2</sub>,x<sub>3</sub>),…</em> before applying the rotation matrix:</li>
-    <d-math>
-R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
-x_0 \\
-x_1 \\
-x_2 \\
-x_3 \\
-\vdots \\
-x_{d-2} \\
-x_{d-1}
-\end{pmatrix}
-\odot
-\begin{pmatrix}
-\cos mθ_0 \\
-\cos mθ_0 \\
-\cos mθ_1 \\
-\cos mθ_1 \\
-\vdots \\
-\cos mθ_{d/2-1} \\
-\cos mθ_{d/2-1}
-\end{pmatrix}
-+
-\begin{pmatrix}
--x_1 \\
-x_0 \\
--x_3 \\
-x_2 \\ 
-\vdots \\
--x_{d-1} \\
-x_{d-2}
-\end{pmatrix}
-\odot
-\begin{pmatrix}
-\sin mθ_0 \\
-\sin mθ_0 \\
-\sin mθ_1 \\
-\sin mθ_1 \\
-\vdots \\
-\sin mθ_{d/2-1} \\
-\sin mθ_{d/2-1}
-\end{pmatrix} 
-    </d-math>
-    <d-math>
-R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
-x_0\cos mθ_0 - x_1\sin mθ_0 \\
-x_1\cos mθ_0 + x_0\sin mθ_0 \\
-x_2\cos mθ_1 - x_3\sin mθ_1 \\
-x_3\cos mθ_1 + x_2\sin mθ_1 \\
-\vdots \\
-x_{d-2}\cos mθ_{d/2-1} - x_{d-1}\sin mθ_{d/2-1}  \\
-x_{d-1}\cos mθ_{d/2-1} + x_{d-2}\sin mθ_{d/2-1}
-\end{pmatrix}
-    </d-math>
-    <li>In the non-interleaved version, we split the vector in two to pair elements as follows: <em>(x<sub>0</sub>, x<sub>d/2</sub>),(x<sub>1</sub>,x<sub>d/2+1</sub>),…</em> This is the implementation used in the <code>transformers</code> library:</li>
-    <d-math>
-R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
-x_0 \\
-x_1 \\
-\vdots \\
-x_{d/2-1} \\
-x_{d/2} \\
-x_{d/2+1} \\
-\vdots \\
-x_{d-1}
-\end{pmatrix}
-\odot
-\begin{pmatrix}
-\cos mθ_0 \\
-\cos mθ_1 \\
-\vdots \\
-\cos mθ_{d/2-1} \\
-\cos mθ_{0} \\
-\cos mθ_{1} \\
-\vdots \\
-\cos mθ_{d/2-1}
-\end{pmatrix}
-+
-\begin{pmatrix}
--x_{d/2} \\
--x_{d/2+1} \\
-\vdots \\
--x_{d-1} \\
-x_{0} \\
-x_{1} \\
-\vdots \\
-x_{d/2-1}
-\end{pmatrix}
-\odot
-\begin{pmatrix}
-\sin mθ_0 \\
-\sin mθ_1 \\
-\vdots \\
-\sin mθ_{d/2-1} \\
-\sin mθ_{0} \\
-\sin mθ_{1} \\
-\vdots \\
-\sin mθ_{d/2-1}
-\end{pmatrix}
-    </d-math>
-    <d-math>
-R<sup>d</sup>_{θ,m}x=\begin{pmatrix}
-x_0\cos mθ_0 - x_{d/2}\sin mθ_0 \\
-x_1\cos mθ_1 - x_{d/2+1}\sin mθ_1 \\
-\vdots \\
-x_{d/2-1}\cos mθ_{d/2-1} - x_{d-1}\sin mθ_{d/2-1}  \\
-x_{d/2}\cos mθ_0 + x_0\sin mθ_0  \\
-x_{d/2+1}\cos mθ_1 + x_0\sin mθ_1  \\
-\vdots \\
-x_{d-1}\cos mθ_{d/2-1} + x_{d-1}\sin mθ_{d/2-1}  \\
-\end{pmatrix}
-    </d-math>
-    <p>The angle of rotation, <em>θ<sub>i</sub></em> is defined as follows, where <em>d</em> is the dimension of the attention head:</p>
-    <d-math>
-θ<sub>i</sub> = base<sup>-2(i-1)/d</sup>, i \in [1,2,...,d/2]
-    </d-math>
-    <p>How does this look? When moving the same distance, vectors in some dimensions rotate faster than vectors in other dimensions.</p>
-    <img src="assets/images/rotation_speed.jpeg" alt="Rotation Speed">
-</ol>
-
-<h3>Attention (MHA, MQA, GQA)</h3>
-
-<h2>Optimized Operations</h2>
-
-<h3>Flash Attention 1&2&3</h3>
-
-<h3>Fused Kernels</h3>
-
-<h2>III – Training Recipe</h2>
-
-<h3>Batch Size</h3>
-
-<h3>Initialization + rescaling activations inside the model</h3>
-
-<h3>Numerical Precision</h3>
-
-<h4>FP16/BF16/FP8</h4>
-
-<p>@Phuc Nguyen?</p>
-
-<h3>Long Context Training</h3>
-
-<h3>Evaluation</h3>
-
-<p>@Haojun Zhao</p>
-
-<h3>Infini-Attention</h3>
-
-<p>@Phuc Nguyen</p>
-
-<h3>Ring Attention</h3>
-
-<p>@Haojun Zhao</p>
-
-<h3>RoPE scaling / Yarn</h3>
-
-<p>@Haojun Zhao maybe?</p>
-
-<h2>References</h2>
-
-<ul>
-    <li>Harm's posts:
-        <ul>
-            <li><a href="https://www.harmdevries.com/post/context-length/">https://www.harmdevries.com/post/context-length/</a></li>
-            <li><a href="https://www.harmdevries.com/post/model-size-vs-compute-overhead/">https://www.harmdevries.com/post/model-size-vs-compute-overhead/</a></li>
-        </ul>
-    </li>
-    <li>Stas' guides:
-        <ul>
-            <li><a href="https://github.com/stas00/ml-engineering">https://github.com/stas00/ml-engineering</a></li>
-            <li><a href="https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md">https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md</a></li>
-        </ul>
-    </li>
-    <li>data parallel: <a href="https://siboehm.com/articles/22/data-parallel-training">https://siboehm.com/articles/22/data-parallel-training</a></li>
-    <li>ZeRO: <a href="https://arxiv.org/abs/1910.02054">https://arxiv.org/abs/1910.02054</a></li>
-    <li>TP/SP + Selective Recomputation: <a href="https://arxiv.org/abs/2205.05198">https://arxiv.org/abs/2205.05198</a></li>
-</ul>
-    <h2>Conclusion and looking forward</h2>
-    <p>Through our open science efforts we hope to keep shining a light on the black box that is the training of high performance large language models as well as to give every model trainer the ability to create state-of-the-art LLMs. We are excited to continue iterating on FineWeb and to release increasingly better filtered subsets of web data, in a fully open and reproducible manner.</p>
-    <p>In the short term, we are looking forward to applying the learnings from (English) FineWeb to other languages. While English currently dominates the LLM landscape, we believe that making high quality web data in other languages as accessible as possible would be incredibly impactful.</p>
-    <p>In a nutshell: the future is bright and exciting for studying the science of creating datasets at scale and in the open 🤗.</p>
-</d-article>
-
-<d-appendix>
-    <d-bibliography src="bibliography.bib"></d-bibliography>
-    <style>
-      d-appendix .citation {
-        font-size: 11px;
-        line-height: 15px;
-        border-left: 1px solid rgba(0, 0, 0, 0.1);
-        padding-left: 18px;
-        border: 1px solid rgba(0,0,0,0.1);
-        background: rgba(0, 0, 0, 0.02);
-        padding: 10px 18px;
-        border-radius: 3px;
-        color: rgba(150, 150, 150, 1);
-        overflow: hidden;
-        margin-top: -12px;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-      }
-    </style>
-
-    <h3 id="citation">Citation</h3>
-    <p>For attribution in academic contexts, please cite this work as</p>
-    <pre class="citation short">Penedo, et al., "The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale", 2024.</pre>
-    <p>BibTeX citation</p>
-    <pre class="citation long">@misc{penedo2024finewebdatasetsdecantingweb,
+        <h2>Conclusion and looking forward</h2>
+        <p>Through our open science efforts we hope to keep shining a light on the black box that is the training of
+            high performance large language models as well as to give every model trainer the ability to create
+            state-of-the-art LLMs. We are excited to continue iterating on FineWeb and to release increasingly better
+            filtered subsets of web data, in a fully open and reproducible manner.</p>
+        <p>In the short term, we are looking forward to applying the learnings from (English) FineWeb to other
+            languages. While English currently dominates the LLM landscape, we believe that making high quality web data
+            in other languages as accessible as possible would be incredibly impactful.</p>
+        <p>In a nutshell: the future is bright and exciting for studying the science of creating datasets at scale and
+            in the open 🤗.</p>
+    </d-article>
+
+    <d-appendix>
+        <d-bibliography src="bibliography.bib"></d-bibliography>
+        <style>
+            d-appendix .citation {
+                font-size: 11px;
+                line-height: 15px;
+                border-left: 1px solid rgba(0, 0, 0, 0.1);
+                padding-left: 18px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                background: rgba(0, 0, 0, 0.02);
+                padding: 10px 18px;
+                border-radius: 3px;
+                color: rgba(150, 150, 150, 1);
+                overflow: hidden;
+                margin-top: -12px;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        </style>
+
+        <h3 id="citation">Citation</h3>
+        <p>For attribution in academic contexts, please cite this work as</p>
+        <pre
+            class="citation short">Penedo, et al., "The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale", 2024.</pre>
+        <p>BibTeX citation</p>
+        <pre class="citation long">@misc{penedo2024finewebdatasetsdecantingweb,
       title={The FineWeb Datasets: Decanting the Web for the Finest Text Data at Scale},
       author={Guilherme Penedo and Hynek Kydlíček and Loubna Ben allal and Anton Lozhkov and Margaret Mitchell and Colin Raffel and Leandro Von Werra and Thomas Wolf},
       year={2024},
@@ -989,71 +1255,72 @@ x_{d-1}\cos mθ_{d/2-1} + x_{d-1}\sin mθ_{d/2-1}  \\
       primaryClass={cs.CL}
       url={https://arxiv.org/abs/2406.17557},
 }</pre>
-</d-appendix>
+    </d-appendix>
 
-<script>
-    const article = document.querySelector('d-article');
-    const toc = document.querySelector('d-contents');
-    if (toc) {
-        const headings = article.querySelectorAll('h2, h3, h4');
-        let ToC = `<nav role="navigation" class="l-text figcaption"><h3>Table of contents</h3>`;
-        let prevLevel = 0;
+    <script>
+        const article = document.querySelector('d-article');
+        const toc = document.querySelector('d-contents');
+        if (toc) {
+            const headings = article.querySelectorAll('h2, h3, h4');
+            let ToC = `<nav role="navigation" class="l-text figcaption"><h3>Table of contents</h3>`;
+            let prevLevel = 0;
 
-        for (const el of headings) {
-            // should element be included in TOC?
-            const isInTitle = el.parentElement.tagName == 'D-TITLE';
-            const isException = el.getAttribute('no-toc');
-            if (isInTitle || isException) continue;
-            el.setAttribute('id', el.textContent.toLowerCase().replaceAll(" ", "_"))
-            const link = '<a target="_self" href="' + '#' + el.getAttribute('id') + '">' + el.textContent + '</a>';
+            for (const el of headings) {
+                // should element be included in TOC?
+                const isInTitle = el.parentElement.tagName == 'D-TITLE';
+                const isException = el.getAttribute('no-toc');
+                if (isInTitle || isException) continue;
+                el.setAttribute('id', el.textContent.toLowerCase().replaceAll(" ", "_"))
+                const link = '<a target="_self" href="' + '#' + el.getAttribute('id') + '">' + el.textContent + '</a>';
 
-            const level = el.tagName === 'H2' ? 0 : (el.tagName === 'H3' ? 1 : 2);
-            while (prevLevel < level) {
-                ToC += '<ul>'
-                prevLevel++;
+                const level = el.tagName === 'H2' ? 0 : (el.tagName === 'H3' ? 1 : 2);
+                while (prevLevel < level) {
+                    ToC += '<ul>'
+                    prevLevel++;
+                }
+                while (prevLevel > level) {
+                    ToC += '</ul>'
+                    prevLevel--;
+                }
+                if (level === 0)
+                    ToC += '<div>' + link + '</div>';
+                else
+                    ToC += '<li>' + link + '</li>';
             }
-            while (prevLevel > level) {
+
+            while (prevLevel > 0) {
                 ToC += '</ul>'
                 prevLevel--;
             }
-            if (level === 0)
-                ToC += '<div>' + link + '</div>';
-            else
-                ToC += '<li>' + link + '</li>';
-        }
+            ToC += '</nav>';
+            toc.innerHTML = ToC;
+            toc.setAttribute('prerendered', 'true');
+            const toc_links = document.querySelectorAll('d-contents > nav a');
 
-        while (prevLevel > 0) {
-            ToC += '</ul>'
-            prevLevel--;
-        }
-        ToC += '</nav>';
-        toc.innerHTML = ToC;
-        toc.setAttribute('prerendered', 'true');
-        const toc_links = document.querySelectorAll('d-contents > nav a');
-
-        window.addEventListener('scroll', (_event) => {
-            if (typeof (headings) != 'undefined' && headings != null && typeof (toc_links) != 'undefined' && toc_links != null) {
-                // Then iterate forwards, on the first match highlight it and break
-                find_active: {
-                    for (let i = headings.length - 1; i >= 0; i--) {
-                        if (headings[i].getBoundingClientRect().top - 50 <= 0) {
-                            if (!toc_links[i].classList.contains("active")) {
-                                toc_links.forEach((link, _index) => {
-                                    link.classList.remove("active");
-                                });
-                                toc_links[i].classList.add('active');
+            window.addEventListener('scroll', (_event) => {
+                if (typeof (headings) != 'undefined' && headings != null && typeof (toc_links) != 'undefined' && toc_links != null) {
+                    // Then iterate forwards, on the first match highlight it and break
+                    find_active: {
+                        for (let i = headings.length - 1; i >= 0; i--) {
+                            if (headings[i].getBoundingClientRect().top - 50 <= 0) {
+                                if (!toc_links[i].classList.contains("active")) {
+                                    toc_links.forEach((link, _index) => {
+                                        link.classList.remove("active");
+                                    });
+                                    toc_links[i].classList.add('active');
+                                }
+                                break find_active;
                             }
-                            break find_active;
                         }
+                        toc_links.forEach((link, _index) => {
+                            link.classList.remove("active");
+                        });
                     }
-                    toc_links.forEach((link, _index) => {
-                        link.classList.remove("active");
-                    });
                 }
-            }
-        });
-    }
-</script>
+            });
+        }
+    </script>
 
 </body>
+
 </html>

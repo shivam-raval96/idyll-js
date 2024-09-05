@@ -11,48 +11,78 @@ export function activationMemory(
     tp = 1, // tensor model parallelism
     mixed = true,
     recomputation = "none",
-    ff_activation = "relu"
+    ff_activation = "relu",
+    seq_parallel = false
 ) {
-    console.log('activationMemory called with:', { a, b, h, h_ff, L, s, v, tp, mixed, recomputation, ff_activation });
+    console.log('activationMemory called with:', { a, b, h, h_ff, L, s, v, tp, mixed, recomputation, ff_activation, seq_parallel });
     // https://arxiv.org/pdf/2205.05198
     const bytesPerValue = mixed ? 2 : 4;
 
     let oneLayerAttention;
     if (recomputation === "none" || recomputation === "full") {
-        oneLayerAttention = s * b * h * (bytesPerValue * 4 / tp + bytesPerValue + 1) + ((2 * bytesPerValue + 1) * a * s * s * b); // eq (2)
+        if (seq_parallel) {
+            oneLayerAttention = s * b * h / tp * (bytesPerValue * 5 + 1) + ((2 * bytesPerValue + 1) * a * s * s * b); // eq (2)
+        } else {
+            oneLayerAttention = s * b * h * (bytesPerValue * 4 / tp + bytesPerValue + 1) + ((2 * bytesPerValue + 1) * a * s * s * b / tp); // eq (2)
+        }
     } else if (recomputation === "selective") {
-        oneLayerAttention = s * b * h * (bytesPerValue * 4 / tp + bytesPerValue + 1); // table 2
+        if (seq_parallel) {
+            oneLayerAttention = s * b * h / tp * (bytesPerValue * 5 + 1); // table 2
+        } else {
+            oneLayerAttention = s * b * h * (bytesPerValue * 4 / tp + bytesPerValue + 1); // table 2
+        }
     } else {
         throw new Error("Invalid recomputation value");
     }
 
     let oneLayerFeedforward;
     if (ff_activation === "relu") {
-        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
-            + s * b * h);  // dropout
+        if (seq_parallel) {
+            oneLayerFeedforward = (s * b * h * bytesPerValue / tp + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
+                + s * b * h / tp);  // dropout
+        } else {
+            oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
+                + s * b * h);  // dropout
+        }
     } else if (ff_activation === "gelu") {
-        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
-            + s * b * h_ff * bytesPerValue / tp // inputs of activation function (not really necessary for Relu)
-            + s * b * h);  // dropout
+        if (seq_parallel) {
+            oneLayerFeedforward = (s * b * h * bytesPerValue / tp + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
+                + s * b * h_ff * bytesPerValue / tp // inputs of activation function (not really necessary for Relu)
+                + s * b * h / tp);  // dropout
+        } else {
+            oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of 1st/2nd linear layers
+                + s * b * h_ff * bytesPerValue / tp // inputs of activation function (not really necessary for Relu)
+                + s * b * h);  // dropout
+        }
     } else if (ff_activation === "swiglu") {
-        oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of input/output linear layers
-            + s * b * h_ff * bytesPerValue * 3 / tp // inputs of activation function
-            + s * b * h);  // dropout (note that dropout is lower-precision - boolean)
+        if (seq_parallel) {
+            oneLayerFeedforward = (s * b * h * bytesPerValue / tp + (s * b * h_ff * bytesPerValue / tp) // inputs of input/output linear layers
+                + s * b * h_ff * bytesPerValue * 3 / tp // inputs of activation function
+                + s * b * h / tp);  // dropout (note that dropout is lower-precision - boolean)
+        } else {
+            oneLayerFeedforward = (s * b * h * bytesPerValue + (s * b * h_ff * bytesPerValue / tp) // inputs of input/output linear layers
+                + s * b * h_ff * bytesPerValue * 3 / tp // inputs of activation function
+                + s * b * h);  // dropout (note that dropout is lower-precision - boolean)
+        }
     }
 
-    const layerNorm = s * b * h * bytesPerValue;
+    let layerNorm;
+    if (seq_parallel) {
+        layerNorm = s * b * h * bytesPerValue / tp;
+    } else {
+        layerNorm = s * b * h * bytesPerValue;
+    }
 
-    const inputDropout = s * b * h; // section 4.3
-    const outputLayerNorm = s * b * h * bytesPerValue;
-    const outputLayerProjection = s * b * h * bytesPerValue;
-    const outputCrossEntropy = s * b * v * 4;  // In FP32
+    const inputDropout = seq_parallel ? s * b * h / tp : s * b * h; // section 4.3
+    const outputLayerNorm = seq_parallel ? s * b * h * bytesPerValue / tp : s * b * h * bytesPerValue;
+    const outputLayerProjection = seq_parallel ? s * b * h * bytesPerValue / tp : s * b * h * bytesPerValue;
+    const outputCrossEntropy = seq_parallel ? s * b * v * 4 / tp : s * b * v * 4;  // In FP32
 
 
-    let oneLayer;
     let data
     if (recomputation === "none" || recomputation === "selective") {
 
-         data = {
+        data = {
             name: "activationMemory",
             children: [
                 ...Array.from({ length: L }, (_, index) => ({
@@ -70,21 +100,19 @@ export function activationMemory(
             ]
         };
     } else if (recomputation === "full") {
-         data = {
+        data = {
             name: "activationMemory",
             children: [
-                { name: 'LayerInput', value: s * b * h * bytesPerValue * L},
+                { name: 'LayerInput', value: s * b * h * bytesPerValue * L },
                 { name: 'Dropout', value: inputDropout },
                 { name: 'LayerNorm', value: outputLayerNorm },
                 { name: 'Projection', value: outputLayerProjection },
                 { name: 'Cross Entropy', value: outputCrossEntropy }
             ]
         };
-        } else {
+    } else {
         throw new Error("Invalid recomputation value");
     }
-
-
 
     return data;
 }
@@ -138,10 +166,11 @@ export function updateGraph() {
     const mixed = document.getElementById('mixed').checked;
     const recomputation = document.getElementById('recomputation').value;
     const ff_activation = document.getElementById('ff_activation').value;
+    const seq_parallel = document.getElementById('seq_parallel').checked;
 
-    console.log('Slider values:', { a, b, h, h_ff, L, s, v, k, tp, zero, dp, mixed, recomputation, ff_activation });
+    console.log('Slider values:', { a, b, h, h_ff, L, s, v, k, tp, zero, dp, mixed, recomputation, ff_activation, seq_parallel });
 
-    const activationMemoryData = activationMemory(a, b, h, h_ff, L, s, v, tp, mixed, recomputation, ff_activation);
+    const activationMemoryData = activationMemory(a, b, h, h_ff, L, s, v, tp, mixed, recomputation, ff_activation, seq_parallel);
     const paramGradsOptValue = paramGradsOpt(h, L, s, v, k, dp, zero, mixed);
 
     const data = {
@@ -167,7 +196,7 @@ export function updateGraph() {
     const svg = d3.select("#graph").select("svg");
     svg.selectAll("*").remove();
     svg.attr("width", width)
-       .attr("height", height + legendHeight);
+        .attr("height", height + legendHeight);
 
     const treemap = d3.treemap()
         .size([width, height])
@@ -178,10 +207,10 @@ export function updateGraph() {
 
     const root = d3.hierarchy(data)
         .sum(d => d.value);
-        // .sort((a, b) => b.value - a.value);
+    // .sort((a, b) => b.value - a.value);
 
-        // const fixedSize100GB = 100 * 1024 * 1024 * 1024; // 100GB in bytes
-        // if (root.children[0].value < fixedSize100GB) {
+    // const fixedSize100GB = 100 * 1024 * 1024 * 1024; // 100GB in bytes
+    // if (root.children[0].value < fixedSize100GB) {
     //     root.value = fixedSize100GB;
     //     root.children[0].value = fixedSize100GB;
     // }
@@ -191,7 +220,7 @@ export function updateGraph() {
     treemap(root);
 
     const color = d => {
-        switch(d.data.name) {
+        switch (d.data.name) {
             case 'Parameters': return '#4e79a7';  // Blue
             case 'Gradients': return '#f28e2c';  // Orange
             case 'OptimizerAverages': return '#e15759';  // Green
@@ -227,14 +256,14 @@ export function updateGraph() {
     cell.append("text")
         .attr("font-size", `${fontSize}px`)
         .attr("font-family", "sans-serif")
-        .each(function(d) {
+        .each(function (d) {
             if (d.depth === 0) return; // Skip root node
 
             const node = d3.select(this);
-            
+
             const name = d.data.name;
             const value = formatBytes(d.value);
-            
+
             if (d.depth === 1 || d.depth === 2) {
                 node.attr("transform", `translate(${padding},${fontSize + padding})`)
                     .attr("font-weight", "bold")
@@ -294,10 +323,10 @@ function formatBytes(bytes) {
 }
 
 const presets = {
-    "Llama 3 Tiny": { a: 16, b: 3, h: 1024, h_ff: 4096, L: 1, s: 7, v: 30522, k: 8, tp: 1, zero: "1", dp: 1, mixed: true, recomputation: "none", ff_activation: "gelu" },
-    "Llama 3 8B": { a: 32, b: 32, h: 4096, h_ff: 16384, L: 32, s: 256, v: 30522, k: 8, tp: 1, zero: "1", dp: 1, mixed: true, recomputation: "none", ff_activation: "swiglu" },
-    "Llama 3 70B": { a: 64, b: 32, h: 8192, h_ff: 32768, L: 80, s: 256, v: 30522, k: 8, tp: 8, zero: "1", dp: 8, mixed: true, recomputation: "none", ff_activation: "swiglu" },
-    "Llama 3 405B": { a: 128, b: 32, h: 16384, h_ff: 65536, L: 126, s: 256, v: 30522, k: 8, tp: 8, zero: "1", dp: 8, mixed: true, recomputation: "none", ff_activation: "swiglu" }
+    "Llama 3 Tiny": { a: 16, b: 3, h: 1024, h_ff: 4096, L: 1, s: 7, v: 30522, k: 8, tp: 1, zero: "1", dp: 1, mixed: true, recomputation: "none", ff_activation: "gelu", seq_parallel: false },
+    "Llama 3 8B": { a: 32, b: 32, h: 4096, h_ff: 16384, L: 32, s: 256, v: 30522, k: 8, tp: 1, zero: "1", dp: 1, mixed: true, recomputation: "none", ff_activation: "swiglu", seq_parallel: false },
+    "Llama 3 70B": { a: 64, b: 32, h: 8192, h_ff: 32768, L: 80, s: 256, v: 30522, k: 8, tp: 8, zero: "1", dp: 8, mixed: true, recomputation: "none", ff_activation: "swiglu", seq_parallel: false },
+    "Llama 3 405B": { a: 128, b: 32, h: 16384, h_ff: 65536, L: 126, s: 256, v: 30522, k: 8, tp: 8, zero: "1", dp: 8, mixed: true, recomputation: "none", ff_activation: "swiglu", seq_parallel: false }
 };
 
 function setPresetValues(preset) {
@@ -345,7 +374,7 @@ function syncSliderAndInput(sliderId, inputId) {
 
 export const init_memory_plot = function () {
     console.log('Initializing memory plot');
-    
+
     const sliderIds = ['a', 'b', 'h', 'h_ff', 'L', 's', 'v', 'k', 'tp', 'dp'];
     sliderIds.forEach(id => {
         const slider = document.getElementById(id);
@@ -385,6 +414,13 @@ export const init_memory_plot = function () {
         console.warn('Mixed checkbox not found');
     }
 
+    const seqParallelCheckbox = document.getElementById('seq_parallel');
+    if (seqParallelCheckbox) {
+        seqParallelCheckbox.addEventListener('change', updateGraph);
+    } else {
+        console.warn('Seq Parallel checkbox not found');
+    }
+
     const presetSelect = document.getElementById('presets');
     if (presetSelect) {
         presetSelect.addEventListener('change', (event) => {
@@ -398,7 +434,7 @@ export const init_memory_plot = function () {
     sliderIds.forEach(id => {
         const slider = document.getElementById(id);
         if (slider) {
-            switch(id) {
+            switch (id) {
                 case 'a': slider.max = '128'; break;
                 case 'b': slider.max = '53248'; break;
                 case 'h': slider.max = '16384'; break;
