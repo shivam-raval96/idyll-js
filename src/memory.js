@@ -195,8 +195,7 @@ export function updateGraph() {
 
     const svg = d3.select("#graph").select("svg");
     svg.selectAll("*").remove();
-    svg.attr("width", width)
-        .attr("height", height + legendHeight);
+    svg.attr("viewBox", [0, 0, width, height + legendHeight]);
 
     const treemap = d3.treemap()
         .size([width, height])
@@ -456,8 +455,6 @@ export const init_memory_plot = function () {
     if (graphContainer) {
         const svg = d3.select("#graph")
             .append("svg")
-            .attr("width", 960)
-            .attr("height", 500);
     } else {
         console.warn('Graph container not found');
     }

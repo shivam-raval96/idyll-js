@@ -246,6 +246,10 @@ d-article aside {
     margin-bottom: 1em;
 }
 
+d-article img {
+    max-width: 100%;
+}
+
 @media (min-width: 768px) {
     d-article aside {
         margin-bottom: 0;

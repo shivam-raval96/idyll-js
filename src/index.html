@@ -12,16 +12,11 @@
     <style>
         #controls {
             display: grid;
-            grid-template-columns: 350px 350px;
-            gap: 1px;
-            align-items: center;
-            max-width: 700px;
-            margin: 0 auto 20px;
-            padding: 0 10px;
-        }
-
-        #controls .row {
-            display: contents;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            column-gap: 10px;
+            margin-bottom: 20px;
+            max-width: 100%;
+            container-type: inline-size;
         }
 
         #controls .cell {
@@ -40,6 +35,11 @@
             align-items: center;
             justify-content: space-between;
         }
+        @container (max-width: 600px) {
+            #controls .column-2 {
+                order: 2;
+            }
+        }
 
         #controls label {
             text-align: right;
@@ -56,12 +56,18 @@
         }
 
         #controls input[type="number"] {
+            flex-shrink: 0;
             width: 60px;
-            height: 20px;
+            height: 24px;
+            border: 1px solid var(--distill-gray-light);
+            border-radius: 0.2rem;
         }
 
         #controls select {
             width: 100%;
+            min-height: 28px;
+            border: 1px solid var(--distill-gray-light);
+            border-radius: 0.2rem;
         }
 
         #controls .column {
@@ -133,123 +139,105 @@
 
         <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating
             the template on which we based this blog post.</aside>
-
-        <div id="graph" style="position: relative; width: 700px; height: 500px;"></div>
+        <div id="graph"></div>
         <div id="controls">
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="a">Attention Heads (a):</label>
-                    <input type="range" id="a" name="a" min="1" max="128" value="8">
-                    <input type="number" id="a_input" value="8" min="1" max="128">
-                </div>
-                <div class="cell column-2">
-                    <label for="mixed">Mixed Precision:</label>
-                    <input type="checkbox" id="mixed" name="mixed" checked>
-                    <span></span> <!-- Empty span to maintain grid alignment -->
-                </div>
+            <div class="cell column-1">
+            <label for="a">Attention Heads (a):</label>
+            <input type="range" id="a" name="a" min="1" max="128" value="8">
+            <input type="number" id="a_input" value="8" min="1" max="128">
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="b">Micro Batch Size (b):</label>
-                    <input type="range" id="b" name="b" min="1" max="53248" value="32">
-                    <input type="number" id="b_input" value="32" min="1" max="53248">
-                </div>
-                <div class="cell column-2">
-                    <label for="seq_parallel">Sequence Parallelism:</label>
-                    <input type="checkbox" id="seq_parallel" name="seq_parallel">
-                    <span></span> <!-- Empty span to maintain grid alignment -->
-                </div>
+            <div class="cell column-2">
+            <label for="mixed">Mixed Precision:</label>
+            <input type="checkbox" id="mixed" name="mixed" checked>
+            <span></span> <!-- Empty span to maintain grid alignment -->
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="h">Hidden Dimension (h):</label>
-                    <input type="range" id="h" name="h" min="1" max="16384" value="512">
-                    <input type="number" id="h_input" value="512" min="128" max="16384">
-                </div>
-                <div class="cell column-2">
-                    <label for="recomputation">Recomputation:</label>
-                    <select id="recomputation" name="recomputation">
-                        <option value="none">None</option>
-                        <option value="selective">Selective</option>
-                        <option value="full">Full</option>
-                    </select>
-                    <span></span> <!-- Empty span to maintain grid alignment -->
-
-                </div>
+            <div class="cell column-1">
+            <label for="b">Micro Batch Size (b):</label>
+            <input type="range" id="b" name="b" min="1" max="53248" value="32">
+            <input type="number" id="b_input" value="32" min="1" max="53248">
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="h_ff">Feedforward Dimension (h_ff):</label>
-                    <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
-                    <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
-                </div>
-                <div class="cell column-2">
-                    <label for="zero">Zero:</label>
-                    <select id="zero" name="zero">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                    </select>
-                    <span></span> <!-- Empty span to maintain grid alignment -->
-                </div>
+            <div class="cell column-2">
+            <label for="seq_parallel">Sequence Parallelism:</label>
+            <input type="checkbox" id="seq_parallel" name="seq_parallel">
+            <span></span> <!-- Empty span to maintain grid alignment -->
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="L">Number of Layers (L):</label>
-                    <input type="range" id="L" name="L" min="1" max="126" value="12">
-                    <input type="number" id="L_input" value="12" min="1" max="126">
-                </div>
-                <div class="cell column-2">
-                    <label for="ff_activation">FF Activation:</label>
-                    <select id="ff_activation" name="ff_activation">
-                        <option value="relu">ReLU</option>
-                        <option value="gelu">GELU</option>
-                        <option value="swiglu">SwiGLU</option>
-                    </select>
-                    <span></span> <!-- Empty span to maintain grid alignment -->
-                </div>
+            <div class="cell column-1">
+            <label for="h">Hidden Dimension (h):</label>
+            <input type="range" id="h" name="h" min="1" max="16384" value="512">
+            <input type="number" id="h_input" value="512" min="128" max="16384">
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="s">Sequence Length (s):</label>
-                    <input type="range" id="s" name="s" min="1" max="128000" value="128">
-                    <input type="number" id="s_input" value="128" min="64" max="128000">
-                </div>
-                <div class="cell column-2">
-                    <label for="presets">Presets:</label>
-                    <select id="presets" name="presets">
-                        <option value="Llama 3 Tiny">Llama 3 Tiny</option>
-                        <option value="Llama 3 8B">Llama 3 8B</option>
-                        <option value="Llama 3 70B">Llama 3 70B</option>
-                        <option value="Llama 3 405B">Llama 3 405B</option>
-                    </select>
-                    <span></span> <!-- Empty span to maintain grid alignment -->
-                </div>
+            <div class="cell column-2">
+            <label for="recomputation">Recomputation:</label>
+            <select id="recomputation" name="recomputation">
+                <option value="none">None</option>
+                <option value="selective">Selective</option>
+                <option value="full">Full</option>
+            </select>
+            <span></span> <!-- Empty span to maintain grid alignment -->
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="v">Vocabulary Size (v):</label>
-                    <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
-                    <input type="number" id="v_input" value="30522" min="1000" max="100000">
-                </div>
-                <div class="cell column-2">
-                    <label for="tp">Tensor Parallelism (t):</label>
-                    <input type="range" id="tp" name="tp" min="1" max="16" value="8">
-                    <input type="number" id="tp_input" value="8" min="1" max="16">
-                </div>
+            <div class="cell column-1">
+            <label for="h_ff">Feedforward Dimension (h_ff):</label>
+            <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
+            <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
             </div>
-            <div class="row">
-                <div class="cell column-1">
-                    <label for="k">Optimizer Parameters (k):</label>
-                    <input type="range" id="k" name="k" min="1" max="16" value="8">
-                    <input type="number" id="k_input" value="8" min="1" max="16">
-                </div>
-                <div class="cell column-2">
-                    <label for="dp">Data Parallelism (d):</label>
-                    <input type="range" id="dp" name="dp" min="1" max="256" value="1">
-                    <input type="number" id="dp_input" value="1" min="1" max="256">
-                </div>
+            <div class="cell column-2">
+            <label for="zero">Zero:</label>
+            <select id="zero" name="zero">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+            </select>
+            <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="cell column-1">
+            <label for="L">Number of Layers (L):</label>
+            <input type="range" id="L" name="L" min="1" max="126" value="12">
+            <input type="number" id="L_input" value="12" min="1" max="126">
+            </div>
+            <div class="cell column-2">
+            <label for="ff_activation">FF Activation:</label>
+            <select id="ff_activation" name="ff_activation">
+                <option value="relu">ReLU</option>
+                <option value="gelu">GELU</option>
+                <option value="swiglu">SwiGLU</option>
+            </select>
+            <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="cell column-1">
+            <label for="s">Sequence Length (s):</label>
+            <input type="range" id="s" name="s" min="1" max="128000" value="128">
+            <input type="number" id="s_input" value="128" min="64" max="128000">
+            </div>
+            <div class="cell column-2">
+            <label for="presets">Presets:</label>
+            <select id="presets" name="presets">
+                <option value="Llama 3 Tiny">Llama 3 Tiny</option>
+                <option value="Llama 3 8B">Llama 3 8B</option>
+                <option value="Llama 3 70B">Llama 3 70B</option>
+                <option value="Llama 3 405B">Llama 3 405B</option>
+            </select>
+            <span></span> <!-- Empty span to maintain grid alignment -->
+            </div>
+            <div class="cell column-1">
+            <label for="v">Vocabulary Size (v):</label>
+            <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
+            <input type="number" id="v_input" value="30522" min="1000" max="100000">
+            </div>
+            <div class="cell column-2">
+            <label for="tp">Tensor Parallelism (t):</label>
+            <input type="range" id="tp" name="tp" min="1" max="16" value="8">
+            <input type="number" id="tp_input" value="8" min="1" max="16">
+            </div>
+            <div class="cell column-1">
+            <label for="k">Optimizer Parameters (k):</label>
+            <input type="range" id="k" name="k" min="1" max="16" value="8">
+            <input type="number" id="k_input" value="8" min="1" max="16">
+            </div>
+            <div class="cell column-2">
+            <label for="dp">Data Parallelism (d):</label>
+            <input type="range" id="dp" name="dp" min="1" max="256" value="1">
+            <input type="number" id="dp_input" value="1" min="1" max="256">
             </div>
         </div>
 
