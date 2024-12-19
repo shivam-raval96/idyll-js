@@ -252,7 +252,7 @@ export function updateGraph() {
     }
 
     const cell = svg.selectAll("g")
-        .data(root.descendants())
+        .data(root.descendants().filter(d => d.depth !== 0)) // Skip root node
         .join("g")
         .attr("transform", d => `translate(${d.x0},${d.y0})`)
         .on('mouseover', (event, d) => {
@@ -281,7 +281,6 @@ export function updateGraph() {
         .attr("font-size", `${fontSize}px`)
         .attr("font-family", "sans-serif")
         .each(function (d) {
-            if (d.depth === 0) return; // Skip root node
 
             const node = d3.select(this);
 
