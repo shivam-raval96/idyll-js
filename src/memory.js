@@ -201,7 +201,7 @@ export function updateGraph() {
         .size([width, height])
         .paddingOuter(3)
         .paddingTop(19)
-        .paddingInner(1)
+        .paddingInner(3)
         .round(true);
 
     const root = d3.hierarchy(data)
@@ -222,16 +222,16 @@ export function updateGraph() {
         switch (d.data.name) {
             case 'Parameters': return '#117fc9';  // Blue
             case 'Gradients': return '#ffad5c';  // Orange
-            case 'OptimizerAverages': return '#e1576b';  // Red
+            case 'OptimizerAverages': return '#f67d8e';  // Red
             case 'activationMemory': return '#ffad5c';  // Orange
-            case 'fixed100GB': return '#80cb75';  // Green
-            case 'Attention': return '#e1576b';  // Red
-            case 'Feedforward': return '#2f94d9';  // Light Blue
+            case 'fixed100GB': return '#bae2b4';  // Green
+            case 'Attention': return '#f67d8e';  // Red
+            case 'Feedforward': return '#4aacef';  // Light Blue
             case 'LayerNorm': return '#fb8b28';  // Dark Orange
             case 'Dropout': return '#4ead4e';  // Dark Green
             case 'Projection': return '#d94361';  // Dark Red
             case 'Cross Entropy': return '#b492d3';  // Violet
-            case 'Total': return '#80cb75';  // Green
+            case 'Total': return '#bae2b4';  // Green
             case 'root': return '#f3f3f3';  // Light Grey
             default: return '#a0c4ff';  // Lighter Blue (for unexpected cases)
         }
@@ -269,8 +269,8 @@ export function updateGraph() {
         .attr("width", d => d.x1 - d.x0)
         .attr("height", d => d.y1 - d.y0)
         .attr("fill", d => color(d))
-        .attr("stroke", d => d.depth === 1 ? color(d) : "none")
-        .attr("stroke-width", 2);
+        .attr("stroke", d => d.depth === 1 ? color(d) : "white")
+        .attr("stroke-width", 0.5);
 
     const fontSize = 10;
     const padding = 2;
