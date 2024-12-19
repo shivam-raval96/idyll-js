@@ -220,27 +220,50 @@ export function updateGraph() {
 
     const color = d => {
         switch (d.data.name) {
-            case 'Parameters': return '#4e79a7';  // Blue
-            case 'Gradients': return '#f28e2c';  // Orange
-            case 'OptimizerAverages': return '#e15759';  // Green
-            case 'activationMemory': return '#f28e2c';  // Orange
-            case 'fixed100GB': return '#59a14f';  // Green
-            case 'Attention': return '#e15759';  // Red
-            case 'Feedforward': return '#1f77b4';  // Light Blue
-            case 'LayerNorm': return '#ff7f0e';  // Dark Orange
-            case 'Dropout': return '#2ca02c';  // Dark Green
-            case 'Projection': return '#d62728';  // Dark Red
-            case 'Cross Entropy': return '#9467bd';  // Violet
-            case 'Total': return '#59a14f';  // Green
-            case 'root': return '#d3d3d3';  // Light Grey
+            case 'Parameters': return '#117fc9';  // Blue
+            case 'Gradients': return '#ffad5c';  // Orange
+            case 'OptimizerAverages': return '#e1576b';  // Red
+            case 'activationMemory': return '#ffad5c';  // Orange
+            case 'fixed100GB': return '#80cb75';  // Green
+            case 'Attention': return '#e1576b';  // Red
+            case 'Feedforward': return '#2f94d9';  // Light Blue
+            case 'LayerNorm': return '#fb8b28';  // Dark Orange
+            case 'Dropout': return '#4ead4e';  // Dark Green
+            case 'Projection': return '#d94361';  // Dark Red
+            case 'Cross Entropy': return '#b492d3';  // Violet
+            case 'Total': return '#80cb75';  // Green
+            case 'root': return '#f3f3f3';  // Light Grey
             default: return '#a0c4ff';  // Lighter Blue (for unexpected cases)
         }
     };
 
+    const tooltip = d3.select('body')
+      .append('div')
+      .attr('id', 'tooltip')
+      .style('opacity', 0)
+      .style('position', 'absolute')
+      .style('background-color', 'white')
+      .style('padding', '4px')
+      .style('font-size', '12px')
+      .style('border-radius', '5px')
+      .style('box-shadow', '0px 0px 5px 0px rgba(0,0,0,0.3)');
+
+
     const cell = svg.selectAll("g")
         .data(root.descendants())
         .join("g")
-        .attr("transform", d => `translate(${d.x0},${d.y0})`);
+        .attr("transform", d => `translate(${d.x0},${d.y0})`)
+        .on('mouseover', (event, d) => {
+          const name = d.data.name;
+          const value = formatBytes(d.value);
+          tooltip.transition().duration(200).text(`${name}: ${value}`)
+        })
+        .on('mouseout', function() {
+          tooltip.style('opacity', 0)
+        })
+        .on('mousemove', function(event) {
+          tooltip.style('left', (event.pageX + 10) + 'px').style('top', (event.pageY + 10) + 'px').style('opacity', 1)
+        });
 
     cell.append("rect")
         .attr("width", d => d.x1 - d.x0)
@@ -276,15 +299,6 @@ export function updateGraph() {
             }
         });
 
-    // Add invisible rect for better hover area
-    cell.append("rect")
-        .attr("width", d => d.x1 - d.x0)
-        .attr("height", d => d.y1 - d.y0)
-        .attr("fill", "none")
-        .attr("pointer-events", "all")
-        .append("title")
-        .text(d => `${d.data.name}: ${formatBytes(d.value)}`);
-
     // Adjust legend positioning
     const legendData = root.children[0].children.concat(root.children[0]);
     const legend = svg.append("g")
@@ -302,7 +316,7 @@ export function updateGraph() {
         .attr("width", 19)
         .attr("height", 19)
         .attr("fill", d => color(d))
-        .attr("stroke", 'grey')
+        .attr("stroke", '#f3f3f3')
         .attr("stroke-width", 2);
 
     legend.append("text")
