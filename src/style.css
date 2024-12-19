@@ -268,7 +268,9 @@ d-contents nav > ul > li > a:hover {
     column-gap: 10px;
     margin-bottom: 20px;
     max-width: 100%;
-    container-type: inline-size;
+    @supports (container-type: inline-size) {
+        container-type: inline-size;
+    }
 }
 
 #controls .cell {
@@ -285,9 +287,11 @@ d-contents nav > ul > li > a:hover {
     display: flex;
     align-items: center;
 }
-@container (max-width: 600px) {
-    #controls .column-2 {
-        order: 2;
+@supports (container-type: inline-size) {
+    @container (max-width: 600px) {
+        #controls .column-2 {
+            order: 2;
+        }
     }
 }
 
