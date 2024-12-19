@@ -237,7 +237,9 @@ export function updateGraph() {
         }
     };
 
-    const tooltip = d3.select('body')
+
+    if (d3.select('#tooltip').empty()) {
+      d3.select('body')
       .append('div')
       .attr('id', 'tooltip')
       .style('opacity', 0)
@@ -247,7 +249,7 @@ export function updateGraph() {
       .style('font-size', '12px')
       .style('border-radius', '5px')
       .style('box-shadow', '0px 0px 5px 0px rgba(0,0,0,0.3)');
-
+    }
 
     const cell = svg.selectAll("g")
         .data(root.descendants())
@@ -256,13 +258,13 @@ export function updateGraph() {
         .on('mouseover', (event, d) => {
           const name = d.data.name;
           const value = formatBytes(d.value);
-          tooltip.transition().duration(200).text(`${name}: ${value}`)
+          d3.select('#tooltip').transition().duration(200).text(`${name}: ${value}`)
         })
         .on('mouseout', function() {
-          tooltip.style('opacity', 0)
+          d3.select('#tooltip').style('opacity', 0)
         })
         .on('mousemove', function(event) {
-          tooltip.style('left', (event.pageX + 10) + 'px').style('top', (event.pageY + 10) + 'px').style('opacity', 1)
+          d3.select('#tooltip').style('left', (event.pageX + 10) + 'px').style('top', (event.pageY + 10) + 'px').style('opacity', 1)
         });
 
     cell.append("rect")
@@ -317,7 +319,7 @@ export function updateGraph() {
         .attr("height", 19)
         .attr("fill", d => color(d))
         .attr("stroke", '#f3f3f3')
-        .attr("stroke-width", 2);
+        .attr("stroke-width", 0);
 
     legend.append("text")
         .attr("x", 24)
