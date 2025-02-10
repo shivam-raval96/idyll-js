@@ -246,6 +246,10 @@ d-article aside {
     margin-bottom: 1em;
 }
 
+d-article img {
+    max-width: 100%;
+}
+
 @media (min-width: 768px) {
     d-article aside {
         margin-bottom: 0;
@@ -255,5 +259,80 @@ d-article aside {
 d-contents nav > div > a:hover,
 d-contents nav > ul > li > a:hover {
     text-decoration: none;
+}
+
+/* memory */
+#controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    column-gap: 10px;
+    margin-bottom: 20px;
+    max-width: 100%;
+    @supports (container-type: inline-size) {
+        container-type: inline-size;
+    }
+}
+
+#controls .cell {
+    padding: 1px;
+    box-sizing: border-box;
+}
+
+#controls .column-1 {
+    display: flex;
+    align-items: center;
+}
+
+#controls .column-2 {
+    display: flex;
+    align-items: center;
+}
+@supports (container-type: inline-size) {
+    @container (max-width: 600px) {
+        #controls .column-2 {
+            order: 2;
+        }
+    }
+}
+
+#controls label {
+    text-align: right;
+    padding-right: 10px;
+    flex: 0 0 auto;
+    width: 150px;
+    line-height: 1.5em;
+    font-size: 0.8em;
+}
+
+#controls input[type="range"] {
+    width: 50%;
+    margin: 0 10px;
+}
+
+#controls input[type="number"] {
+    flex-shrink: 0;
+    width: 60px;
+    height: 24px;
+    border: 1px solid var(--distill-gray-light);
+    border-radius: 0.2rem;
+}
+
+#controls select {
+    width: 100%;
+    min-height: 28px;
+    border: 1px solid var(--distill-gray-light);
+    border-radius: 0.2rem;
+}
+
+#controls .column {
+    display: contents;
+}
+
+#graph svg {
+    font-family: sans-serif;
+}
+
+#graph svg rect {
+    cursor: pointer;
 }
 
