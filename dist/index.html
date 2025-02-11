@@ -184,6 +184,7 @@
         <p>As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on we’ll cover in the post.</p>
 
         <h2>TL;DR</h2>
+
         <p>This book is very extensive so we decide to start with a very general overview of how you can think about distributed training. At a high level, the key challenge in scaling LLM training is to make a training step (forward/backward/optimizer step) with a large batch size the fastest possible.</p>
         <p>When scaling up models and input batches, we quickly end up in situations where either our target batch size won't fit in memory, or/and the model itself is too large to fit in a single GPU's memory.</p>
         <p>To solve this scaling issue we’ll need to carefully evaluate different parallelization strategies and find the optimal balance between three main factors:</p>
@@ -213,18 +214,258 @@
                 
         <h2>First Steps: Training on one GPU</h2>
         
+        <p>Let’s start by quickly reviewing the very basics of model training before we start to scale to many GPUs. When a model is trained on a single GPU, the training typically consists of three steps: </p>
+
+        <ol>
+            <li>a forward pass which passes inputs through the model to yield its outputs,</li>
+            <li>a backward pass to compute the gradients, and</li>
+            <li>an optimization step using the gradients to update the parameters</li>
+        </ol>
+
+        <p>It looks generally like this: </p>
+        <p><img alt="image.png" src="assets/images/placeholder.png" /></p>
+
+        <aside>As we’ll see later, these steps may be repeated or intertwined but for now we’ll start simple.</aside>
+
+        <p>In this figure, the boxes on the top line can be seen as successive layers inside a model (same for the last line). The red boxes are the associated gradients for each of these layers, computed during the backward pass.</p>
+
+        <p>The batch size (<d-math>bs</d-math>) is one of the important hyper-parameters for model training and affects both model convergence and throughput.</p>
+
+        <p>If the batch size is too small, gradients will tend to be noisy and the model may not be able to converge to the most optimal performance, on the contrary it can be useful in early training to navigate quickly in the training landscape. On the other hand, a batch size too large will make less use of each training token rendering convergence slower and wasting compute. You can find a nice discussion of this topic in OpenAI’s paper on large batch training<d-cite bibtex-key="mccandlish2018largebatchtraining"></d-cite> or Section 4.2 of MiniMax-01 <a href="https://filecdn.minimax.chat/_Arxiv_MiniMax_01_Report.pdf">technical report</a>.</p>
+
+        <aside>For instance, during DeepSeek-V3/R1 training “the batch size is gradually increased from 3072 to 15360 in the training of the first 469B tokens, and then keeps 15360 in the remaining training”.</aside>
+
+        <p>Batch size also affects the time it takes to train on a given text dataset: a small batch size will require more optimizer steps to train on the same amount of samples. Optimizer steps are costly (in compute time) and the total time to train will thus increase compared to a larger batch size. This being said, note that the batch size can often be adjusted quite largely around the optimal batch size without major impact to the performance of the model, i.e. the sensitivity of final model performances to the exact batch size value is usually rather low around the optimal batch size.</p>
+
+        <p>In the LLM pretraining community, batch sizes are commonly reported in terms of tokens rather than in number of samples (<d-math>bst</d-math> = Batch Size Tokens), this makes training numbers generally independent of the exact input sequence length used during the training.</p>
+
+        <p>In the simplest case, training on a single machine, the <d-math>bs</d-math> (in samples) and <d-math>bst</d-math> can be computed from the model input sequence length (seq) as follows :</p>
+
+        <aside><p>From here onward we’ll show the formulas for the batch size in terms of samples but you can always get its token-unit counterpart by multiplying it with the sequence length.
+        </aside>
+
+        <d-math block>
+        bst=bs *seq
+        </d-math>
+
+        <p>A sweet spot for recent LLM training is typically on the order of 4-60 million tokens per batch. However, a typical issue when scaling the training of our model to these large batch sizes is out-of-memory issues, ie. our GPU doesn’t have enough memory.</p>
+
+        <aside>Note: Llama 1 was trained with a batch size of ~4M tokens for 1.4 trillions tokens while DeepSeek was trained with a batch size of ~60M tokens for 14 trillion tokens.
+        </aside>
+
+        <p><strong>It’s time to tackle our first scaling problem: what if our model starts exploding GPU memory before we’ve reached our target batch size (maybe in some case even when using the lowest possible batch size, <code>bs=1</code>)?</strong></p>
+
+        <p>Let’s start by quickly understanding what led to our out-of-memory issue in the first place. This will help us gain some useful intuitions for later.</p>
+
         <h3>Memory usage in Transformers</h3>
+
+        <p>When training a neural network model, one store several items in memory:</p>
+
+        <ul>
+            <li>Model weights</li>
+            <li>Activations needed to compute the gradients</li>
+            <li>Model gradients</li>
+            <li>Optimizer states</li>
+        </ul>
         
+        <aside >You would think for a model you could compute the memory requirements exactly but there are a few additional memory occupants that makes it hard to be exact:
+        <ul>
+            <li>CUDA Kernels typically require 1-2 GB of GPU memory, which you can quickly verify by running <code>import torch; torch.ones((1, 1)).to("cuda")</code> and then checking the GPU memory with <code>nvidia-smi</code>.</li>
+            <li>Some rest memory usage from buffers, intermediate results and some memory that can’t be used due to fragmentation</li>
+        </ul>
+        We’ll neglect these last two contributors as they are typically small and constant factors.</aside>
+
+        <p>These items are stored as tensors which come in different <em>shapes</em> and <em>precisions</em>. The <em>shapes</em> are determined by hyper-parameters such as batch size, sequence length, model hidden dimensions, attention heads, vocabulary size, and potential model sharding as we’ll see later. <em>Precision</em> refers to formats like FP32, BF16, or FP8, which respectively require 4, 2, or 1 byte to store each single value in the tensor.</p>
+
+        <p>So how can I quickly determine memory usage from these variable? One simple way is to do this empirically and just measure it.</p>
+
         <h4>Memory profiling a training step</h4>
-        
+
+        <p>Using this snippet [TODO: link to appendix A5], we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
+
+        <p><img alt="llama-1b-memory.png" src="assets/images/placeholder.png" /></p>
+
+        <p>Clearly the first step looks very different from the subsequent ones, but let’s first have a look at the general anatomy of a step: first the activations increase quickly as we do the forward pass, then during the backward pass the gradients build up and as the backward pass propagates, the stored activations used to compute the gradients are progressively cleared. Finally, we perform the optimization step during which we need all the gradients and then update the optimizer states before we start the next forward pass. </p>
+
+        <p>Why does the first step looks different: the activations increase quickly and then plateau for a while. In this first step the torch cache allocator does a lot of preparation preparing memory allocations to speed up the subsequent steps so that they don’t require searching for free memory blocks afterwards (see <a href="https://zdevito.github.io/2022/08/04/cuda-caching-allocator.html">Zach’s blog</a>). After the first step we also see the optimizer states appearing which generally offset the memory usage for further training steps.</p>
+
+        <aside>Ever noticed how sometimes the training succeeds in the first step but then OOMs during the following training steps? This can be explained by the build-up of the optimizer state after the first step.
+        </aside>
+
+        <p>Now that we’ve a first view of memory, let’s see how scaling up training is often a question of maximizing compute efficiency while keeping the memory requirements of these various items (activations, parameters, gradients, optimizer states) within the memory constraints of the GPUs.</p>
+
         <h4>Weights/grads/optimizer states memory</h4>
+
+        <p>We can actually pretty easily estimate the memory needed for the model’s weights, gradients and optimizer states.</p>
+
+        <p>For a simple transformer LLM the number of parameters is given by the <a href="https://michaelwornow.net/2024/01/18/counting-params-in-transformer">following formula</a>:</p>
+
+        <d-math block>
+            N = h * v + L * (12 * h^2 + 13 * h) + 2*h
+        </d-math>
+
+        <aside>We excluded the positional embedding count as rotary embeddings are not learned.</aside>
+
+        <p>In that equation, <d-math>h</d-math> is the hidden dimension, <d-math>v</d-math> the vocabulary size, and <d-math>L</d-math> the number of layers in the model. Note that looking at the equation we can see that the term that will dominate at large hidden dimensions is the <d-math>h^2</d-math> term since it’s the only one growing quadratically as we scale the parameters.</p>
+
+        <p>Memory requirements for the parameters and gradients are simply the number of parameters multiplied by the number of bytes per parameter. In good old-fashioned full precision (FP32) training both parameters and gradients require 4 bytes while the optimizer, if we use Adam, requires the momentum and variance to be stored, which adds another two 4 bytes per parameter. In summary:</p>
+
+        <d-math block>
+            \begin{aligned}
+            & m_{params} = 4 * N \\
+            & m_{grad} = 4 * N \\
+            & m_{opt} = (4+4) * N
+            \end{aligned}
+        </d-math>
+
+        <p>Now let’s have look how things change if we train with mixed precision<d-cite bibtex-key="micikevicius2018mixedprecisiontraining"></d-cite>. The default nowadays is for mixed precision training is BF16, requires 2 bytes per parameter and gradient as well as an additional copy of the model weights and gradients in FP32, thus 12 bytes per parameter in total. In addition to the parameters and gradient, we need to store the optimizer states: for the Adam optimizer, this requires the momentum and the variance usually stored in FP32 for numerical stability, each using 4 bytes. </p>
+
+        <aside>See some more details below when we cover the ZeRO methods.</aside>
+
+        <p>Here’s the summary:</p>
         
+        <d-math block>
+            \begin{aligned}
+                & m_{params} = 2 * N \\ 
+                & m_{grad} = 2 * N \\ 
+                & m_{params_fp32} = 4 * N  \\ 
+                & m_{opt} = (4+4) * N
+            \end{aligned}
+        </d-math>
+
+        <aside>Some librarie store grads in fp32 which would require an additional $m_{params_fp32} = 4 * N$ memory. This is done for example in nanotron, because <code>bf16</code> is lossy for smaller values and we always prioritize stability. See  <a href="https://github.com/microsoft/DeepSpeed/issues/1773">this DeepSpeed issue</a> for more information.
+        </aside>
+
+        <p>Interestingly, mixed precision itself doesn’t save overall memory as it just distributes the memory differently across the three components, and in fact adds another 4 bytes over full precision training if we accumulate gradients in FP32. It’s still advantageous as having the model which does the forward/backward in half precision it allows us to (1) use optimized lower precision operations on the GPU which are faster and (2) reduces the activation memory requirements during the forward pass.</p>
+
+        <p>Let’s get a sense of how much general memory we need for a model (full and mixed precision giving the same overall value):</p>
+
+        <table>
+        <thead>
+            <tr>
+            <th><strong>Model parameters</strong></th>
+            <th><strong>FP32 or BF16 w/o FP32 grad acc</strong></th>
+            <th><strong>BF16 w/ FP32 grad acc</strong></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+            <td>1B</td>
+            <td>16 GB</td>
+            <td>20 GB</td>
+            </tr>
+            <tr>
+            <td>7B</td>
+            <td>112 GB</td>
+            <td>140 GB</td>
+            </tr>
+            <tr>
+            <td>70B</td>
+            <td>1120 GB</td>
+            <td>1400 GB</td>
+            </tr>
+            <tr>
+            <td>405B</td>
+            <td>6480 GB</td>
+            <td>8100 GB</td>
+            </tr>
+        </tbody>
+        </table>
+
+        <aside><p>Using FP8 training instead of BF16 would further decrease the memory usage but it is less stable and a very active research topic (see <a href="https://x.com/xariusrke/status/1826669126955278401">this tweet</a>) and we’ll cover it in more detail later.
+        </aside>
+
+        <p>As we can see, as soon as we reach <strong>7B</strong> (!), weights and optimizer requirements already starts to add up significantly and exceed the size of a typical GPU memory, e.g. 80GB for a H100 GPU.</p>
+        
+        <p>But for now, let’s start with models which still fits in a single GPU, take a look at the other big contributor to our memory budget: the activation memory.</p>
+
         <h4>Activations memory</h4>
         
+        <p>Activation memory is a bit more complex to compute than the weights, gradients and optimizer states, in part because it depends on the inputs of the model. If you’re unsure why we even need to store activations for the backward pass, <a href="https://www.determined.ai/blog/act-mem-2">this reference</a> is a good quick refresh. After a careful inspection of how backward pass is computed we can estimate the total memory required for the activations in mixed precision and we arrive at the following equation:</p>
+
+        <d-math block>
+            m_{act} =  L<em> seq * bs * h * (34 + \frac{5</em>n_{heads}*seq}{h})</p>
+        </d-math>
+
+        <p>Here <d-math>L</d-math> is the number of layers, <d-math>seq</d-math> the sequence length, <d-math>bs</d-math> the batch size in samples, <d-math>h</d-math> the hidden dimension of the model and <d-math>n_{heads}</d-math> the number of heads.</p>
+
+        <p>For the exact derivation of the numbers, you can follow this original NVIDIA paper on recomputation <d-cite bibtex-key="korthikanti2022recomputation"></d-cite>, it essentially requires you to do some accounting of all the sizes of intermediate activations between each operation in a transformer layer.</p>
+
+        <p>An interesting observation here is how the memory is not static for a given model but it scales linearly with both the sequence length and batch size. This means the activation memory is the part which will blow up when we increase our batch size or train with longer sequences. We can use this equation to look at how memory usage changes for various sequence lengths for example for Llama models (<code>bs=1</code>):</p>
+
+        <p><img alt="llama-memory-bars-no-recomp.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>This graph tells a striking story: for short sequences (or similar for small batch-sizes), activations are almost negligible, but starting at around 2-4k tokens they come to take a significant amount of memory while parameter, gradient and optimizer states usage (that we’ll discuss later) stays roughly independent of the sequence length and batch size.</p>
+
+        <p><strong>For large input tokens (a.k.a large batch-sizes/sequences), activations become by far the largest memory burden.</strong> </p>
+
+        <p>Is there a way to tame this “activation explosion”? Good question, reader!</p>
+
+        <p>It’s time to explain our first technique – called <strong><em>activation recomputation</em><em>–</em> </strong>**which will help us cap activation memory footprint. An essential tool in today’s large model training toolbox.</p>
+
         <h3>Activation recomputation</h3>
         
-        <h3>Gradient accumulation</h3>
+        <p>The general idea behind <strong><em>activation recomputation</em></strong> – also called <em>gradient checkpointing</em> or <em>rematerialization</em> – is to discard some activations during the forward pass to save memory and spend some extra compute to recompute these on the fly during the backward pass. Without recomputation, we store every hidden state between two learnable operations (e.g. FF, LayerNorm etc.), such that we can use them during the backward pass to compute gradients. When we use recomputation we typically will only store activations at a few key points along the model architecture, discard the rest of activations and recompute them on the fly during the backward pass from the nearest saved activations, basically performing again a sub-part of the forward pass to trade of memory for compute. It generally looks like this:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>There are several strategies to select key activations to store:</p>
+
+        <ul>
+            <li><strong>Full</strong>: We checkpoint activations at the transition point between each layer of the Transformer model. This is usually called the <code>full</code> strategy since it requires a forward pass through each layer essentially adding a full forward pass during the backward pass. This strategy saves the most memory but is the most expensive one in terms of compute. It generally increases the compute cost and time by up to 30-40% which is very noticeable.</li>
+            <li><strong>Selective</strong>: In general we can do better than full. The authors of the recomputation paper<d-cite bibtex-key="korthikanti2022recomputation"></d-cite> did a detailed analysis studying which activations grow the largest and have the cheapest recomputation cost in terms of FLOPs. Turns out that the attention computations fall in that category, and thus we can usually discard them and focus on checkpointing expensive the feedforward computations. For a GPT-3 (175B) model this means <strong>70% activation memory reduction at a 2.7% compute cost</strong>.</li>
+        </ul>
+
+        <aside>In recent models like DeepSeek V3, selective checkpointing is performed, storing even a smaller size of attention activation —using so-called “Multi-Head Latent Attention” (MLA)– to optimize activation memory usage.</aside>
+
+        <p>Let’s see how drastically recomputation strategies can in practice reduce the memory footprint and how selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
+
+        <p><img alt="llama-8b-memory-bars--recomp.png" src="/assets/images/placeholder.png" /></p>
+
+        <aside>When you’re measuring how efficient your training setup is at using the accelerator’s available compute, you may want to take recomputation into account when measuring the total FLOPS (Floating point operations per second) of your training setup and comparing it to theoretical maximum FLOPS of your GPU/TPU/accelerator to estimate GPU utilization. Taking recomputation into account when calculating FLOPS for a training step gives a value called “hardware FLOPS” which is the real number of operations performed on the accelerator. Dividing this number by the duration of one training step and the maximum accelerator FLOPS yields the <em>Hardware FLOPS Utilization (HFU).</em> </aside>
         
+        <aside>However, when comparing various accelerators together, what really matters at the end of the day is the start-to-end time needed to train the same models on the same dataset, ie. if an accelerator allows to skip recomputation and thus perform less operation per second for a faster training it should be rewarded. Thus, alternative is to compute what is called <em>Model FLOPS Utilization (MFU)</em>, which in contrast to HFU only accounts for the required operations to compute the forward+backward passes, and not recomputation, ie. is specific to the model, not the training implementation.</aside>
+
+        <p>Most training frameworks these days use FlashAttention (which we’ll cover a bit later) which integrate natively activation recomputation in its optimization strategy by recomputing attention scores and matrices in the backward pass instead of storing them. Thus most people using Flash Attention are already making use of selective recomputation.</p>
+
+        <p><strong>As you’ve now understood, activation recomputation increases the number of FLOPs slightly due to recomputation, while it significantly reduces memory access overhead.</strong> </p>
+
+        <p>This trade-off is particularly advantageous on hardware with small high-speed memory, like GPUs, as accessing memory is typically slower than performing computations. Despite the additional operations involves, the overall effect is thus often faster computation as well, in addition to the much lower memory footprint.</p>
+
+        <p>Now that we’ve learned about recomputation, we can tame the activations memory usage as we saw in the above graphs!</p>
+
+        <p>However, activations still bears a linear dependance on the batch size and all our profiles in the barplots above were using <code>bs=1</code> so as we move to larger batch sizes it might become an issue again. Do not despair as we have a second tool in our box - <strong><em>gradient accumulation</em></strong> to the rescue!</p>
+
+        <h3>Gradient accumulation</h3>
+
+        <p>Now that we’ve used activation recomputation to fit our model with a small batch size on a single GPU, we still need to reach our target batch size, let’s say 1M tokens (see our earlier discussion on optimal batch size). Gradient accumulation is a very straightforward method to avoid memory explosion when doing this.</p>
+
+        <p>With <em>gradient accumulation</em> we split our batch into micro-batches, do forward and backward passes repeatedly on each micro-batch, compute the gradients, and, as the name suggests, sum the gradients for each micro-batch before doing a final optimizer step. In practice, we perform the optimization step not on the sum but on the average of the gradients, so the result is independent of the number of gradient accumulation steps.</p>
+
+        <p>Let’s call the batch size for each forward pass the <code>micro batch size</code> (mbs). We’ll refer to the overall batch size between each optimizer step as the <code>global batch size</code> (gbs). If we do one optimizer step for each 8 forward/backward passes, the <code>global batch size</code> will be 8 times the <code>micro batch size</code>.</p>
+
+        <p>What we now call <code>global batch size</code> thus corresponds to what we’ve called up to now just <code>batch size</code> for simplicity (we now make our terms more precise to avoid ambiguity).</p>
+
+        <p>With gradient accumulation the global batch size can be simply computed as follows:</p>
+
+        <d-math block>
+            bs = gbs = mbs \times grad\_acc 
+        </d-math>
+
+        <p>Gradient accumulation allows us to effectively increase our batch size up to infinity (and beyond!) while the memory footprint stays constant. Gradient accumulation is also compatible with activation recomputation for further memory reduction. One drawback however, is that gradient accumulation requires multiple consecutive forward/backward passes per optimization step thereby increasing the compute overhead and slowing down training. No free lunch! </p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p><strong>Gradient accumulation allows us to reduce memory of activations which grow linearly with batch size by computing only only partial, micro-batches. There is a small overhead caused by the additional forward and backward passes.</strong></p>
+
+        <aside>Using gradient accumulation means we need to keep buffers where we accumulate gradients which persist throughout a training step. Whereas without gradient accumulation, in the backward gradients are computed while freeing the activations memory, which means a lower peak memory.</aside>
+
+        <p>But if you’ve carefully followed, you probably noticed that the forward/backward passes for each micro-batch can actually be run in parallel. Forward/backward passes are independent from each other, with independent input samples being the only difference. Seems like it’s time to start extending our training to more than one GPU! </p>
+
+        <p>Let’s get a larger workstation 🖥️  with a couple of GPUs and start investigating our first scaling technique called <em><strong>data parallelism</strong> which is just a parallel version of gradient accumulation</em>.</p>
+
+        <p><strong>TODO: add profiling here or not?</strong></p>
+
         <h2>Data Parallelism</h2>
         
         <h4><strong>First optimization:</strong> Overlap gradient synchronization with backward pass</h4>
