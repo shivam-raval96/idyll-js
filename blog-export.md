@@ -28,7 +28,7 @@ An overview of the over 4000 experiments across all Llama architectures where ea
 
 As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on we’ll cover in the post.
 
-# TL;DR
+# ✅ TL;DR
 
 This book is very extensive so we decide to start with a very general overview of how you can think about distributed training. At a high level, the key challenge in scaling LLM training is to make a training step (forward/backward/optimizer step) with a large batch size the fastest possible.
 
@@ -55,7 +55,7 @@ But let’s not get too much ahead of our self and scale progressively. To guide
 
 Now that we nailed a few key concept and terms let’s get started by revisiting the basic training steps of an LLM!
 
-# First Steps: Training on one GPU
+# ✅ First Steps: Training on one GPU
 
 Let’s start by quickly reviewing the very basics of model training before we start to scale to many GPUs. When a model is trained on a single GPU, the training typically consists of three steps: 
 
@@ -101,7 +101,7 @@ A sweet spot for recent LLM training is typically on the order of 4-60 million t
 
 Let’s start by quickly understanding what led to our out-of-memory issue in the first place. This will help us gain some useful intuitions for later.
 
-## Memory usage in Transformers
+## ✅  Memory usage in Transformers
 
 When training a neural network model, one store several items in memory:
 
@@ -143,13 +143,13 @@ For a simple transformer LLM the number of parameters is given by the [following
 
 $$
 
-N = h*v + L * (12 * h^2 + 13*h) + 2*h
+N = 2*h*v + L * (12 * h^2 + 13*h) + 2*h
 $$
 
 > Note: we excluded the positional embedding count as rotary embeddings are not learned.
 > 
 
-In that equation, $h$ is the hidden dimension, $v$ the vocabulary size, and $L$ the number of layers in the model. Note that looking at the equation we can see that the term that will dominate at large hidden dimensions is the $h^2$ term since it’s the only one growing quadratically as we scale the parameters.
+In that equation, $h$ is the hidden dimension, $v$ the vocabulary size, and $L$ the number of layers in the model. The first term is the parameter count for the word embedding and LM head. When they are tied (meaning we use the same parameters for both), it would be 1. This is beneficial for small models, as the vocabulary size is generally much larger than the hidden dimension. We don’t want the number of parameters in an LLM to be dominated by the embedding layer. 
 
 Memory requirements for the parameters and gradients are simply the number of parameters multiplied by the number of bytes per parameter. In good old-fashioned full precision (FP32) training both parameters and gradients require 4 bytes while the optimizer, if we use Adam, requires the momentum and variance to be stored, which adds another two 4 bytes per parameter. In summary:
 
@@ -173,7 +173,7 @@ m_{params\_fp32} = 4 * N \\
 m_{opt} = (4+4) * N
 $$
 
-> Some librarie store grads in fp32 which would require an additional $m_{params\_fp32} = 4 * N$ memory. This is done for example in nanotron, because `bf16` is lossy for smaller values and we always prioritize stability. See https://github.com/microsoft/DeepSpeed/issues/1773 for more information.
+> Some libraries store grads in fp32 which would require an additional $m_{params\_fp32} = 4 * N$ memory. This is done for example in nanotron, because `bf16` is lossy for smaller values and we always prioritize stability. See https://github.com/microsoft/DeepSpeed/issues/1773 for more information.
 > 
 
 Interestingly, mixed precision itself doesn’t save overall memory as it just distributes the memory differently across the three components, and in fact adds another 4 bytes over full precision training if we accumulate gradients in FP32. It’s still advantageous as having the model which does the forward/backward in half precision it allows us to (1) use optimized lower precision operations on the GPU which are faster and (2) reduces the activation memory requirements during the forward pass.
@@ -203,7 +203,7 @@ m_{act} =  L* seq * bs * h * (34 +   \frac{5*n_{heads}*seq}{h})
 
 $$
 
-Here L is the number of layers, $seq$ the sequence length, $bs$ the batch size in samples, $h$ the hidden dimension of the model and $n_{heads}$ the number of heads.
+Here $L$ is the number of layers, $seq$ the sequence length, $bs$ the batch size in samples, $h$ the hidden dimension of the model and $n_{heads}$ the number of heads.
 
 For the exact numbers derivation, you can follow this [NVIDIA pape](https://arxiv.org/pdf/2205.05198)r on recomputation, it essentially requires you to do some accounting of all the sizes of intermediate activations between each operation.
 
@@ -219,7 +219,7 @@ Is there a way to tame this “activation explosion”? Good question, reader!
 
 It’s time to explain our first technique – called ***activation recomputation**–* ****which will help us cap activation memory footprint. An essential tool in today’s large model training toolbox.
 
-## **Activation recomputation**
+## ✅ **Activation recomputation**
 
 The general idea behind ***activation recomputation** –*also called ***gradient checkpointing*** or ***rematerialization**– *****is to discard some activations during the forward pass to save memory and spend some extra compute to recompute these on the fly during the backward pass. Without recomputation, we store every hidden state between two learnable operations (e.g. FF, LayerNorm etc.), such that we can use them during the backward pass to compute gradients. When we use recomputation we typically will only store activations at a few key points along the model architecture, discard the rest of activations and recompute them on the fly during the backward pass from the nearest saved activations, basically performing again a sub-part of the forward pass to trade of memory for compute. It generally looks like this:
 
@@ -252,7 +252,7 @@ Now that we’ve learned about recomputation, we can tame the activations memory
 
 However, activations still bears a linear dependance on the batch size and all our profiles in the barplots above were using `bs=1` so as we move to larger batch sizes it might become an issue again. Do not despair as we have a second tool in our box - ***gradient accumulation*** to the rescue!
 
-## Gradient accumulation
+## ✅ Gradient accumulation
 
 Now that we’ve used activation recomputation to fit our model with a small batch size on a single GPU, we still need to reach our target batch size, let’s say 1M tokens (see our earlier discussion on optimal batch size). Gradient accumulation is a very straightforward method to avoid memory explosion when doing this.
 
@@ -281,9 +281,9 @@ But if you’ve carefully followed, you probably noticed that the forward/backwa
 
 Let’s get a larger workstation 🖥️  with a couple of GPUs and start investigating our first scaling technique called ***data parallelism** which is just a parallel version of gradient accumulation*.
 
-TODO: intro for this
+TODO: intro for torch.profiler section
 
-## torch.profiler
+## ✅ torch.profiler
 
 ![**Overlapped backward pass (stream 7) and gradients accumulation (stream 28) means we start the optimizer step as soon as the backward pass is done**](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%207.png)
 
@@ -297,7 +297,7 @@ In this naive approach we see a long AllReduce operation (stream 28) happening t
 
 **Overlapped backward pass (stream 7) and gradients accumulation (stream 28) means we start the optimizer step as soon as the backward pass is done**
 
-# Data Parallelism
+# 🚧 Data Parallelism
 
 The idea behind data parallelism (DP) is to replicate the model on several GPUs (we call the replica's “model instances”) and run forward and backward passes on different micro batches of data in parallel for each GPU, hence the name Data Parallelism. 
 
@@ -309,11 +309,6 @@ This involves our first “distributed communication” primitive: [**All-Reduce
 
 > If you are not familiar with distributed communications patterns like broadcast, gather or all-reduce we put together a small crash course in the Appendix [TODO Link].
 > 
-
-TODO: bucket grads to avoid multiple comms
-TODO: show comms overlap
-
-TODO: any comms requires at least a contiguous buffer to do comms → TIP: make sure tensors that’ll be communicated are contiguous in memory to avoid redundant memory copies
 
 TODO: embed naive DP: [https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/data_parallel/data_parallel.py#L10-L60](https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/data_parallel/data_parallel.py#L10-L60)
 
@@ -327,7 +322,7 @@ Instead we should try to overlap communication and computation whenever possible
 
 Let’s see three optimizations that are done in practice for this! 
 
-### **First optimization:** Overlap gradient synchronization with backward pass
+### 🚧  **First optimization:** Overlap gradient synchronization with backward pass
 
 The main drawback of the naive DDP approach we’ve just described is that after the backward pass (*computation*), we have to wait for gradient synchronization (*communication*) before updating the parameters. Could we overlap this communication with our computation? The answer is yes!
 
@@ -352,7 +347,7 @@ Overlapping computation and communication reduces the time spent waiting for gra
 
 This is our first example of “*overlapping computation and communication*” which we will discuss several times in this blog post and is an essential technique to maximal scaling efficiency.
 
-### **Second optimization:** Bucketing gradients
+### 🚧 **Second optimization:** Bucketing gradients
 
 But we can even go further. For a given number of parameters to synchronize, GPU operations like collective communications are often more efficient when performing few calls on large tensors rather than many calls on smaller tensors. Therefore, instead of performing independent all-reduce for each gradient, we can group gradients into buckets and launch a single all-reduce for all the gradients within the same bucket. Think of it like packing items into boxes before shipping—it's more efficient to send a few big boxes than many small ones. By performing a single all-reduce operation for each bucket, we can significantly reduce communication overhead and speed up the communication operation.
 
@@ -362,7 +357,7 @@ The selected bucket size will be a key factor in determining the efficiency of D
 
 [TODO: benchmark all reduce with different size / bucket size results ?]
 
-### **Third optimization: I**nterplay with gradient accumulation
+### 🚧 **Third optimization: I**nterplay with gradient accumulation
 
 As we’ve seen before, gradient accumulation works by performing multiple forward and backward passes before updating the parameters with `optimizer.step()`. When combining gradient accumulation with data parallelism, we should be careful when we want to synchronize gradients.
 
@@ -370,7 +365,11 @@ In a naive version, an all-reduce operation is automatically triggered after eac
 
 In PyTorch, this is typically solved by adding a [`model.no_sync()`](https://github.com/pytorch/pytorch/blob/5ea67778619c31b13644914deef709199052ee55/torch/nn/parallel/distributed.py#L1408-L1435) decorator, which disables gradient synchronization, on the backward passes which don’t need reduction.
 
-## Revisit global batch size
+> When performing communication operations, tensors must be contiguous in memory. To avoid redundant memory copies during communication, ensure that tensors that will be communicated are stored contiguously in memory. 
+Sometimes we need to allocate additional continuous buffers of the size of activations or model parameters specifically for communication, which contributes to the peak memory usage during training.
+> 
+
+## 🚧 Revisit global batch size
 
 Let’s update our batch size equation with our newly learned Data Parallelism and Gradient Accumulation parameters:
 
@@ -387,7 +386,7 @@ Given a targeted global batch size, we can thus trade gradient accumulation step
 
 Being able to distribute the training over different samples gives us a first dimension of parallelization, thus making this 1D parallelism (we’ll progressively cover 3 more dimensions).
 
-## Our journey up to now
+## 🚧 Our journey up to now
 
 Let’s quickly summarize what we’ve seen up to now and how to setup our first 1D parallel training with a draft recipe for an optimal data-parallel setup:
 
@@ -406,26 +405,31 @@ If the gradient accumulation ratio is lower than one, i.e. we have too many GPUs
 
 Time to take a concrete example: Let’s say we want to train a recent model with a GBS of 4M tokens and a sequence length of 4k. This means our batch size will be 1024 samples (we pick powers of two). We observe that a single GPU can only fit MBS=2 in memory and we have 128 GPUs available for training. This means with 4 gradient accumulation steps we’ll achieve our goal of 1024 samples or 4M tokens per training step. Now what if we suddenly have 512 GPUs available? We can achieve the same GBS and thus identical training by keeping MBS=2 and setting gradient accumulation steps to 1 and achieve faster training!
 
-> Bear in mind that at the 512GPUs scale, depending on the network used, the communication operations will start to be bound by ring latency which means we can no longer fully overlap the DP communications. This will decrease our compute efficiency and hit our throughput. In this case we should start exploring other dimensions to parallelize on.
+> Bear in mind that at the 512GPUs scale, depending on the network used, the communication operations will start to be bound by *ring latency*  (time required for a signal to propagate once around the ring) **which means we can no longer fully overlap the DP communications. This will decrease our compute efficiency and hit our throughput. In this case we should start exploring other dimensions to parallelize on.
 > 
 
 TODO: We’re gaining overall throughput but losing efficiency as we scale DP too much
 
 ![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2013.png)
 
+$$
+t_{comm}/t_{compute} = \frac{\text{num\_params}}{\text{2 num\_tokens}} \cdot \left(\frac{DP-1}{DP}\right) \cdot \frac{\text{peak\_flops}}{\text{peak\_bw}} \leq 1
+$$
+
 **We’ve explored data parallelism, our first (simple) strategy to scale training across more GPUs. It works like gradient accumulation but parallelizes the forward and backward passes on micro batches, thus increasing throughput!**
 
-The keen reader have already probably notes however that this assumes that we can fit at least one input sample forward pass (mbs*=1)* into our GPU memory (with activation recomputation if needed).
-
-This is not always the case! As we’ve seen earlier larger models often don’t fit into a single GPU, even with activation recomputations activated. 
+The keen reader have already probably notes however that this assumes that we can fit at least one input sample forward pass (mbs*=1)* into our GPU memory. This is not always the case! As we can see, larger models don’t fit into a single GPU, even with activation recomputation activated. 
 
 ![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2014.png)
+
+> Tip: you can quickly eyeball the minimal memory required for your model’s parameters by multiplying by 2 e.g. 70B → 140GB (=133GiB)
+> 
 
 Do we have other options for these larger models? We do have some solutions thankfully. They will involve either move some of these tensors to the CPU or split the weights/gradients/optimizer-states tensors across GPUs devices!
 
 There are two main approaches to splitting: parallelism (tensor, context, or pipeline parallelism) and sharing (DeepSpeed Zero or PyTorch FSDP). Both approaches are somewhat orthogonal and can actually be combined! The sharing paradigm is closely related to DP so we’ll have a look at it first by investigating the ZeRO method!
 
-## ZeRO (**Ze**ro **R**edundancy **O**ptimizer)
+## 🚧 ZeRO (**Ze**ro **R**edundancy **O**ptimizer)
 
 In this section we will introduce DeepSpeed ZeRO (**Ze**ro **R**edundancy **O**ptimizer), a memory optimization technology designed to reduce memory redundancies in LLM training.
 
@@ -447,7 +451,7 @@ ZeRO-3 (also called FSDP for “Fully-Sharded Data Parallelism”): optimizer st
 
 Let’s have a closer look how much we can save with the partitioning of each ZeRO stage!
 
-### Memory usage revisited
+### 🚧 Memory usage revisited
 
 Let’s first recap the memory usage of optimizer states, gradients, and parameters during a standard training. Let’s define the number of our model's parameters as $\Psi$ (previously N but here we use the original ZeRO notation). In mixed-precision training with the Adam optimizer, the memory usage for each item we need to store is:
 
@@ -466,7 +470,7 @@ Memory consumption of DP and three stages of Zero-DP. $\Psi$ denotes number of p
 
 Let’s explain this graph and it’s values by exploring how each ZeRO stage works. We’ll start with ZeRO-1.
 
-### ZeRO-1: Partitioning Optimizer States
+### 🚧 ZeRO-1: Partitioning Optimizer States
 
 In vanilla DP, all ranks gather the same gradients after the backward pass and simultaneously perform identical optimizer steps. This seems like a lot of duplicated work. Can we avoid it and reduce memory usage at the same time?
 
@@ -478,24 +482,26 @@ This explains the memory formula of $2\Psi + 2\Psi + \frac{k\Psi}{N_d}$  that we
 
 - Forward pass with all bf16 parameters (but different microbatches across DP ranks)
 - Backward pass with all gradients (but different microbatches across DP ranks)
-- Perform an reduce scatter on the gradients (reduce scatter is 2 times faster than all reduce!)
+- Perform an reduce-scatter **[ADD link!]** on the gradients (reduce-scatter is 2 times faster than all reduce! *yay, a third communication primitive!*)
 - Each replica perform an optimizer step (has only 1/$N_d$ optimizer states) updates only on 1/$N_d$ of fp32 parameters, and then 1/$N_d$ of bf16 parameters
 - [New operation in ZeRO, not in vanilla DP] Perform an all-gather of bf16 parameters to send missing slices back to each replica
 
 ![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2016.png)
 
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2017.png)
+
 If you've been following along, you'll recall from vanilla DP that we can overlap the all-reduce gradient communication with the backward pass computation. In ZeRO-1, we can also investigate how to efficiently overlap the newly added all-gather of bf16 parameters. There are two main strategies for this:
 
-1. Right after optimizer step: We can initiate the all-gather immediately after the optimizer updates the parameters. This allows the communication to potentially overlap with other post-optimization operations.
-2. Right before forward: We can delay the all-gather until just before we need the parameters for the next forward pass. This approach gives us more flexibility to overlap with any computation happening between training steps.
+1. During optimizer step: We can initiate the all-gather immediately after the optimizer updates part of the parameters. This allows the communication to potentially overlap with other parameters update.
+2. During forward: We can overlap the all-gather of each layer’s parameters with the forward pass. 
 
 But unfortunately these techniques are not as evident to implement as they seem and require sophisticated use of hooks / bucketing. In practice we can just use Zero3 / FSDP implementation where the FSDPUnit is the entire model, more details about this later..
 
-### ZeRO-2: Adding **Gradient Partitioning**
+### 🚧 ZeRO-2: Adding **Gradient Partitioning**
 
 In ZeRO-1 the optimizer states have been partitioned, which means that each replica only updates $\frac{1}{N_d}$ of the optimizer states. The keen reader must have noticed that there is no real need to have all gradients on all DP ranks in the first place since only a subset is needed for the optimization step. 
 
-→ During the backward pass, instead of performing an all-reduce over the gradients, we can therefore perform a ***reduce-scatter [TODO: add link]*** operation! *(yay, a third communication primitive!)* Where we only spread the $\frac{1}{N_d}$ gradients needed in memory, thus saving more memory compared to ZeRO-1
+→ During the backward pass, instead of performing an all-reduce over the gradients, we only perform a ***reduce-scatter*** operation!  **Where we only spread the $\frac{1}{N_d}$ gradients needed in memory, thus saving more memory compared to ZeRO-1
 
 > In case of FP32 gradient accumulation, we only need to keep $\frac{1}{N_d}$ fp32_grads where we accumulate the bf16 grads coming from the reduce-scatter. And in the optimizer step we use the $\frac{1}{N_d}$ fp32_grads.
 > 
@@ -504,14 +510,14 @@ In ZeRO-1 the optimizer states have been partitioned, which means that each repl
 
 It’s easy to see now that sharding the gradients leads to to $2\Psi + \frac{2\Psi+k\Psi}{N_d}$ and as $N_d$ is increased we can save up to 8x memory over the baseline. In terms of communication the same process applies as for ZeRO-1, with the only difference that we communicate and release on the fly. In total, ZeRO-2 is thus also equivalent to vanilla DP training w.r.t. communication.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2017.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2018.png)
 
 > Note: You might notice that there is no real overhead of using ZeRO-2 over ZeRO-1 and indeed ZeRO-2 is usually the best option. The reason some distributed training frameworks don’t support it is that gradient sharding may interfere with and make more complex other parallel strategies we discussed later.
 > 
 
 Now that we’ve sharded gradients as well, we are we done? Or can we keep getting away with this? Well, sort of. We would like to reduce the memory of the parameters as well, and we’ve seen that we don’t need to wait for the entire all-gather to start the forward, we can already start the forward once we get the first layer.. here comes ZeRO-3!
 
-### ZeRO-3: Adding Parameter **Partitioning**
+### 🚧 ZeRO-3: Adding Parameter **Partitioning**
 
 For Stage 3 we extend the above approach of sharding tensors over DP replicas up to sharding the model’s parameters.
 
@@ -520,20 +526,25 @@ For Stage 3 we extend the above approach of sharding tensors over DP replicas up
 
 So how do we do a forward or backward pass in practice if all parts of the model are distributed? Quite simply we gather them on-demand when we need them. In the forward pass this looks as follows:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2018.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2019.png)
 
 So as we perform the forward pass and sequentially go through the layers we retrieve the necessary parameters on demand and immediately flush them from memory when we don’t need them anymore. The backward pass works the same way just inverted in flow and we produce the gradient shards: 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2019.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2020.png)
 
 During the forward pass we do all-gather operations for the parameters when we need them, so a $\Psi$ communication tax. Since we discard the parameters immediately after we needed them in the forward pass we need one more all-gather during the backward pass as well incurring another $\Psi$ in communication tax. Finally we need the same ***reduce-scatter*** as in ZeRO-2 for the gradients which costs also  $\Psi$ in communication and we arrive at a total communication cost of $3\Psi$, compared to $2\Psi$ for Zero-2. 
 
 The other issue is that we need to do these all-gathers continuously throughout the forward and backward step, which amounts to `2 * num_layers - 1` additional all-gathers in a training step compared to Zero-2 as we can see in the following figure:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2020.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2021.png)
 
 $$
 \frac{t_{comm}}{t_{compute}} = \frac{(DP-1) \cdot peak_{flops}}{2 \cdot seq \cdot mbs \cdot peak_{bw}}
+$$
+
+$$
+
+t_{comm}^{FSDP}/t_{compute} = \frac{\text{seq} \cdot \text{mbs}}{2} \cdot (DP-1) \cdot \frac{\text{peak\_flops}}{\text{peak\_bw}} \leq 1
 $$
 
 Overall it may sound like we significantly increase communication overhead, but thanks to **prefetching** we can start all-gathering weights for Layer n+1 while we do the current forward for Layer n which usually overlaps communication and computation as long as we don’t scale DP too much (as a rule of thumb: DP<512).
@@ -547,7 +558,7 @@ In terms of memory we can see that our equation now reached it’s final form of
 
 However, there is a limit here, DP only works if a layer of the model fits in a single GPU and ZeRO can only reduce the parameters, gradients, and optimizer states, but not the activation memory! Recall from the activation memory discussion that it scales with sequence length and batch size. Naturally we could just limit those, but in practice we don’t want to be limited by hardware to train with e.g. short sequence length. 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2021.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2022.png)
 
 As model grow bigger and even a single layer may not fit in GPU, we need more tool in our distributed training toolbox to scale more.
 
@@ -582,19 +593,19 @@ This means that we can compute matrix product by either 1) multiplying each colu
 
 In practice a small example of the operation looks like this:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2022.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2023.png)
 
 Let’s see how we can parallelise this operation! In tensor parallelism, tensors will be split into N shards along a particular dimension and distributed across N GPUs. Matrices can be split either on the column part or row part leading to row and column parallelism. One thing we’ll see in the following is that choosing row or column sharding will require different communications primitives.
 
 Our first option is to use column-wise sharding (also called ***column-linear***): We'll copy the complete input matrices to each worker, requiring an operation called  [***broadcast***](https://www.notion.so/The-Ultra-Scale-Playbook-Training-LLMs-on-GPU-Clusters-af1b4137215e4e4eb1971e7dfa3185a9?pvs=21), and split the weight matrix into columns. The inputs are then multiplied with the partial weight matrices, and the results are finally combined using an  [***all-gather](https://www.notion.so/The-Ultra-Scale-Playbook-Training-LLMs-on-GPU-Clusters-af1b4137215e4e4eb1971e7dfa3185a9?pvs=21)*** operation*.*
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2023.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2024.png)
 
 The second option is called row-wise sharding (also called ***row-linear***): As the attentive reader might guess, row-linear means that we split the weight matrix into chunks of rows. However, this also requires us to split the inputs, which needs a ***scatter*** operation rather than a broadcast as used in column-linear sharding. The results on each worker are already in the right shape but need to be summed for the final result, thus requiring an all-reduce operation in this scenario.
 
 We see here our fourth distributed primitive: ***s[catter](https://www.notion.so/The-Ultra-Scale-Playbook-Training-LLMs-on-GPU-Clusters-af1b4137215e4e4eb1971e7dfa3185a9?pvs=21)***!
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2024.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2025.png)
 
 ## Tensor Parallelism in a Transformer Block
 
@@ -602,7 +613,7 @@ To come up with a strategy to follow, let’s move from a toy example to a real 
 
 The Feedforward part can be parallelized by having a “Column linear” followed by a “Row Linear” which amounts to a broadcast to copy the input and an all-reduce in forward. Note that the broadcast isn’t needed in actual training where we can make sure inputs are already synced across TP ranks.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2025.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2026.png)
 
 Now that we’ve found the most efficient schema for the Feedforward part of the transformer, let’s take a look at the multi-head attention block (MHA).  
 
@@ -610,25 +621,29 @@ We can generally follow a similar approach where Q, K, and V matrices are split 
 
 It's also worth noting that the tensor parallelism degree should not exceed the number of Q/K/V heads because we need intact heads per TP rank. And in case we’re using GQA, TP degree should be below number of K/V heads, otherwise it requires additional comms to keep them in sync. For instance, LLaMA-3 8B has 8 Key/Value heads, so the tensor parallelism degree should be less than or equal to 8, otherwise if TP=16 for example, we need to duplicate each K/V head and make sure they stay in sync.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2026.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2027.png)
 
 Finally note that there is a tradeoff in terms of communication as we’ve added several distributed communication primitive directly in the computation path of our model. At the difference of ZeRO where we could prefetch, it can be harder to make these communication fully overlap with computations. 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2027.png)
+![Forward pass in Tensor Parallelism](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2028.png)
 
-Looking at the timeline of operations in tensor-parallel MLP (same applies for Attention), we can better understand the tradeoffs involved. In the forward of each decoder layer, we hit a synchronization point with the AllReduce operation that cannot be overlapped with computation. This *exposed communication* overhead is necessary to combine partial results across tensor-parallel ranks before the final LayerNorm can be applied. This illustrates one of the key challenges with tensor parallelism - while it helps distribute large matrix multiplications, it does not actually reduce the total memory pressure since activations still need to be gathered for operations like LayerNorm. Additionally, it introduces communication requirements that heavily depend on the network infrastructure. The inability to hide this particular AllReduce behind computation means it directly adds to the critical path of the forward pass. 
+Forward pass in Tensor Parallelism
 
-![Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2028.png)
+Looking at the timeline of operations in tensor-parallel MLP (same applies for Attention), we can better understand the tradeoffs involved. In the forward of each decoder layer, we hit a synchronization point with the AllReduce operation that cannot be overlapped with computation. This *exposed communication* overhead is necessary to combine partial results across tensor-parallel ranks before the final LayerNorm can be applied. 
+
+Tensor parallelism does help reduce activation memory for the matrix multiplications since the intermediate activations are sharded across GPUs. However, we still need to gather the full activations for operations like LayerNorm, which means we're not getting the full memory benefits we could. Additionally, it introduces significant communication requirements that heavily depend on the network infrastructure. The inability to hide this particular AllReduce behind computation means it directly adds to the critical path of forward propagation.
+
+![Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2029.png)
 
 Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training.
 
 In practice, the communication overhead of tensor parallelism becomes particularly noticeable as we scale beyond 8 GPUs. While tensor parallelism within a single node can leverage fast NVLink interconnects, going across nodes requires slower network connections. As shown in the throughput plot above, we observe significant drops when moving from TP=8 to TP=16, and an even steeper decline from TP=16 to TP=32. This illustrates how communication costs can dominate at higher degrees of parallelism.
 
-However, tensor parallelism provides important benefits for memory usage by distributing model parameters, gradients and optimizer states across GPUs. Let's examine this effect on a 70B parameter model:
+However, tensor parallelism provides important benefits for memory usage by distributing model parameters, gradients, optimizer states and activations (to some extent) across GPUs. Let's examine this effect on a 70B parameter model:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2029.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2030.png)
 
-As we can see, increasing tensor parallelism reduces the memory needed for model parameters, gradients and optimizer states on each GPU. However, the activation memory remains constant across TP configurations. This is because operations like layer normalization and dropout require gathering the full activations on each GPU, effectively negating the memory savings we gained by sharding activations in the attention and feedforward layers.
+As we can see, increasing tensor parallelism reduces the memory needed for model parameters, gradients and optimizer states on each GPU. While tensor parallelism does help reduce activation memory in attention and feedforward layers by sharding the matrix multiplications across GPUs, we don't get the full memory benefits we could. This is because operations like layer normalization and dropout still require gathering the full activations on each GPU, partially negating the memory savings. We can do better by finding ways to parallelize these remaining operations as well.
 
 > One interesting note about layer normalization in tensor parallel training - since each TP rank sees the same activations after the all-gather, the layer norm weights don't actually need an all-reduce to sync their gradients after the backward pass. They naturally stay in sync across ranks. However, for dropout operations, we must make sure to sync the random seed across TP ranks to maintain deterministic behavior.
 > 
@@ -659,7 +674,7 @@ In practice we’ll go from the left diagram to the right:
 
 ![ in forward: f = no-op ; f* = all-reduce ; g = all-gather ; g* = reduce-scatter
  in backward: f = all-reduce ; f* = no-op ; g = reduce-scatter ; g* = all-gather
-SP region needs full hidden_dim](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2030.png)
+SP region needs full hidden_dim](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2031.png)
 
  in forward: f = no-op ; f* = all-reduce ; g = all-gather ; g* = reduce-scatter
  in backward: f = all-reduce ; f* = no-op ; g = reduce-scatter ; g* = all-gather
@@ -677,7 +692,7 @@ In the backward pass:
 - "f*" is a no-op because gradients are already duplicated across ranks  
 - "f" is an all-reduce to synchronize gradients
 
-These operations "f" and "f*" are called conjugate pairs because they complement each other - when one is a no-op in forward, the other is an all-reduce in backward, and vice versa.
+These operations "f" and "f*" are called **conjugate** pairs because they complement each other - when one is a no-op in forward, the other is an all-reduce in backward, and vice versa.
 
 For sequence parallelism (SP), we use different operations labeled "g" and "g*". Specifically, we avoid using all-reduce in the SP region since that would require gathering the full activations and increase our peak memory usage, defeating the purpose of SP.
 
@@ -733,49 +748,41 @@ And for the embedding layer
 s: unchanged | h: full (weight_out is full + **reduce-scatter** for correctness)
 s: **reduce-scatter** to sharded |
 
-Does that mean that SP incurs more communication than TP? Well, yes and no. In the forward of a vanilla TP we had two all-reduce per transformer block, and in SP we have two all-gather and two reduce-scatter per transformer block. So SP does twice the number of communication operations as TP. But since an all-reduce operation can be broken down into to an all-gather + reduce-scatter (see in [TODO: Appendix link]) they’re actually equivalent in terms of communication. Same reasoning for backward as we just use the conjugate of each operation (no-op ↔ allreduce and allgather ↔ reducescatter).
-
 You can find an example of implementation of both column and row linear TP in picotron:
 [https://github.com/huggingface/picotron/blob/main/picotron/tensor_parallel/tensor_parallel.py](https://github.com/huggingface/picotron/blob/main/picotron/tensor_parallel/tensor_parallel.py) 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2031.png)
-
-If you’ve been paying close attention, you’ll notice that we’re talking about 4 comms ops **IN EACH LAYER** (2 for Attention and 2 for MLP), as shown here for the MLP region:
+By using sequence parallelism, we can achieve even greater activation memory savings, allowing us to push our batch size and sequence length further than what would be possible with tensor parallelism alone. Let's see what that means for our previous 70B model example:
 
 ![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2032.png)
 
-Besides the fact that TP requires communication in each layer, it also can’t easily be overlapped with compute, which makes throughput heavily dependent on the communication bandwidth. This is why TP is usually done only within a node (TP≤8)
+Does that mean that SP incurs more communication than TP? Well, yes and no. In the forward of a vanilla TP we had two all-reduce per transformer block, and in SP we have two all-gather and two reduce-scatter per transformer block. So SP does twice the number of communication operations as TP. But since an all-reduce operation can be broken down into to an all-gather + reduce-scatter (see in [TODO: Appendix link]) they’re actually equivalent in terms of communication. Same reasoning for backward as we just use the conjugate of each operation (no-op ↔ allreduce and allgather ↔ reducescatter).
 
-> Notice how all-gather is overlapped with “Y A1” that’s thanks to this trick
-[https://github.com/huggingface/nanotron/blob/9055c664c28a3b430b4e53bfcb5a074068c90f2a/src/nanotron/parallel/tensor_parallel/functional.py#L169-L262](https://github.com/huggingface/nanotron/blob/9055c664c28a3b430b4e53bfcb5a074068c90f2a/src/nanotron/parallel/tensor_parallel/functional.py#L169-L262)
-and you can find more tricks [here](https://discuss.pytorch.org/t/distributed-w-torchtitan-introducing-async-tensor-parallelism-in-pytorch/209487).
-> 
+If you’ve been paying close attention, you’ll notice that we’re talking about **4 comms ops in each layer** (2 for Attention and 2 for MLP). This is how the MLP profiling looks like when using Tensor + Sequence Parallelism:
 
-TODO: remove, Profiling:
+![Forward pass in Tensor + Sequence Parallelism](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2033.png)
 
-- TP
+Forward pass in Tensor + Sequence Parallelism
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2033.png)
+Besides the fact that TP requires communications in each layer, it also can’t easily be overlapped with compute, which makes throughput heavily dependent on the communication bandwidth. This is why TP is usually done only within a node (TP≤8)
 
-- Seq Parall
+> Note: Overlapping communication with computation for TP is an [active area of research](https://discuss.pytorch.org/t/distributed-w-torchtitan-introducing-async-tensor-parallelism-in-pytorch/209487), with recent work like Domino [TODO: cite domino paper] exploring novel techniques to maximize this overlap. For example, Megatron-LM/Nanotron implement a partial overlapping of all-gather with FC1 computation, and we expect to see more innovations in this space as the field continues to evolve.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2034.png)
+$$
 
-Allreduce takes almost double the duration (900us) of reducescatter and allgather (500us)
+t_{comm}/t_{compute} = \frac{1}{24h} \cdot (TP-1) \cdot \frac{\text{peak\_flops}}{\text{peak\_bw}} \leq 1
+$$
 
-Let’s compare throughput as we scale TP and TP/SP for a 3B model:
+As you might expect, this communication overhead becomes increasingly problematic as we scale up tensor parallelism. To illustrate this, let’s check throughput as we scale TP with SP for a 3B model:
 
-![Impact of combined Tensor and Sequence Parallelism (TP/SP) on model performance and memory utilization: when scaling both TP and SP together, there's a trade-off between computational efficiency (left) and memory capacity (right). While higher parallelism degrees reduce per-GPU throughput, they enable processing of significantly larger batch sizes by reducing the activation memory.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2035.png)
+![Impact of combined Tensor and Sequence Parallelism (TP/SP) on a 3B model’s performance and memory utilization with 4096 seqlen: when scaling both TP and SP together, there's a trade-off between computational efficiency (left) and memory capacity (right). While higher parallelism degrees reduce per-GPU throughput, they enable processing of significantly larger batch sizes by reducing the activation memory.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2034.png)
 
-Impact of combined Tensor and Sequence Parallelism (TP/SP) on model performance and memory utilization: when scaling both TP and SP together, there's a trade-off between computational efficiency (left) and memory capacity (right). While higher parallelism degrees reduce per-GPU throughput, they enable processing of significantly larger batch sizes by reducing the activation memory.
+Impact of combined Tensor and Sequence Parallelism (TP/SP) on a 3B model’s performance and memory utilization with 4096 seqlen: when scaling both TP and SP together, there's a trade-off between computational efficiency (left) and memory capacity (right). While higher parallelism degrees reduce per-GPU throughput, they enable processing of significantly larger batch sizes by reducing the activation memory.
 
 Let’s summarize our observations:
 
 - for both methods we notice the biggest performance drop when we move from TP=8 to TP=16, because that’s when we move from only communicating within a single node (NVLink), to communicating inter-nodes (EFA)
 - the memory savings in activations when using TP with SP helps us fit far bigger batches than TP alone
 - the Torch memory fragmentation makes it hard for us to predict the exact peak reserved memory. For more details check memory_viz tool section. [TODO: add link]
-
-TODO (outro): TP can help sharding activs (sometimes on hidden_dim, sometimes on seq_dim) by sharding the big linears across ranks, but what if we want to scale sequence_length, our activs will still blow up in TP region. → Context parallelism
 
 **We have seen how TP helps us shard activations across several GPUs by splitting the attention and feedforward operations along the hidden dimension and how SP is a natural complement for the remaining operations by splitting along the sequence dimension.**
 
@@ -791,7 +798,7 @@ With Tensor Parallelism and Sequence Parallelism, we can reduce the memory requi
 
 Even if we use full recomputation of the activations, which comes at a heavy compute overhead (30%), we still need to hold in memory some activations at the layer boundaries which scale linearly with sequence length:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2036.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2035.png)
 
 Can we apply similar ideas to our sequence parallelism approach but inside in the modules where we apply Tensor Parallelism already, thereby also reducing the effect of sequence length? Yes, it’s time to talk about Context Parallelism, which you will find quite intuitive after all we’ve already convered.
 
@@ -799,7 +806,7 @@ Can we apply similar ideas to our sequence parallelism approach but inside in th
 
 The idea of Context Parallelism is quite simple; just like Sequence Parallelism, we’ll split the input along the sequence dimension but we now apply this splitting along the full model, instead of only the sequence parallel regions of the model. Our focus here will be to reduce the activation memory footprint by splitting the long sequences, complementing parallelism strategies like TP which target the hidden dimension of the model.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2037.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2036.png)
 
 Splitting the sequence doesn't affect most modules like MLP and LayerNorm, where each token is processed independently. It also doesn’t require expensive communication like TP, as only the inputs are split and not the weight matrices. Just as in data parallelism, after computing the gradients, an all-reduce operation is initiated to synchronize the gradients across the context parallelism group.
 
@@ -832,7 +839,7 @@ With this animation, it’s also immediately clear why the authors chose to call
 
 There is one big problem though which is that a naive implementation of Ring Attention lead to some strong imbalance between GPU streaming from the shape of the causal attention matrix. Let’s take a real look at what is happening in the SoftMax computation by considering the attention score matrix with the causal attention mask:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2038.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2037.png)
 
 The SoftMax is computed row-wise, which means whenever a GPU has received all the tokens of a row it can be computed. We see that GPU1 can immediately compute it as it starts with tokens 1-4 and GPU1 actually doesn’t need to receive any information from any other GPUs. However, GPU2 will need to wait for the second round to also receive 1-4 and thus have all values for tokens 1-8. Also, GPU1 seems to perform much less work than all the other GPUs.
 
@@ -842,17 +849,17 @@ Let’s see if we can balance our computations better:
 
 We need a better way to distribute the input sequences. This can be achieved by assigning the tokens not purely sequential to the GPUs but by mixing the ordering a bit such that we have a good mix of early and late tokens on each GPU. This approach is called [Zig-Zag attention](https://arxiv.org/pdf/2311.09431) and in this new arrangement, the attention mask will show an even distribution of computation but if you count the number of colored squares, you’ll see that the computation is now balanced across all GPUs.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2039.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2038.png)
 
 At the same time we’ll also see that in order to complete all rows, each GPU will need information from all the other GPUs.
 
 We have two general ways to overlap computation and communication, either by performing a general all-gather, regrouping all the KV on each GPUs at the same time (in a Zero-3 type of way) or we gather them one-by-one from each GPU to each GPU as needed:
 
-![Context Parallelism using AllGather implementation](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2040.png)
+![Context Parallelism using AllGather implementation](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2039.png)
 
 Context Parallelism using AllGather implementation
 
-![Context Parallelism using All-to-All implementation](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2041.png)
+![Context Parallelism using All-to-All implementation](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2040.png)
 
 Context Parallelism using All-to-All implementation
 
@@ -864,13 +871,13 @@ TODO: add links to megatronlm(AllGather) and deepspeed(All2All) implementations
 
 In the TP section we saw that if we try to scale Tensor parallelism past the number of GPUs per single node (typically 4 or 8) we hit a lower bandwidth network called “inter-node connection” which can quite strongly impair our performances. We can see this clearly on e.g. the all-reduce operation when we perform it across several nodes:
 
-![Inter-node communication bandwidth measurements across different node counts, showing median (lines) and 5th-95th percentile ranges (shaded areas) for AllReduce, AllGather and ReduceScatter operations.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2042.png)
+![Inter-node communication bandwidth measurements across different node counts, showing median (lines) and 5th-95th percentile ranges (shaded areas) for AllReduce, AllGather and ReduceScatter operations.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2041.png)
 
 Inter-node communication bandwidth measurements across different node counts, showing median (lines) and 5th-95th percentile ranges (shaded areas) for AllReduce, AllGather and ReduceScatter operations.
 
 Sequence and context parallelism can help for long sequences but don’t help much if sequence length is not the root cause of our memory issues but rather the size of the model itself. For large model (70B+), the size of the weights alone can already push past the limits of the 4-8 GPUs on a single node. We can solve this issue by summoning the fourth (and last) parallelism dimension: “pipeline parallelism”.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2043.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2042.png)
 
 Pipeline Parallelism is conceptually very simple –we’ll simply spread the layers of our model across GPUs – but the devil lies in implementing it efficiently. Let’s dive in it!
 
@@ -884,7 +891,7 @@ But maybe you start feeling a glimpse of the troubles to come: “sequentially�
 
 Indeed reader! The main challenge in pipeline parallelism will be how to efficiently circumvent the sequential nature of PP to keep our GPU busy at all times and avoid having one GPU computing while the others are waiting. Here is how our GPU utilization is looking when doing a naive and simple forward and backward pass through the model where the numbers indicate the model layers:
 
-![An example of Pipeline parallelism for a model with 16 layers distributed across 4 GPUs. The numbers correspond to the layer IDs.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2044.png)
+![An example of Pipeline parallelism for a model with 16 layers distributed across 4 GPUs. The numbers correspond to the layer IDs.](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2043.png)
 
 An example of Pipeline parallelism for a model with 16 layers distributed across 4 GPUs. The numbers correspond to the layer IDs.
 
@@ -904,7 +911,7 @@ Thankfully, various pipeline parallelism schemes have been designed to reduce th
 
 Let’s take a first tool out of our toolbox and think about splitting our batch into smaller bit-sized portions which can be processed in parallel or almost, like we did before in data parallel for instance. Now when the second GPU is busy processing micro-batch 1, the first GPU can already start processing micro-batch 2. Here is a schedule using 8 micro-batches:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2045.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2044.png)
 
 > Note: before the numbers indicated the layers but in all pipeline parallel plots from now including this one it indicates a microbatch. You can think of each square here to contain several layers as seen in the previous figure.
 > 
@@ -963,11 +970,16 @@ Since the memory explosion is triggered by the activation we store for the backw
 
 This schedule is called **one-forward-one-backward** **(1F1B)** as the middle/steady state involves alternatively performing one forward and one backward pass. The general idea is to start performing the backward pass as soon as possible. The schedule looks like this:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2046.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2045.png)
 
 The bubble still has the same size so our training efficiency is not significantly improved. However we only need to store activations for $p$ micro-batches instead of $m$ which quite reduce the activation memory explosion we had in the AFAB schedule. As a consequence we can add more microbatches which then will actually reduce the bubble.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2047.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2046.png)
+
+$$
+
+t_{comm}^{PP}/t_{compute} = \frac{1}{32h \cdot \text{num\_layers\_in\_next\_pp}} \cdot \frac{\text{peak\_flops}}{\text{peak\_bw}} \leq 1
+$$
 
 A major complexity of this setup, visible on the above graph is how forward and backward passes are not cleanly consecutive anymore but performed in parallel across devices. This means we will have to schedule the switch from forward to backward passes independently on each device instead of in a simple and common central training loop as usual.
 
@@ -1056,7 +1068,7 @@ Up to now we’ve sliced our model naively along the model depth dimensions, loc
 
 This can be seen in general as a kind of “looping pipeline” where a micro-batch will move in circles from one GPU to the next as it goes through the forward pass through the model.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2048.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2047.png)
 
 As a consequence we see additional communications happening as the model goes several times through each GPU for the same computation that previously just took one pass. However, each forward and backward pass is divided by a factor of $v$, where $v$ is the number of stages or model chunks per GPUs as we are able to better interleave forward and backward passes. 
 
@@ -1067,13 +1079,13 @@ $$
 
 So we can now decrease the bubble by adding microbatches and interleaved stages, but note that quantitatively, the amount of communication also increases by 𝑣 so it’s a trade off. In the following plot you can see several configurations for a PP setup with $p=8$, where the special case of $m=1, v=1$  corresponds to naive pipeline parallelism and the configurations with $v=1$ are AFAB or 1F1B setups and $v \neq 1$ are interleaved configurations.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2049.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2048.png)
 
 Scheduling also becomes more complex here as we need to decide on a GPU whether we are prioritizing at a given moment earlier micro-batches meaning that we close the forward and backward loops as fast as possible (so called “depth-first”, i.e. prioritizing getting batches out of the model as fast as possible) or we prioritize to first complete the forward passes of all microbatches in the queue before going over to backward passes (so called “breadth-first” i.e. prioritizing filling in the pipeline as much as possible). This is explained in details in [https://arxiv.org/abs/2211.05953](https://arxiv.org/pdf/2211.05953).
 
 You now have all the elements to understand the pipeline parallelism approach in Llama 3.1 which is using a one-forward-one-backward setup with interleaved stages and a priority setting tuneable between depth-first and bread-first.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2050.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2049.png)
 
 However, we haven’t reached the end of possible pipeline schedules and recently some methods have been proposed to reduce the bubble to virtually zero! Peaked your curiosity? Let’s have a look!
 
@@ -1083,17 +1095,17 @@ There are even more sophisticated ways to reduce the bubble more and reached clo
 
 Let’s very quickly see how this can work by detailing briefly the [ZeroBubble](https://arxiv.org/abs/2401.10241) work which is a precursor to DualPipe. The base observation of ZeroBubble is that a backward through a matrix multiplication involve actually two separated operations: backward for the inputs (B) and the backward for the weights (W):
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2051.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2050.png)
 
   
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2052.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2051.png)
 
 While the output of B, the backward pass for the input, is necessary for performing the backward pass of the lower layers, the backward pass of the weights, W, is not necessary for the rest of the backward pass and generally only need to be performed before the optimiser step. This means W can be flexibly scheduled anywhere after the corresponding B of the same stage. This allows for strategic placement of W to fill the pipeline bubbles. The ZB-H2 schedule on the top right is an example of (theoretical) schedule with zero bubble taking advantage for this fine-grained decomposition.
 
 DeepSeek’s DualPipe propose an extension of this decomposed approach to the case of two stream propagating from both sides of the PP ranks and being interleaved to minimize even further idle time in the GPUs are displayed in the following scheduling graph
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2053.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2052.png)
 
 The ZeroBubble and DualPipe schedules are a bit too complex for us to give here code snippets but you should start to have a general idea of the concepts involved. In practice, optimizing these schedules requires careful measurements of the time for each operations followed by a scheduling algorithm able to find the most optimal allocation of time given the constrains. See for instance in the [ZeroBubble](https://arxiv.org/abs/2401.10241) paper for a discussion of the heuristics and algorithms to perform such a scheduling.
 
@@ -1105,7 +1117,7 @@ Mixture-of-expert models have gained some traction with models such as Mixtral o
 
 So whereas Context parallelism
 
-![[https://arxiv.org/pdf/2407.06204](https://arxiv.org/pdf/2407.06204)](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2054.png)
+![[https://arxiv.org/pdf/2407.06204](https://arxiv.org/pdf/2407.06204)](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2053.png)
 
 [https://arxiv.org/pdf/2407.06204](https://arxiv.org/pdf/2407.06204)
 
@@ -1145,7 +1157,7 @@ Combining ZeRO-3 and TP doesn’t raise any specific issues except how to organi
 
 # How to Find the Best Training Configuration
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2055.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2054.png)
 
 We’ve now covered all the parallelism techniques that are actually used to distribute and training larger models. There remain a general question: which ones should we choose and which ones are best combined? We touched a little bit on this at the end of the last section but in this section we will walk through the decision process step by step.
 
@@ -1167,7 +1179,7 @@ Overall, most training schedule past a certain size of the models wil tend to co
 
 Let’s try synthesize the decision process into a relatively simple tree structure: 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2056.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2055.png)
 
 To explain briefly, data parallelism is the most efficient method, and you should always prioritize it when memory is not a concern. If communication is not a concern and you can keep the BS/GPU at a big enough value to make good use of the GPU MatMul, ZeRO is an easy method to remove memory bottlenecks and stay close to a simple DP implementation. However, on larger clusters you’ll probably be able to make efficient use for more 4D parallelism. In this case, starting with tensor parallelism is the most direct way to reduce memory usage and is generally faster than pipeline parallelism within a single node(8 GPUs). However, in scenarios with long contexts, the primary memory usage will tend to shifts from model weights, gradients, and optimizer states to activation values. In such cases, context parallelism becomes more beneficial than pipeline parallelism. Note that this is not an exact recipe and you should think of this more as a starting point of hyperparameters to run your own benchmarks. For instance sometimes TP mixed with PP can be more efficient, even if TP<8 and ZeRO-1/2 can make sense to mix in with 4D parallelism as well. 
 
@@ -1191,13 +1203,13 @@ Generally, GPUs have a very hierarchical organization. In this primer we’ll ke
 
 On the compute side, GPUs consist of an array of compute units called **Streaming Multiprocessors** (SM). Each SM contains and controls a set of streaming processors, also known as cores. For example, an Nvidia H100 GPU has 132 SMs with 128 cores per SM, resulting in a total of 16,896 cores (see [https://resources.nvidia.com/en-us-tensor-core](https://resources.nvidia.com/en-us-tensor-core) for details), each capable of handling multiple threads simultaneously.
 
-![Original figure from [https://blog.codingconfessions.com/p/gpu-computing](https://blog.codingconfessions.com/p/gpu-computing).](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2057.png)
+![Original figure from [https://blog.codingconfessions.com/p/gpu-computing](https://blog.codingconfessions.com/p/gpu-computing).](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2056.png)
 
 Original figure from [https://blog.codingconfessions.com/p/gpu-computing](https://blog.codingconfessions.com/p/gpu-computing).
 
 The memory side is also highly hierarchical with several layers of cache and memory: **Registers** are the smallest units and are private to the threads during executions, **Shared Memory** and **L1 cache are** shared between the threads running on a single SM, higher up is the **L2 cache** shared by all SMs, finally there is the **Global Memory** which is the largest memory on the GPU (the advertised 80 GB for a H100 for instance) but also the slowest to access and query. 
 
-![Original figure from [https://www.youtube.com/watch?v=ZQKMZIP3Fzg](https://www.youtube.com/watch?v=ZQKMZIP3Fzg)](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2058.png)
+![Original figure from [https://www.youtube.com/watch?v=ZQKMZIP3Fzg](https://www.youtube.com/watch?v=ZQKMZIP3Fzg)](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2057.png)
 
 Original figure from [https://www.youtube.com/watch?v=ZQKMZIP3Fzg](https://www.youtube.com/watch?v=ZQKMZIP3Fzg)
 
@@ -1207,11 +1219,11 @@ A piece of code running on a core of the GPU is called a **kernel**. It can be w
 
 To run the kernel, you will also need a specific code part (called **host code**) which is executed on the **CPU**/host and will take care of preparing data allocations and loading data and code.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2059.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2058.png)
 
 Figure 5: Host code for a CUDA kernel for adding two vectors from [https://blog.codingconfessions.com/p/gpu-computing](https://blog.codingconfessions.com/p/gpu-computing)
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2060.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2059.png)
 
 Figure 6: Device code containing the definition of the vector addition kernel from [https://blog.codingconfessions.com/p/gpu-computing](https://blog.codingconfessions.com/p/gpu-computing)
 
@@ -1250,7 +1262,7 @@ def elu(x, alpha=1.0):
 
 The distinction between the compiled and non-compiled versions is striking, especially given that we only added a single decorator. This remarkable difference is illustrated in the graph below (N is the number of columns) :
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2061.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2060.png)
 
 However, if this performance increase is insufficient, you can consider implementing Triton kernels. As a starting point, you can take a look at the triton kernel generated by `@torch.compile` . To do so, you simply need to set the environment variable `TORCH_LOGS` to “output_code” : 
 
@@ -1309,7 +1321,7 @@ Here, `tl.program_id(0)` provides a unique block ID, that we use to determine wh
 
 When we benchmark the generated kernel using `triton.testing.Benchmark` we have the following performance : 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2062.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2061.png)
 
 This standalone kernel demonstrates superior performance with smaller sizes compared to `@torch.compile` but this is likely here just an artifact from the compilation time of torch. compile. In any case, instead of starting from scratch, we can focus on optimizing this generated kernel, saving us time in the process. 
 
@@ -1349,17 +1361,17 @@ __global__ void matmul_naive(int M, int N, int K, const float *A, const float *B
 
 Here’s an excellent visualization of the kernel from this fantastic [blogpost](https://siboehm.com/articles/22/CUDA-MMM) : 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2063.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2062.png)
 
 However, when profiling this kernel with a tool like `ncu`, we can see issues, including low memory throughput and uncoalesced memory accesses.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2064.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2063.png)
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2065.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2064.png)
 
 The reason for this is that in this kernel, two threads in the same block with Thread IDs `(0, 0)` and `(1, 0)` (which will end up in the same warp) will both load from the same column of matrix `B` but different rows of matrix `A`. Since matrix elements are stored in row-major order (meaning each row's elements are in consecutive memory addresses, as shown in the figure below), in the first iteration with `i = 0`, thread `(0, 0)` will load $A_{0,0}$, and thread `(1, 0)` will load $A_{1,0}$. These elements are not stored close to each other in memory, and this misalignment repeats across all iterations along the shared dimension, preventing memory accesses from being coalesced.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2066.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2065.png)
 
 To improve our kernel we can change the way the coordinates x and y are calculated like the following : 
 
@@ -1380,7 +1392,7 @@ Instead of using a 2D block, we switch to a 1D block and redefine how we determi
 
 When we profile our new kernel, we notice that the warning about uncoalesced memory accesses has disappeared, and **the GPU's memory throughput has increased by approximately 10 times**.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2067.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2066.png)
 
 We also notice that the execution time of the kernel **decreases by 10x** !
 
@@ -1394,7 +1406,7 @@ In matrix multiplication for example, each thread in a block may need elements f
 
 In the tiling approach, each iteration involves all threads within a block cooperatively loading two tiles—one from matrix A and another from matrix B —into shared memory. Specifically, threads load a tile of matrix A (of size `BLOCK_SIZE_M` by `BLOCK_SIZE_K`) and a tile of matrix B (of size `BLOCK_SIZE_K` by `BLOCK_SIZE_N`). Once the tiles are in shared memory, the threads perform matrix multiplication on these tiles, enabling efficient computation since all necessary data is quickly accessible. The results of the tile multiplication are stored in an accumulation matrix that holds intermediate results. After each iteration, the results from the current tile multiplication are added to this accumulation matrix, continuing until all tiles from both matrices have been processed. 
 
-![From [https://cnugteren.github.io/tutorial/pages/page4.html](https://cnugteren.github.io/tutorial/pages/page4.html)](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2068.png)
+![From [https://cnugteren.github.io/tutorial/pages/page4.html](https://cnugteren.github.io/tutorial/pages/page4.html)](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2067.png)
 
 From [https://cnugteren.github.io/tutorial/pages/page4.html](https://cnugteren.github.io/tutorial/pages/page4.html)
 
@@ -1438,7 +1450,7 @@ When benchmarking this kernel using ncu, we noticed that the memory throughput i
 
 The tiling technique has significantly improved the performance of our kernel. However, when analyzing the warp states which quantify how many cycles were spent in each state, we observe the following:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2069.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2068.png)
 
 The meaning of the states can be found in the [Profiling Guide](https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference), specifically in the **Warp Stall Reasons** section. There we can read that : 
 
@@ -1463,13 +1475,13 @@ Flash attention is a technique pioneered by [Tri Dao](https://tridao.me) that op
 
 A basic implementation of the attention mechanism involve a lot of transfer between memory and workers. It requires materializing the S and P matrices in HBM which means that the results need to be sent to HBM and then back to SRAM for the next computations:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2070.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2069.png)
 
 Since bandwidth is much lower in HBM this introduces a severe bottleneck in the attention computation. Can we do better? Tri Dao says yes!
 
 The key element is to compute the S matrices in small pieces which can fit in the smaller shared memory of the SM. But we can do even better and avoid materializing the very large S matrix all together in favor of keeping only the necessary statistics for computing the normalization factor of the softmax. So we can compute part of $O$ directly in one computation in SRAM rather than moving intermediate results back and forth. In this case, not even do we make use of the shared memory but we also release the memory bottleneck resulting from materializing one of the largest activation matrices in the model (at long context length), the attention matrix.
 
-![From the FLASH-ATTENTION paper ([https://arxiv.org/pdf/2205.14135](https://arxiv.org/pdf/2205.14135))](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2071.png)
+![From the FLASH-ATTENTION paper ([https://arxiv.org/pdf/2205.14135](https://arxiv.org/pdf/2205.14135))](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2070.png)
 
 From the FLASH-ATTENTION paper ([https://arxiv.org/pdf/2205.14135](https://arxiv.org/pdf/2205.14135))
 
@@ -1527,13 +1539,13 @@ The principle of floating point numbers can be easily illustrated by recalling t
 
 Reducing the total number of bits comes at a price (no free lunch here either), but we have some control over how to pay. Either we can sacrifice more bits on the mantissa or exponent. For this reason there exist also two float8 formats, named according to exponent and mantissa, to flexibly choose the most appropriate format. We can look at the possible range of numbers for each format:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2072.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2071.png)
 
 We can see that float32 spans 80 orders of magnitude and float16 sacrifices a lot of range while bfloat16 maintains the full range. The two float8 formats reduce the range even further where e5e2 can maintain float16 range and e4m3 has an even smaller ranger.
 
 How come some format are able to maintain the range and other not? Let’s investigate the resolution by plotting 10,000 points between 1 and 2. Each point will be rounded to the nearest representable number in each format:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2073.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2072.png)
 
 We can see here that bfloat16 maintained the range of float32 over float16 but did this with the cost of sacrificing more precision. In case of float8 the situation is even more dire as e4m3 can represent 7 and e5m2 only 3 number on the interval 1-2.
 
@@ -1563,7 +1575,7 @@ Even if we perfectly overlap communication with computation, we always eventuall
 
 Recent research - including  [FP8-LM](https://arxiv.org/abs/2310.18313), [torchao](https://github.com/pytorch/ao/tree/main/torchao/float8#torchaofloat8), and [DeepSeek-V3](https://arxiv.org/abs/2412.19437) - has demonstrated the potential of FP8 training for large-scale models. Still, FP8 pretraining introduces a significant challenge: stability. At lower precision, numerical instability often leads to loss divergence, making it difficult to match the accuracy of higher-precision training.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2074.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2073.png)
 
 As [[Wortsman et al.]](https://arxiv.org/abs/2309.14322) observed, instability increases as learning rates rise for a fixed model size, making FP8 pretraining particularly tricky.
 
@@ -1701,7 +1713,7 @@ Throughout this blogpost we’ll scale LLM training from one to hundreds of GPUs
 
 The general setup is that we have a number of independent nodes which could be CPU cores, GPUs, or compute nodes. Each performs some computation and then we want to communicate the result or parts of it to the other nodes for the next computation step (t+1). 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2075.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2074.png)
 
 Maybe we need to send the result from one node to all other nodes, or we need to sum all the intermediate results from each node to report the overall result. Usually, there is one node with an elevated status that plays a central role, here denoted with `root` that is the target or source of some operations. Let’s start with one of the simplest primitives: a broadcast operation.
 
@@ -1709,7 +1721,7 @@ Maybe we need to send the result from one node to all other nodes, or we need to
 
 A very common pattern is that you have some data on Node 1 and you want to share it with all the other nodes so they can do some computation with the data. The broadcast operation does just that:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2076.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2075.png)
 
 Collective operations are natively provided by PyTorch so we can easily write a small example that demonstrates how broadcasting works. We first need to initialize a process group with `dist.initi_process_group` which sets up the communication backend (we’ll talk about NCCL later), it determines how many workers (aka nodes) exists and assigns a rank to each one (which we can get with `dist.get_rank`). Finally, it establishes a connection between the workers.
 
@@ -1754,7 +1766,7 @@ Great, seems like it works as expected. Note that the rank messages can be print
 
 Reduce patterns are among the most fundamental patterns in distributed data processing. The idea is that you want to combine the data present on each node through a function `f()` which can be for instance summation or averaging. In the Reduce paradigm the result is sent to the root node only, whereas in the AllReduce case the result is broadcasted to all nodes:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2077.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2076.png)
 
 Of course no magic “free flying” node that can perform this operation and generally each node does a partial computation in a ring or tree structure of the nodes. Here is a simple example: let’s say we need to compute a sum of numbers on each nodes and our nodes are connected in a ring pattern. The first node sends its number to a neighbour which adds its number to the received number before forwarding it to the next neighbour. At the end of a round along the ring of nodes, the first node will receive the total sum.
 
@@ -1849,7 +1861,7 @@ Now let’s turn to our next distributed communication operation. In many real c
 
 Gather and AllGather are quite similar to the Broadcast in that they allow distributing data among node without modification. The main difference to Broadcast is that there is not one value we need to share from one node to all other nodes but each node has an individual chunk of data that we want to either gather all data on one node (in case of Gather) or gather all data on all nodes (in the case of AllGather). A picture being worth 1000 words, let’s take a look:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2078.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2077.png)
 
 Note that the dashed lines indicate that some data actually doesn’t move at all (since it’s already present on the node).
 
@@ -1923,7 +1935,7 @@ As the name subtly suggests, the goal of the Scatter operation is to take data o
 
 The ReduceScatter pattern is slightly more complex: imagine you apply an operation like in the Reduce case but instead of moving the result to just one node we also distribute it evenly to all nodes:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2079.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2078.png)
 
 The Scatter operation is written in code as the opposite of the Gather: instead of preparing a list of tensors as target we prepare the source data as a list of tensors we want to distribute. We also need to specify the `src`:
 
@@ -1998,7 +2010,7 @@ We now have seen the main building block of distributed operations but before we
 
 The Barrier is a simple operation to synchronize all nodes. A barrier is not lifted until all nodes have reached it. Then only are they allowed to continue with further computations:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2080.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2079.png)
 
 We can easily simulate delayed nodes by setting up a different sleep time on each node and see how long it takes for all of them to pass the barrier:
 
@@ -2111,7 +2123,7 @@ print(p.key_averages().table(sort_by="cuda_time_total", row_limit=8))
 
 This would print aggregated profiling results sorted by the total CUDA time, and the output would be:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2081.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2080.png)
 
 You can also try to inspect the trace as we previously mentioned  on `chrome://tracing/` 
 
@@ -2120,7 +2132,7 @@ You can also try to inspect the trace as we previously mentioned  on `chrome://t
 
 After zooming in, you can observe the flow of operations when calling `layer_norm` in this trace:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2082.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2081.png)
 
 The sequence begins in the CPU (the upper section) with `aten::layer_norm`, progressing to `aten::native_layer_norm`, and then transitioning to `cudaLaunchKernel`. From there, we move on to the GPU, where the `vectorized_layer_norm_kernel` kernel is called. 
 
@@ -2141,7 +2153,7 @@ ncu --set full -o output python layer_norm.py
 
 and open the file `output.ncu-rep` with Nsight Compute, you will have a view that looks like this : 
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2083.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2082.png)
 
 With clear warnings about compute and memory utilization, and how to make the kernel better in balancing compute and memory and achieve maximal occupancy.
 
@@ -2223,7 +2235,7 @@ $$
 
 The chain rule applies here since the loss (L) depends directly on the output (Y). This equation is telling us that to get the gradient of the loss with respect to our input (dL/dX), we multiply the gradient of the loss with respect to the output (dL/dY) by our weight matrix (W).
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2084.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2083.png)
 
 Likewise, we can use chain rule to compute the gradient w.r.t to the weight:
 
@@ -2231,7 +2243,7 @@ $$
 \frac{dL}{dW} = \frac{dL}{dY} \frac{dY}{dW} = \frac{dL}{dY} X
 $$
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2085.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2084.png)
 
 Here is a snippet of code to clarify all the concepts above:
 
@@ -2310,13 +2322,13 @@ if __name__ == "__main__":
     example_column_row_linear()
 ```
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2086.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2085.png)
 
 **TODO** add these illustrations somewhere? I found them helpful:
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2087.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2086.png)
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2088.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2087.png)
 
 ## A3: ZeRO-R
 
@@ -2461,7 +2473,7 @@ def example_gelu():
 
 ### Interconnect
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2089.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2088.png)
 
 ## How to profile your code
 
@@ -2497,7 +2509,7 @@ with profiler:  # step 2. Wrap the training with profiler
 
 After running this code, you will find `*.trace.json` files under the `profiler_out_dir`. To visualize the results, the easiest way is to open Google Chrome, go to `chrome://tracing/`, and drag the file into it. This will allow you to view the profiling results. To get more details, we invite you to check out the amazing [**tutorial](https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html)** created by PyTorch.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2090.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2089.png)
 
 ## Formulas for compute / comms the balanhe balance
 
@@ -2610,7 +2622,7 @@ for a single microbatch:
 
 ```
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2091.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2090.png)
 
 ## Integrating Context Parallelism with TP/SP
 
@@ -2623,7 +2635,7 @@ In order to integrate CP with TP/SP we just have to:
 3. **Replace standard attention with ring attention:** During the forward pass, each TP rank relies on the ring attention to compute the correct attention results during both the forward and backward passes. So all CP ranks within TP=0 for example need to all-gather the full KV sequence and calculate attention, but we store only the KV of a sequence chunk to reduce memory activations by CP.
 
 ![TP=0 has GPU0 and GPU2 whereas CP=0 has GPU0 and GPU1
-TP/SP shards the Q/K/V heads across TP ranks (in this example GPU0 and GPU2 get QKV_green, and GPU2 and GPU3 get QKV_blue), since each head can operate independently from others, we can apply ring attention within each TP rank](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2092.png)
+TP/SP shards the Q/K/V heads across TP ranks (in this example GPU0 and GPU2 get QKV_green, and GPU2 and GPU3 get QKV_blue), since each head can operate independently from others, we can apply ring attention within each TP rank](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2091.png)
 
 TP=0 has GPU0 and GPU2 whereas CP=0 has GPU0 and GPU1
 TP/SP shards the Q/K/V heads across TP ranks (in this example GPU0 and GPU2 get QKV_green, and GPU2 and GPU3 get QKV_blue), since each head can operate independently from others, we can apply ring attention within each TP rank
@@ -2636,7 +2648,7 @@ In fact, given an activation value of shape$[ \text{batch\_size}, \text{sequence
 
 However, through extensive experimentation, we identified two effective training recipes that allowed us to **fully pretrain a 1B LLaMA model in FP8**, covering both the forward and backward passes, while using an FP8 optimizer. More importantly, our approach successfully matched LLaMA-2’s pretraining learning rate. The result?
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2093.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2092.png)
 
 A loss curve that perfectly matches mixed-precision bfloat16 (bfloat16 with FP32 master weights as the baseline). We successfully tested this to train a 1B LLaMA up to 100B tokens and a 7B LLaMA up to 25B tokens.
 
@@ -2674,14 +2686,28 @@ Let’s take a moment to look better at this fundamental tool for distributed tr
 
 **Non-overlapping:** If we don't overlap the communication and computation, each computation (represented by the purple block) can only begin after the communication (green block) is complete and total time is the sum of communication and computation.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2094.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2093.png)
 
 **Overlapping:** However, if we manage to launch communication and computation in parallel, we eliminate the waiting time! Now we can see that the computation (green block) is launched immediately, one after the other. In this case the total time is *only* the sum of computations.
 
-![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2095.png)
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2094.png)
 
 Context parallelism has helped us going past the intra-node interconnect bottleneck, which blocked us from scaling TP across nodes. However, as you probably noted, it only helps reducing the memory constraints if the activation memory dominates the memory budget due to long sequences. What if we are not working on super long sequences and the model weights alone are too big for a single node?
 
 Well it turns out we have an other –quite different– option called pipeline parallelism (PP) which the time has come to explore now.
 
 [TODO: comment from Nouamane on comms overlapping with DP 512]
+
+## seq parallel profiling
+
+TODO: remove, Profiling:
+
+- TP
+
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2095.png)
+
+- Seq Parall
+
+![image.png](The%20Ultra-Scale%20Playbook%20Training%20LLMs%20on%20GPU%20Clus%20af1b4137215e4e4eb1971e7dfa3185a9/image%2096.png)
+
+Allreduce takes almost double the duration (900us) of reducescatter and allgather (500us)
