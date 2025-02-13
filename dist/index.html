@@ -1215,17 +1215,284 @@
 
         <h2>5D parallelism in a nutshell</h2>
 
-        <p></p>
+        <p>Let’s start with Pipeline parallelism as ZeRO-3 and Pipeline parallelism have interesting similarities and differences.</p>
+        
+        <p>Both methods are ways to partition the model weights over several GPUs and perform communication/computation along the model depth axis (for example in ZeRO-3, we prefetch the next layer while computing). In the following we say “a layer” to simplify what should be in general called “a set of layer” (as the basis sharding unit of the model). This means in both cases the full layers are computed on device, as opposed to TP, where the layers are sharded for the computation.</p>
+        
+        <p>However, there are a few major differences between the two:</p>
+
+        <table>
+            <thead>
+              <tr>
+                <th><strong>ZeRO-3</strong></th>
+                <th><strong>Pipeline parallel</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>each compute unit only stores a fraction of a layer</td>
+                <td>each compute unit stores a full layer</td>
+              </tr>
+              <tr>
+                <td>communication is used to transfer weights</td>
+                <td>communication is used to transfer activations</td>
+              </tr>
+              <tr>
+                <td>model agnostic orchestration</td>
+                <td>model agnostic orchestration</td>
+              </tr>
+              <tr>
+                <td>Complex implementation to handle model partitioning and communications</td>
+                <td>Complex implementation to handle efficient PP schedules</td>
+              </tr>
+              <tr>
+                <td>Prefers large <d-math>mbs</d-math> and <d-math>seq\_len</d-math> to hide comms</td>
+                <td>Prefers large <d-math>\text{grad\_acc}</d-math> to hide bubble</td>
+              </tr>
+            </tbody>
+           </table>
+
+        <p>Clearly ZeRO-3 and PP are distinctly different approaches to sharing the model layers and deciding to focus communication either on weights or on activations. While they can be combined, doing so requires increasing the global batch size significantly to amortize the communication costs, creating a tradeoff between global batch size, model size, network bandwidth, and training efficiency. If combined, ZeRO-3 should be configured to keep the weights in memory for each micro-batch in PP to minimize the communication overhead.</p>
+        
+        <p>Note that ZeRO-1 and ZeRO-2 on the other hand are interesting to combine with Pipeline Parallelism as they focus on gradients and optimizer states instead of parameters and are thus complementary. For instance, DeepSeek-v3 used PP with ZeRO-1!</p>
+
+        <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and interoperable with both Pipeline Parallelism and ZeRO-3, because it relies on the distributive property of matrix multiplication that allows weights and activations to be sharded and computed independently before being combined. However, TP has two important limitations: First, since its communication operations are part of the critical path of computation, it doesn't scale well beyond a certain point as communication overhead begins to dominate. Second, unlike ZeRO and PP which are model-agnostic, TP requires careful handling of activation sharding - sometimes along the hidden dimension (in the TP region) and sometimes along the sequence dimension (in the SP region) - making it more complex to implement correctly and requiring model-specific knowledge to ensure proper sharding patterns throughout.</p>
+        
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
 
 
+        <p>When combining parallelism strategies, TP will typically be kept for high-speed intra-node communications while ZeRO-3 or PP can use parallelism groups spanning lower speed inter-node communications, since their communication patterns are more amenable to scaling. The main consideration is organizing the GPU groups efficiently for each parallelism dimension to maximize throughput and minimize communication overhead, while being mindful of TP's scaling limitations.</p>
+        
+        
+        <p><strong>Context Parallelism</strong> and <strong>Expert Parallelism</strong> also help us sharding activations, and can be seen as complimentary to TP — The former handles long sequences while the latter enables distributed Mixture of Experts training.</p>
+
+        <p><strong>Context Parallelism (CP)</strong> specifically targets the challenge of training with very long sequences by sharding activations along the sequence dimension across GPUs. While most operations like MLPs and LayerNorm can process these sharded sequences independently, attention layers require communication since each token needs access to keys/values from the full sequence. This is handled efficiently through ring attention patterns that overlap computation and communication. CP is particularly valuable when scaling to extreme sequence lengths (128k+ tokens) where even with full activation recomputation the memory requirements for attention would be prohibitive on a single GPU.</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        
+        
+        <p><strong>Expert Parallelism (EP)</strong> specifically targets the challenge of training Mixture of Experts (MoE) models by sharding specialized "experts" across GPUs and dynamically routing tokens to relevant experts during computation. The key communication pattern in EP is the all-to-all operation needed to route tokens to their assigned experts and gather the results back. While this introduces some communication overhead, it enables scaling model capacity significantly since each token only needs to compute through a fraction of the total parameters. This partitioning of experts across GPUs becomes essential when working with models that have a large number of experts, like DeepSeek which uses 256 experts.</p>
+        
+        <p>It's worth noting the scope of impact for these different parallelism strategies:</p>
+
+        <ul>
+            <li>Tensor Parallelism (with Sequence Parallelism) affects computation throughout the entire model by sharding both weights and activations.</li>
+            <li>Context Parallelism primarily impacts attention layers since that's where cross-sequence communication is required, with other layers operating independently on sharded sequences.</li>
+            <li>Expert Parallelism primarly affects the MoE layers (which replace standard MLP blocks), leaving attention and other components unchanged</li>
+        </ul>
+
+        <aside>This similarity between EP and DP in terms of input handling is why some implementations consider Expert Parallelism to be a subgroup of Data Parallelism, with the key difference being that EP uses specialized expert routing rather than having all GPUs process inputs through identical model copies.</aside>
+
+        <table>
+            <thead>
+              <tr>
+                <th><strong>Tensor + Sequence Parallel</strong></th>
+                <th><strong>Context Parallel</strong></th>
+                <th><strong>Expert Parallel</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>shards weights and activations along hidden/seq dim</td>
+                <td>shards activations along sequence dim</td>
+                <td>shards specialized expert weights and activations</td>
+              </tr>
+              <tr>
+                <td>communication for matrix multiply operations (column/row linears)</td>
+                <td>communication for attention key/values</td>
+                <td>communication for token routing to experts</td>
+              </tr>
+              <tr>
+                <td>model-specific implementation needed</td>
+                <td>model-agnostic except for attention</td>
+                <td>model-agnostic except for MoE layers</td>
+              </tr>
+              <tr>
+                <td>Prefers high-bandwidth intra-node communication</td>
+                <td>Prefers large sequence lengths</td>
+                <td>Requires MoEs</td>
+              </tr>
+            </tbody>
+           </table>
+
+        <p>Which leads us to this beautiful diagram to summarize all what we’ve seen:</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>And to have an idea of the memory benefits of each parallelism:</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
 
         <h2>How to Find the Best Training Configuration</h2>
+
+        <p>We’ve now covered all the parallelism techniques that are actually used to distribute and training larger models. There remain a general question: which ones should we choose and which ones are best combined? We touched a little bit on this at the end of the last section but in this section we will walk through the decision process step by step.</p>
+        
+        <p>First let's have a quick look at each parallel strategy and how it helps and at what cost it comes:</p>
+
+        <table>
+            <thead>
+              <tr>
+                <th><strong>Method</strong></th>
+                <th><strong>Memory savings</strong></th>
+                <th><strong>Parallel/sharding dimension</strong></th>
+                <th><strong>Disadvantage</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>DP</td>
+                <td>None (replicates everything)</td>
+                <td>Batch</td>
+                <td>Limited by max batch size</td>
+              </tr>
+              <tr>
+                <td>ZeRO-1</td>
+                <td>Optimizer states</td>
+                <td>Batch</td>
+                <td>Params communication overhead</td>
+              </tr>
+              <tr>
+                <td>ZeRO-2</td>
+                <td>Optimizer states and gradients</td>
+                <td>Batch</td>
+                <td>Params communication overhead</td>
+              </tr>
+              <tr>
+                <td>ZeRO-3</td>
+                <td>Optimizer states, gradients, and model parameters</td>
+                <td>Batch and Model Params</td>
+                <td>Params communication overhead</td>
+              </tr>
+              <tr>
+                <td>PP</td>
+                <td>Model</td>
+                <td>Model layers</td>
+                <td>Idle bubble and complex schedules</td>
+              </tr>
+              <tr>
+                <td>TP/SP</td>
+                <td>Model and activations</td>
+                <td>Hidden dimension / Sequence length</td>
+                <td>Requires high bandwidth communication</td>
+              </tr>
+              <tr>
+                <td>CP</td>
+                <td>Activations</td>
+                <td>Sequence length</td>
+                <td>Communication overhead in attention</td>
+              </tr>
+              <tr>
+                <td>EP</td>
+                <td>Experts parameters</td>
+                <td>Expert dimension</td>
+                <td>Requires MoE layers, routing overhead</td>
+              </tr>
+            </tbody>
+           </table>
+        
+        <p>Clearly, there is no free lunch for any of those methods but we can actually come up with a few rules that help finding a good starting point. To find the definitive optimal setup you'll have to run a few experiments in any case.</p>
+        
+        <h3>Step 1: Fitting a Training Step in Memory</h3>
+        
+        <p>First, we need to figure out how we can fit a single model instance on GPUs. There are two general cases.</p>
+
+        <p>GPU-rich case 🤑 - when you have plenty of GPUs available:</p>
+        <ul>
+            <li>For models under 10B parameters, you can use either Tensor Parallelism or Data Parallelism with ZeRO-3 and Full Recompute across 8 GPUs</li>
+            <li>For models between 10B-100B parameters requiring more than 8 GPUs, you have several options:</li>
+            <ul>
+            <li>Tensor Parallelism (TP=8) combined with Pipeline Parallelism</li>
+            <li>Tensor Parallelism (TP=8) with Data Parallelism (ZeRO-3)</li>
+            <li>Pure Data Parallelism with ZeRO-3</li>
+            </ul>
+            <li>At 512+ GPU scale, pure Data Parallelism becomes inefficient - better to combine DP with either Tensor or Pipeline Parallelism</li>
+            <li>At 1024+ GPU scale, the recommended setup is TP=8 with Data Parallelism (ZeRO-2) and Pipeline Parallelism</li>
+        </ul>
+
+        <p>Special considerations:</p>
+        <ul>
+            <li>For very long sequences, add Context Parallelism (CP) across nodes</li>
+            <li>For Mixture of Experts architectures, use Expert Parallelism (EP) across nodes</li>
+        </ul>
+
+        <p>GPU-poor case 😭 - when running out of GPU resources:</p>
+        <ul>
+            <li>Enable full activation recomputation to trade compute for memory</li>
+            <li>Use gradient accumulation to process larger batches with limited memory
+            </li>
+        </ul>
+
+        <p>Now that we have a single model instance training, we need to make sure we have the right batch size.</p>
+
+        <h3>Step 2: Achieving Target Global Batch Size </h3>
+        
+        <p>Depending on how we setup in step one in terms of micro batch size and DP, our current batch size might be too small or big. </p>
+        
+        <p>To increase global batch size:</p>
+        <ul>
+            <li>Scale up Data Parallelism or gradient accumulation steps</li>
+            <li>For long sequences, leverage Context Parallelism</li>
+        </ul>
+
+        <p>To decrease global batch size:</p>
+        <ul>
+            <li>Reduce Data Parallelism in favor of other parallelization strategies</li>
+            <li>For long sequences, reduce Context Parallelism</li>
+        </ul>
+
+        <p>Ok, now we have the model running in the configuration we want, but is it the fastest way? Let's optimize throughput next.</p>
+
+        <h3>Step 3: Optimizing Training Throughput</h3>
+
+        <p>So we want to make sure the training is running as fast as possible so all our precious GPUs are well utilized at all times. As long as memory and communication aren't bottlenecks we can try the following:</p>
+
+        <ul>
+            <li>Scale up Tensor Parallelism within node to reduce other parallelism requirements</li>
+            <li>Increase Data Parallelism with ZeRO-3 while maintaining target batch size</li>
+            <li>When Data Parallelism communication becomes a bottleneck, transition to Pipeline Parallelism</li>
+            <li>Try scaling up different parallelisms, and fitting max micro batch size (mbs) to find optimal balance between max GBS, model size, compute, and communication.</li>
+        </ul>
+
+        <p>We can roughly summarize the journey to the best configuration in the following diagram:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+
+        <p>This concludes our very deep dive into the distribution methods of 5D parallelism. However, besides scaling our model efficiently across GPUs there is another way to improve model throughput and memory management. </p>
+
+        <p>Time to turn the lights off and activate CUDA mode! </p>
         
         <h2>Diving in the GPUs – fusing, threading, mixing</h2>
         
-        <h4>A primer on GPU</h4>
+        <p>Up to now our discussion has been focused on the high-level organization of our model operations. We’ve moved around computations on various accelerators, taking into account general memory constraints and high-level scheduling of the compute units.</p>
+
+        <p>But this ignored all the optimizations we can do at a much lower level by carefully understanding how our model operations are scheduled and performed on each GPU.</p>
+
+        <p>This section will dive into much more details of the GPU architecture and in particular in NVIDIA’s GPU architecture but the general ideas, as often, can be reused on similar accelerator units.</p>
+
+        <p>We’ll briefly explain how GPU are organized before covering the Flash-Attention revolution, how to efficiently schedule workload on GPU and finally explain how various precisions can be efficiently used on GPU.</p>
+
+
+
+        <h3>A primer on GPU</h4>
         
+        <p>Generally, GPUs have a very hierarchical organization. In this primer we’ll keep the discussion at the concept levels that are necessary for the rest of our presentation.</p>
+    
+        <p>On the compute side, GPUs consist of an array of compute units called <strong>Streaming Multiprocessors</strong> (SM). Each SM contains and controls a set of streaming processors, also known as cores. For example, an Nvidia H100 GPU has 132 SMs with 128 cores per SM, resulting in a total of 16,896 cores (see <a href="https://resources.nvidia.com/en-us-tensor-core">docs for tensor cores</a> for details), each capable of handling multiple threads simultaneously.</p>
+    
+        <p></p>
+    
+        <p></p>
+    
+        <p></p>
+    
+        <p></p>
+    
+        <p></p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        
+
         <h3>How to improve performance with Kernels ?</h3>
         
         <h4>Memory Coalescing</h4>
