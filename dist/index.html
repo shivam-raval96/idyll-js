@@ -474,13 +474,9 @@
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
 
-        <p>This involves our first “distributed communication” primitive: <em><strong>all-reduce</em></strong> which handles the synchronization and communication between GPU instances and nodes.</p>
-
         <aside>If you are not familiar with distributed communications patterns like broadcast, gather or all-reduce we put together a small crash course in the Appendix [TODO Link].</aside>
 
-        <p>TODO: embed naive DP: <a href="https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/data_parallel/data_parallel.py#L10-L60">https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/data_parallel/data_parallel.py#L10-L60</a></p>
-
-        <p>TODO: embed bucket DP: <a href="https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/data_parallel/data_parallel.py#L62-L171">https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/data_parallel/data_parallel.py#L62-L171</a></p>
+        <p>This involves our first “distributed communication” primitive: <em><strong>all-reduce</em></strong> which handles the synchronization and communication between GPU instances and nodes.</p>
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
 
@@ -510,7 +506,18 @@
 
         <p><img alt="image.png" src="/assets/images/placeholder.png"/></p>
 
-        <p>Overlapping computation and communication reduces the time spent waiting for gradient synchronization across the entire model. Gradient synchronization can occur (at least partially) in parallel with backward pass, significantly speeding up data parallelism.  </p>
+        <p>Overlapping computation and communication reduces the time spent waiting for gradient synchronization across the entire model. Gradient synchronization can occur (at least partially) in parallel with backward pass, significantly speeding up data parallelism. Here's a full implementation of naive DP with synchronization overlap:</p>
+
+        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
+            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
+                👉 Naive DP implementation with overlap in Picotron (Click to expand)
+            </summary>
+                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
+                    <script 
+                        src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fdata_parallel%2Fdata_parallel.py%23L10-L60&style=github&type=code&showBorder=off&showLineNumbers=on&showFileMeta=on&showCopy=on&showFullPath=on">
+                    </script>
+                </div>
+        </details>
 
         <p>This is our first example of “<em>overlapping computation and communication</em>” which we will discuss several times in this blog post and is an essential technique to maximal scaling efficiency. Let's have a look how we can further improve the DP efficiency!</p>
 
@@ -518,6 +525,18 @@
         <h4><strong>Second optimization:</strong> Bucketing gradients</h4>
         
         <p>We can even go further with optimizing DP. For a given number of parameters to synchronize, GPU operations like collective communications are often more efficient when performing few calls on large tensors rather than many calls on smaller tensors. Therefore, instead of performing independent all-reduce for each gradient, we can group gradients into buckets and launch a single all-reduce for all the gradients within the same bucket. Think of it like packing items into boxes before shipping—it's more efficient to send a few big boxes than many small ones. By performing a single all-reduce operation for each bucket, we can significantly reduce communication overhead and speed up the communication operation.</p>
+
+        <p>Here's the code implementation with bucketing:</p>
+
+        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
+            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
+                👉 Bucket DP implementation in Picotron (Click to expand)
+            </summary>
+                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
+                    <script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fdata_parallel%2Fdata_parallel.py%23L62-L171&style=github&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on">
+                    </script>
+                </div>
+        </details>
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
 
@@ -749,11 +768,35 @@
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
 
+        <p>Here's the code implementation of column wise tensor parallelism:</p>
+
+        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
+            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
+                👉 Column parallel TP implementation in Picotron (Click to expand)
+            </summary>
+                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
+                <script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F1004ae37b87887cde597c9060fb067faa060bafe%2Fpicotron%2Ftensor_parallel%2Ftensor_parallel.py%23L54-L123&style=github&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></script>
+                </div>
+        </details>
+
         <p>The second option is called row-wise sharding (also called <strong><em>row-linear</em></strong>): As the attentive reader might guess, row-linear means that we split the weight matrix into chunks of rows. However, this also requires us to split the inputs, which needs a <strong><em>scatter</em></strong> operation rather than a broadcast as used in column-linear sharding. The results on each worker are already in the right shape but need to be summed for the final result, thus requiring an all-reduce operation in this scenario.</p>
 
         <p>We see here our fourth distributed primitive: <strong><em>scatter</em></strong>!</p>
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>Here's the implementation for row-wise tensor parallelism:</p>
+
+        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
+            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
+                👉 Row parallel TP implementation in Picotron (Click to expand)
+            </summary>
+                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
+                <script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F1004ae37b87887cde597c9060fb067faa060bafe%2Fpicotron%2Ftensor_parallel%2Ftensor_parallel.py%23L125-L189&style=github&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></script>
+                </div>
+        </details>
+
+        <p>Now that we have the basic building blocks of TP, let's have a look at how we can effectively combine them inside a transformer layer!</p>
 
         <h3>Tensor Parallelism in a Transformer Block</h3>
         
@@ -924,10 +967,6 @@
               </tr>
             </tbody>
            </table>
-        
-        <p>You can find an example of implementation of both column and row linear TP in picotron:
-
-        <a href="https://github.com/huggingface/picotron/blob/main/picotron/tensor_parallel/tensor_parallel.py">https://github.com/huggingface/picotron/blob/main/picotron/tensor_parallel/tensor_parallel.py</a> </p>
 
         <p>By using sequence parallelism, we can achieve even greater activation memory savings, allowing us to push our batch size and sequence length further than what would be possible with tensor parallelism alone. Let's see what that means for our previous 70B model example:</p>
 
@@ -1102,8 +1141,17 @@
 
         <p>The above schedule is called the <strong><em>all-forward-all-backward (AFAB)</em></strong> schedule as we first do all forward passes and then only all-backward passes. The advantage is that forward and backward steps are still generally sequential and so preserving the general order of model training. This make this option rather simple to implement.</p>
 
-        <p>You can find the full implementation of the AFAB pipeline in picotron: https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/pipeline_parallel/pipeline_parallel.py#L54-L83</p>
+        <p>You can find the full implementation of the AFAB pipeline in picotron:</p> 
         
+        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
+            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
+                👉 AFAB PP implementation in Picotron (Click to expand)
+            </summary>
+                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
+                    <script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fpipeline_parallel%2Fpipeline_parallel.py%23L54-L83&style=github&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></script>
+                </div>
+        </details>
+
         <p>Let’s estimate the bubble in this example. The difference with our first example is that the ideal time to process <d-math>m</d-math> microbatches is now <d-math>t_{id} = m*(t_f+t_b)</d-math>:</p>
 
         <d-math block>
@@ -1132,8 +1180,17 @@
         
         <p>Here is the example training loop from the above gist:</p>
 
-        <p>You can find the full implementation in picotron as well: https://github.com/huggingface/picotron/blob/0035cce0e04afd6192763b11efe50010d8ad0f71/picotron/pipeline_parallel/pipeline_parallel.py#L85-L145</p>
+        <p>You can find the full implementation in picotron as well:</p> 
         
+        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
+            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
+                👉 1F1B PP implementation in Picotron (Click to expand)
+            </summary>
+                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
+                    <script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fpipeline_parallel%2Fpipeline_parallel.py%23L85-L145&style=github&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></script>
+                </div>
+        </details>
+                
         <p>So reordering a bit the computations helped a lot improving the memory pressure from activations. Could we get even better performance with more intricate schedules? Yes!</p>
         
         <h3>Interleaving stages</h3>
