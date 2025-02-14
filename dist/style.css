@@ -334,4 +334,39 @@ d-contents nav > ul > li > a:hover {
 #graph svg rect {
     cursor: pointer;
 }
+.note-box {
+    background-color: #f6f8fa;
+    border-left: 4px solid #444444;
+    padding: 1rem;
+    margin: 1rem 0;  /* Keep this modest margin */
+    border-radius: 6px;
+    /* Add this to ensure the box only takes up needed space */
+    display: inline-block;
+    width: 100%;
+}
 
+.note-box-title {
+    margin: 0;
+    color: #444444;
+    font-weight: 600;
+}
+
+.note-box-content {
+    margin-top: 0.5rem;
+    margin-bottom: 0;  /* Ensure no bottom margin */
+    color: #24292f;
+}
+
+/* For dark mode support */
+@media (prefers-color-scheme: dark) {
+    .note-box {
+        background-color: #1c1c1c;
+        border-left-color: #888888;
+    }
+    .note-box-title {
+        color: #888888;
+    }
+    .note-box-content {
+        color: #d4d4d4;
+    }
+}
