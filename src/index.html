@@ -401,7 +401,7 @@
 
         <p>Is there a way to tame this “activation explosion”? Good question, reader!</p>
 
-        <p>It’s time to explain our first technique – called <strong><em>activation recomputation</em><em>–</em> </strong>**which will help us cap activation memory footprint. An essential tool in today’s large model training toolbox.</p>
+        <p>It’s time to explain our first technique – called <strong><em>activation recomputation</em><em>–</em> </strong>which will help us cap activation memory footprint. An essential tool in today’s large model training toolbox.</p>
 
         <h3>Activation recomputation</h3>
         
@@ -565,7 +565,7 @@
 
         <p>Time to take a concrete example: Let’s say we want to train a recent model with a GBS of 4M tokens and a sequence length of 4k. This means our batch size will be 1024 samples (we pick powers of two). We observe that a single GPU can only fit MBS=2 in memory and we have 128 GPUs available for training. This means with 4 gradient accumulation steps we’ll achieve our goal of 1024 samples or 4M tokens per training step. Now what if we suddenly have 512 GPUs available? We can achieve the same GBS and thus identical training by keeping MBS=2 and setting gradient accumulation steps to 1 and achieve faster training!</p>
 
-        <aside>Bear in mind that at the 512GPUs scale, depending on the network used, the communication operations will start to be bound by <em>ring latency</em>  (time required for a signal to propagate once around the ring) **which means we can no longer fully overlap the DP communications. This will decrease our compute efficiency and hit our throughput. In this case we should start exploring other dimensions to parallelize on.
+        <aside>Bear in mind that at the 512GPUs scale, depending on the network used, the communication operations will start to be bound by <em>ring latency</em>  (time required for a signal to propagate once around the ring) which means we can no longer fully overlap the DP communications. This will decrease our compute efficiency and hit our throughput. In this case we should start exploring other dimensions to parallelize on.
         </aside>
 
         <p>While data parallelism cleverly overlaps the all-reduce gradient synchronization with backward computation to save time, this benefit starts to break down at large scales. As we add more and more GPUs (hundreds or thousands), the overhead of coordinating between them grows significantly. The end result? We get less and less efficient returns from each additional GPU we add to the system:</p>
@@ -702,9 +702,9 @@
 
         
 
-        <p>During the forward pass we do all-gather operations for the parameters when we need them, so a <d-math>\Psi</d-math> communication tax. Since we discard the parameters immediately after we needed them in the forward pass we need one more all-gather during the backward pass as well incurring another <d-math>\Psi</d-math> in communication tax. Finally we need the same ***reduce-scatter*** as in ZeRO-2 for the gradients which costs also <d-math>\Psi</d-math> in communication and we arrive at a total communication cost of <d-math>3\Psi</d-math>, compared to <d-math>2\Psi</d-math> for Zero-2.</p>
+        <p>During the forward pass we do all-gather operations for the parameters when we need them, so a <d-math>\Psi</d-math> communication tax. Since we discard the parameters immediately after we needed them in the forward pass we need one more all-gather during the backward pass as well incurring another <d-math>\Psi</d-math> in communication tax. Finally we need the same <strong><em>reduce-scatter</em></strong> as in ZeRO-2 for the gradients which costs also <d-math>\Psi</d-math> in communication and we arrive at a total communication cost of <d-math>3\Psi</d-math>, compared to <d-math>2\Psi</d-math> for Zero-2.</p>
 
-        <p>Thankfully, although we added many more communication operations, **prefetching** helps us overlap them efficiently by all-gathering weights for *Layer n+1* while we do the current forward for <em>Layer n</em> in the forward, and similarly, by all-gathering weights for <em>Layer n-1</em>  while doing the backward for <em>Layer n</em>. Of course this overlap only holds true as long as we don’t scale DP too much. (as a rule of thumb DP shouldn’t exceed 512)</p>
+        <p>Thankfully, although we added many more communication operations, <strong>prefetching</strong> helps us overlap them efficiently by all-gathering weights for *Layer n+1* while we do the current forward for <em>Layer n</em> in the forward, and similarly, by all-gathering weights for <em>Layer n-1</em>  while doing the backward for <em>Layer n</em>. Of course this overlap only holds true as long as we don’t scale DP too much. (as a rule of thumb DP shouldn’t exceed 512)</p>
 
         <p>In terms of memory we can see that our equation now reached it’s final form of <d-math>\frac{2\Psi +2\Psi+k\Psi}{N_d}</d-math> which means we can drive memory usage down indefinitely if we can increase the DP rank, at least for the model related parameters. Notice how it doesn’t help with the intermediate activations, for that we can use activation checkpointing and gradient accumulation as we’ve seen in earlier chapters.</p>        
         
@@ -1480,46 +1480,611 @@
     
         <p>On the compute side, GPUs consist of an array of compute units called <strong>Streaming Multiprocessors</strong> (SM). Each SM contains and controls a set of streaming processors, also known as cores. For example, an Nvidia H100 GPU has 132 SMs with 128 cores per SM, resulting in a total of 16,896 cores (see <a href="https://resources.nvidia.com/en-us-tensor-core">docs for tensor cores</a> for details), each capable of handling multiple threads simultaneously.</p>
     
-        <p></p>
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>TODO: Original figure from https://blog.codingconfessions.com/p/gpu-computing.</p>
     
-        <p></p>
+        <p>The memory side is also highly hierarchical with several layers of cache and memory: <strong>Registers</strong> are the smallest units and are private to the threads during executions, <strong>Shared Memory</strong> and <strong>L1 cache are</strong> shared between the threads running on a single SM, higher up is the <strong>L2 cache</strong> shared by all SMs, finally there is the <strong>Global Memory</strong> which is the largest memory on the GPU (the advertised 80 GB for a H100 for instance) but also the slowest to access and query.</p>
     
-        <p></p>
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>TODO: Original figure from https://www.youtube.com/watch?v=ZQKMZIP3Fzg</p>
     
-        <p></p>
+        <p>The goal of GPU will be to run as many workloads as possible, in parallel, on the GPU cores, by taking advantage of this hierarchical organization of compute/memory.</p>
     
-        <p></p>
+        <p>A piece of code running on a core of the GPU is called a <strong>kernel</strong>. It can be written at a high-level in <strong>CUDA</strong> or <strong>Triton</strong> for instance, and is then compiled to Parallel Thread Execution, PTX, the low-level assembly used by NVIDIA GPUs.</p>
+
+        <p>To run the kernel, you will also need a specific code part, called <strong>host code</strong>, which is executed on the <strong>CPU/host</strong> and will take care of preparing data allocations and loading data and code.</p>
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>Figure 5: Host code for a CUDA kernel for adding two vectors from https://blog.codingconfessions.com/p/gpu-computing</p>
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>Figure 6: Device code containing the definition of the vector addition kernel from https://blog.codingconfessions.com/p/gpu-computing</p>
+
+        <p>Kernels are generally scheduled as follow:</p>
         
+        <ul>
+            <li>threads are grouped in <strong>warps</strong> of sizes of 32. All the threads in a warp are synchronized to execute instructions simultaneously but on different parts of the data.</li>
+            <li><strong>warps</strong> are grouped in larger <strong>blocks</strong> of more flexible size (e.g. size 256), each block still being assigned to a single SM. An SM may run several blocks in parallel, however, depending on the resources, not all the blocks may get assigned for execution immediately, some can be waitlisted waiting for resources.</li>
+        </ul>
+
+        <p>The main thing to remember from these details is that there are various sizing and allocation constraints (size of the various memories, number of concurrent block and threads in the wraps) which need to be taken into account to use the GPU architecture in the most efficient way.</p>
+        
+        <p>Most of the time you don’t need to go down to this level of precision and you can luckily reuse the kernels and code prepared by other members of the community. But in any case we want to give you a primer on how to get started with kernels! </p>
 
         <h3>How to improve performance with Kernels ?</h3>
         
+
+        <p>If you’re looking to add a new operation that lacks an optimized kernel or to speed up an existing PyTorch function, writing kernels from scratch might seem like the most direct route. However, creating high-performance CUDA kernels from scratch requires extensive experience and a steep learning curve. Generally a better way to get started is to leverage <code>torch.compile</code>, which dynamically optimizes PyTorch code by capturing your operations and generating lower-level, high-performance kernels in triton.</p>
+
+        <p>Let’s suppose you want to write a kernel for an activation function called Exponential Linear Unit:</p>
+
+        <d-math block>
+            \text{ELU}(x) = \begin{cases}
+            e^x - 1 & \text{if } x < 0 \\
+            x & \text{if } x \geq 0
+            \end{cases}
+        </d-math>
+        <p>TODO: something off with spacing but seems the rendering engine</p>
+
+        <p>You can start by a simple pytorch implementation and then just add the <code>@torch.compile</code> decorator on top:</p>
+
+        <d-code block language="python">
+            @torch.compile
+            def elu(x, alpha=1.0):
+                return torch.where(x < 0, alpha * (torch.exp(x) - 1), x)
+        </d-code>
+
+        <p>The distinction between the compiled and non-compiled versions is striking, especially given that we only added a single decorator. This remarkable difference is illustrated in the graph below (N is the number of columns):</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+
+        <p>However, if this performance increase is insufficient, you can consider implementing Triton kernels. As a starting point, you can take a look at the triton kernel generated by @torch.compile . To do so, you simply need to set the environment variable <code>TORCH_LOGS</code> to <code>"output_code"</code>:</p>
+
+        <d-code block language="bash">
+            export TORCH_LOGS="output_code"
+        </d-code>
+
+        <p>Once you run the Python script with the <code>@torch.compile</code> decorator, it will generate and output the corresponding Triton kernel, which, in this case, is:</p>
+
+        <d-code block language="python">
+            @triton.jit
+            def triton_(in_ptr0, out_ptr0, xnumel, XBLOCK : tl.constexpr):
+                xnumel = 100000000
+                xoffset = tl.program_id(0) * XBLOCK
+                xindex = xoffset + tl.arange(0, XBLOCK)[:]
+                xmask = xindex < xnumel
+                x0 = xindex
+                tmp0 = tl.load(in_ptr0 + (x0), xmask)
+                tmp1 = 0.0
+                tmp2 = tmp0 < tmp1
+                tmp3 = tl_math.exp(tmp0)
+                tmp4 = 1.0
+                tmp5 = tmp3 - tmp4
+                tmp6 = tl.where(tmp2, tmp5, tmp0)
+                tl.store(out_ptr0 + (x0), tmp6, xmask)
+        </d-code>
+
+        <p>To enhance readability, we can modify the variable names, add comments, and make slight adjustments, as demonstrated below:</p>
+        
+        <d-code block language="python">
+            @triton.jit
+            def elu_kernel(input_ptr, output_ptr, num_elements, BLOCK_SIZE: tl.constexpr):
+                # Calculate the starting index for this block
+                block_start = tl.program_id(0) * BLOCK_SIZE
+                # Create an array of indices for this block
+                block_indices = block_start + tl.arange(0, BLOCK_SIZE)[:]
+                # Create a mask to ensure only valid indices are processed
+                valid_mask = block_indices < num_elements
+                # Load input values from the input pointer based on valid indices
+                input_values = tl.load(input_ptr + block_indices, valid_mask)
+                # Define the ELU parameters
+                zero_value = 0.0  # Threshold for ELU activation
+                negative_mask = input_values < zero_value
+                exp_values = tl.math.exp(input_values)
+                # Define the ELU output shift
+                one_value = 1.0
+                shifted_exp_values = exp_values - one_value
+
+                output_values = tl.where(negative_mask, shifted_exp_values, input_values)
+
+                # Store the computed output values back to the output pointer
+                tl.store(output_ptr + block_indices, output_values, valid_mask)
+        </d-code>
+        
+        <p>Here, <code>tl.program_id(0)</code> provides a unique block ID, that we use to determine which section of data that block will process. Using this block ID, <code>block_start</code> calculates the starting index for each block’s section, while <code>block_indices</code> specifies the range of indices within that section. A <code>valid_mask</code> ensures that only indices within <code>num_elements</code> are processed, safely loading the data with <code>tl.load</code>. The ELU function is then applied, modifying values based on whether they're negative, and results are written back to memory with <code>tl.store</code>.</p>
+        
+        <p>When we benchmark the generated kernel using <code>triton.testing.Benchmark</code> we have the following performance:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>This standalone kernel demonstrates superior performance with smaller sizes compared to <code>@torch.compile</code> but this is likely here just an artifact from the compilation time of <code>torch.compile</code>. In any case, instead of starting from scratch, we can focus on optimizing this generated kernel, saving us time in the process. </p>
+        
+        <p>However, in Triton, sometimes, we cannot fully achieve the peak performance of the device due to limitations in handling shared memory and scheduling within streaming multiprocessors (SMs). Our access is restricted to blocks, allowing us only to manage the scheduling of blocks across SMs. To gain even more control, we will need to implement kernels in CUDA, where we have access to all the underlying components.</p>
+
+        <p>In CUDA, there are various techniques that can be employed to make kernels more efficient; we will present just a few. These include optimizing memory access patterns to reduce latency, using shared memory to store frequently accessed data, and managing thread workloads to minimize idle times. In summary, the tools for writing code to execute instructions on the GPU are:</p>
+
+        <ul>
+            <li>Pytorch: easy but slow</li>
+            <li>torch.compile: easy, fast, but not flexible</li>
+            <li>triton: harder, faster, and more flexible</li>
+            <li>CUDA: hardest, fastest, and flexiblest (if you get it right)</li>
+
+        </ul>
+
+        <p>Let’s talk about one of the most frequent technique we can use: optimizing memory access. The global memory in GPUs (the largest memory in our above graph) has a long latency and low bandwidth in comparison to the cache which often creates a major bottleneck for most applications. Efficiently accessing data from global memory can improve a lot the performance.</p>
+
         <h4>Memory Coalescing</h4>
         
-        <h4>Tiling</h4>
+        <p>To effectively utilize the bandwidth of global memory, it is essential to understand its architecture. In CUDA devices, global memory is implemented using DRAM.</p>
+
+        <p>Memory coalescing takes advantage of how DRAM delivers data in bursts, or ranges of consecutive memory locations, whenever a memory address is accessed. Each time a DRAM location is accessed, a sequence of consecutive locations, including the requested one, is read in parallel by multiple sensors in the DRAM chip. Once read, this data can then be quickly transferred to the processor as a burst. In CUDA, coalescing uses this burst behavior to maximize memory access efficiency by ensuring that threads in a warp—32 threads that execute the same instruction in lockstep (SIMD)—access consecutive memory locations. For instance, if thread 0 accesses location M, thread 1 accesses M + 1, thread 2 accesses M + 2, and so forth, the GPU hardware coalesces or combines these requests into one large, efficient access request for the DRAM burst, rather than handling each access individually. </p>
         
+        <p>Let’s take the example of matrix multiplication. A simple, straightforward implementation would have each thread compute a single element of the output matrix, like this:</p>
+
+        <d-code block language="clike">
+            __global__ void matmul_naive(int M, int N, int K, const float *A, const float *B, float *C) {
+                const uint x = blockIdx.x * blockDim.x + threadIdx.x;
+                const uint y = blockIdx.y * blockDim.y + threadIdx.y;
+            
+                if (x < M && y < N) {
+                    float tmp = 0.0;
+                    for (int i = 0; i < K; ++i) {
+                        tmp += A[x * K + i] * B[i * N + y];
+                    }
+                    C[x * N + y] = tmp;
+                }
+            }
+        </d-code>
+
+        <p>Here’s an excellent visualization of the kernel from this <a href="https://siboehm.com/articles/22/CUDA-MMM">fantastic blogpost</a>: </p> 
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>However, when profiling this kernel with a tool like <code>ncu</code>, we can see issues, including low memory throughput and uncoalesced memory accesses.</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+
+        <p>The reason for this is that in this kernel, two threads in the same block with Thread IDs <code>(0, 0)</code> and <code>(1, 0)</code> (which will end up in the same warp) will both load from the same column of matrix <code>B</code> but different rows of matrix <code>A</code>. Since matrix elements are stored in row-major order (meaning each row's elements are in consecutive memory addresses, as shown in the figure below), in the first iteration with <code>i = 0</code>, thread <code>(0, 0)</code> will load <d-math>A_{0,0}</d-math>, and thread <code>(1, 0)</code> will load <d-math>A_{1,0}</d-math>. These elements are not stored close to each other in memory, and this misalignment repeats across all iterations along the shared dimension, preventing memory accesses from being coalesced.</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        
+        <p>To improve our kernel we can change the way the coordinates x and y are calculated like the following : </p>
+        
+        <d-code block language="clike">
+            const int x = blockIdx.x * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
+            const int y = blockIdx.y * BLOCKSIZE + (threadIdx.x % BLOCKSIZE);
+
+            if (x < M && y < N) {
+            float tmp = 0.0;
+            for (int i = 0; i < K; ++i) {
+                tmp += A[x * K + i] * B[i * N + y];
+            }
+            C[x * N + y] = tmp;
+            }
+        </d-code>
+        
+        <p>Instead of using a 2D block, we switch to a 1D block and redefine how we determine the values of <code>x</code> and <code>y</code>. In this new method, threads within the same warp (which have close <code>threadIdx.x</code> values) will share the same <code>x</code> value but have different <code>y</code> values. This means that they will load the same row of matrix <code>A</code> but different columns of matrix <code>B</code>. As a result, memory accesses can be coalesced for a row-major matrix.</p>
+
+        <p>When we profile our new kernel, we notice that the warning about uncoalesced memory accesses has disappeared, and <strong>the GPU's memory throughput has increased by approximately 10 times</strong>.</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+
+        <p>We also notice that the execution time of the kernel <strong>decreases by 10x</strong> !</p>
+        <p>Let’s cover another technique you will often see mentioned in the litterature: tiling.</p>
+        
+
+        <h4>Tiling</h4>
+
+        
+        <p>Tiling is a technique that leverages <em>shared memory</em> to optimize memory access patterns. As we mentioned above, the shared memory is a small, fast memory accessible by all threads within a block. It allows data to be reused by multiple threads, reducing the need to repeatedly load data from slower global memory.</p>
+
+        <p>In matrix multiplication for example, each thread in a block may need elements from two matrices, say A and B. If each thread independently loads the row and column it needs from global memory, we end up with many redundant loads, as multiple threads in a block will access overlapping data. Instead, we can use tiling to load a block (or tile) of A and B into shared memory just once, allowing all threads in that block to reuse the same shared data.</p>
+        
+        <p>In the tiling approach, each iteration involves all threads within a block cooperatively loading two tiles—one from matrix A and another from matrix B —into shared memory. Specifically, threads load a tile of matrix A (of size <code>BLOCK_SIZE_M</code> by <code>BLOCK_SIZE_K</code>) and a tile of matrix B (of size <code>BLOCK_SIZE_K</code> by <code>BLOCK_SIZE_N</code>). Once the tiles are in shared memory, the threads perform matrix multiplication on these tiles, enabling efficient computation since all necessary data is quickly accessible. The results of the tile multiplication are stored in an accumulation matrix that holds intermediate results. After each iteration, the results from the current tile multiplication are added to this accumulation matrix, continuing until all tiles from both matrices have been processed.</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>From https://cnugteren.github.io/tutorial/pages/page4.html</p>
+
+        <p>The important parts to understand the implementation are below (for simplicity we consider a square shaped tile) : </p>
+        
+        <d-code block language="clike">
+            // Set pointers to the starting elements
+            A += blockRow * TILE_SIZE * K; // Start at row = blockRow, column = 0
+            B += blockCol * TILE_SIZE; // Start at row = 0, column = blockCol
+            C += blockRow * TILE_SIZE * N + blockCol * TILE_SIZE; // Start at row = blockRow, column = blockCol
+            float sum = 0.0;
+            // The outer loop moves through tiles of A (across columns) and B (down rows)
+            for (int tileIdx = 0; tileIdx < K; tileIdx += TILE_SIZE) {
+            sharedA[localRow * TILE_SIZE + localCol] = A[localRow * K + localCol];
+            sharedB[localRow * TILE_SIZE + localCol] = B[localRow * N + localCol];
+
+            // Ensure all threads in the block have completed data loading
+            __syncthreads();
+
+            // Shift pointers to the next tile
+            A += TILE_SIZE;
+            B += TILE_SIZE * N;
+
+            // Compute the partial dot product for this tile
+            for (int i = 0; i < TILE_SIZE; ++i) {
+                sum += sharedA[localRow * TILE_SIZE + i] * sharedB[i * TILE_SIZE + localCol];
+            }
+            // Synchronize again to prevent any thread from loading new data
+            // into shared memory before others have completed their calculations
+            __syncthreads();
+            }
+            C[localRow * N + localCol] = sum;
+        </d-code>
+
+        <p>Each thread begins by loading one element from both <strong>Matrix A</strong> and <strong>Matrix B</strong> into shared memory. In this scenario, achieving coalesced memory access is straightforward, by assigning <code>threadIdx.x</code> as the <strong>local column index (localCol)</strong>, threads within the same warp will access adjacent elements of both matrices. After each thread in the block completes loading its elements into shared memory (ensured by calling <code>__syncthreads()</code>), they proceed to compute the dot product of the two tiles. Once the threads have iterated through all the tiles—horizontally for <strong>Matrix A</strong> and vertically for <strong>Matrix B</strong>—the resulting sum is stored in the corresponding location of <strong>Matrix C</strong>.</p>
+        
+        <p>When benchmarking this kernel using ncu, we noticed that the memory throughput increased to 410 Gb / s, and the kernel execution time decreased by ~43% achieving a ~6.6 TFLOPs performance</p>
+
+
+
         <h4>Thread Coarsening</h4>
         
+
+        <p>The tiling technique has significantly improved the performance of our kernel. However, when analyzing the warp states which quantify how many cycles were spent in each state, we observe the following:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+
+        <p>The meaning of the states can be found in the <a href="https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference">Profiling Guide</a>, specifically in the <strong>Warp Stall Reasons</strong> section. There we can read that:</p>
+
+        <p><em><code>smsp__pcsamp_warps_issue_stalled_mio_throttle</code>: Warp was stalled waiting for the MIO (memory input/output) instruction queue to be not full. This stall reason is high in cases of extreme utilization of the MIO pipelines, which include special math instructions, dynamic branches, as well as shared memory instructions. When caused by shared memory accesses, trying to use fewer but wider loads can reduce pipeline pressure.</em></p>
+        
+        <p>So it seems warps are stalling waiting for shared memory accesses to return ! To resolve this issue we can apply the <strong>Thread Coarsening</strong> technique by merging several threads into a single coarsened thread, we can significantly reduce shared memory accesses because each coarsened thread can handle multiple output elements which would increase the arithmetic intensity of the kernel.</p>
+
         <h4>Minimizing Control Divergence</h4>
         
+        <p>A Streaming Multiprocessor (SM) is built to execute all threads in a warp using the Single Instruction, Multiple Data (SIMD) model. This means that at any given moment, one instruction is fetched and executed simultaneously for all threads within the warp. When a warp is executed, the threads within it operate on different segments of the data but follow the same instruction, hence the name Single Instruction, Multiple Data. The primary advantage of SIMD is its efficiency; the control hardware responsible for instruction fetching and dispatching is shared among multiple execution units. This design minimizes the hardware overhead associated with control functions, allowing a greater portion of the hardware to focus on improving arithmetic throughput.</p>
+
+        <p>Control divergence occurs when threads within the same warp take different execution paths. For instance, if a conditional statement (like an <code>if</code> statement) leads to some threads executing one block of code while others execute a different block, the warp must serialize these executions, resulting in idle threads waiting for others to complete.  To minimize control divergence, we need to design kernels to ensure that threads within the same warp follow the same execution path. This can be achieved by restructuring code to reduce branching, using data structures that ensure all threads follow similar execution paths, or employing techniques such as predication.</p>
+
+        <p>We have covered some of the main considerations when writing custom kernels and improving the performance and memory footprint of GPU operations. But there’s one more important concept before moving to a real example which is “fusing kernels”.</p>
+
+        <h3>Fused Kernels</h3>
+        
+        <p>In several places now we’ve mentioned how GPU and CPU operation can be asynchronous. In particular, the host code on the CPU can schedule workload on the GPU in a non-blocking way.</p>
+        
+        <p>Non-blocking can be useful for overlapping communication and computation as we saw at several part along this blog post but can be extended to the more general idea of trying to avoid at all cost going back and forth between host and GPU kernel commands. This is beautifully illustrated by <a href="https://horace.io/brrr_intro.html">Horace He</a> in these diagrams:</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>A sequence of kernels requiring back and forth between global memory and compute units</p>
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>Instead of sending our triangle back to global memory just to read it back again, we instead just do all of our operations in one go.</p>
+
+        <p>How can we avoid this back and forth? Well the best way is to make our GPU as autonomous as possible. This is achieved by packing as many successive compute operations together in a single kernel for the GPU to run, called a “Fused Kernel”.</p>
+
+
+        <p>Fused kernel are especially efficient and simple to write for succession of point-like operations which are performed independently of each other on each input tokens. In this case, there is no point in bringing back computed values in Global Memory before moving them to SM memory and spinning up a new kernel. It’s much more efficient to keep all values local until the succession of computation has been performed.</p>
+
+        <p>What are many places in a Transformer model were this can be advantageous, for instance when. a succession of point-wise operations is performed, e.g. in the computation involved in the Layer norms.</p>
+
+        <p>We now have all the understanding necessary to marvel at a true masterpiece of kernel engineering: <strong><em>Flash Attention</em></strong></p>
+
         <h3>Flash Attention 1-3</h3>
         
-        <h3>Fused Kernels</h3>
+        <p>Flash attention is a technique pioneered by <a href="https://tridao.me">Tri Dao</a> that optimizes the attention computations by writing custom CUDA kernels to make it much faster *and* more memory efficient. The idea behind Flash Attention is to make efficient use of the various memories of the GPU to avoid using too much the slowest global memory of the GPU (confusingly called the High Bandwidth Memory, HBM 🫠)</p>
+
+        <p>A basic implementation of the attention mechanism involve a lot of transfer between memory and workers. It requires materializing the S and P matrices in HBM which means that the results need to be sent to HBM and then back to SRAM for the next computations:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>Since bandwidth is much lower in HBM this introduces a severe bottleneck in the attention computation. Can we do better? Tri Dao says yes!</p>
+
+        <p>The key element is to compute the S matrices in small pieces which can fit in the smaller shared memory of the SM. But we can do even better and avoid materializing the very large S matrix all together in favor of keeping only the necessary statistics for computing the normalization factor of the softmax. So we can compute part of <d-math>O</d-math> directly in one computation in SRAM rather than moving intermediate results back and forth. In this case, not even do we make use of the shared memory but we also release the memory bottleneck resulting from materializing one of the largest activation matrices in the model (at long context length), the attention matrix.</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>From the FLASH-ATTENTION paper<d-cite bibtex-key="dao2022flashattention"></d-cite></p>
+
+        <p>The idea of flash attention resolves so many bottlenecks in model training that it has quickly become the default way to perform attention in all transformers:</p>
+        <ul>
+            <li>By avoiding to materialize the S matrix we <strong>reduce the memory burden of attention</strong></li>
+            <li>We also remove a large part of the <strong>naive impact of the S^2 cost of attention</strong></li>
+        </ul>
+
+        <p>As a result as well, all variants of linear attention and sub-quadratic approaches to approximate attention –developed shortly after the invention of the transformers architecture– have been mostly put aside in favor of this exact and fast flash attention implementation and mechanism.</p>
+
+        <p>Following Flash-attention 1, two successive improved versions have been released by the same lab: Flash-attention 2 and 3. In comparison to Flash-attention 1, the improvements in Flash-attention 2 and 3 are less about the general attention mechanism than about tailoring its low level implementation more specifically to the GPU by (1) reducing the number of non-matmul operations as much as possible (2) partitioning carefully the workload among wraps and thread blocks (for Flash Attention 2) and carefully optimizing for FP8 and Tensor Core support on the latest Hopper (H100) architecture for Flash Attention 3.</p>
+
+        <aside>Flash attention puts some restrictions on which attention patterns can be sped up. Check out <a href="https://pytorch.org/blog/flexattention/">FlexAttention</a> which is a fast <em>and</em> flexible variant.</aside>
+
+        <p>Flash-Attention is a master demonstration of the breakthrough improvements that can come when you take into account the internal memory/compute design of current GPU accelerators.</p>
+
+        <p>The techniques described so far in this section require specific modeling code changes and writing custom kernels for certain operations in order to speed up training. In this section we take a look at a range of methods that are agnostic to the modeling code and can be used for any model!</p>
         
         <h3>Mixed Precision Training</h3>
         
+        <p>Mixed Precision Training, as the name suggests, involves mixing different precisions when training. The default numerical precision of PyTorch tensors is single-precision floating point format or also called FP32 or float32 which means that every number stored takes up 32 bits or 4 bytes. The available bits to represent a number are divided into 3 parts:</p>
+
+        <ul>
+            <li>Sign: the first bit determines if the number is positive or negative</li>
+            <li>Mantissa: determines the significant figures of a number</li>
+            <li>Exponent: controls the magnitude of the number</li>
+        </ul>
+
+        <p>The principle of floating point numbers can be easily illustrated by recalling the scientific notation of numbers, e.g. <d-math>- 5.734 \times 10^{7}</d-math>, where we first have the sign, followed by the mantissa an the exponent. As such we can represent numbers across a wide range of magnitudes with an adaptive precision. Although float32 is the default there is a range of floating point formats available in PyTorch:</p>
+
+        <p></p>
+
+        <table>
+            <thead>
+              <tr>
+                <th><strong>Format</strong></th>
+                <th><strong>Total bits</strong></th>
+                <th><strong>Sign</strong></th>
+                <th><strong>Mantissa</strong></th>
+                <th><strong>Exponent</strong></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>float32</td>
+                <td>32</td>
+                <td>1</td>
+                <td>23</td>
+                <td>8</td>
+              </tr>
+              <tr>
+                <td>float16</td>
+                <td>16</td>
+                <td>1</td>
+                <td>10</td>
+                <td>5</td>
+              </tr>
+              <tr>
+                <td>bfloat16</td>
+                <td>16</td>
+                <td>1</td>
+                <td>7</td>
+                <td>8</td>
+              </tr>
+              <tr>
+                <td>float8 (e4m3)</td>
+                <td>8</td>
+                <td>1</td>
+                <td>3</td>
+                <td>4</td>
+              </tr>
+              <tr>
+                <td>float8 (e5m2)</td>
+                <td>8</td>
+                <td>1</td>
+                <td>2</td>
+                <td>5</td>
+              </tr>
+            </tbody>
+           </table>
+
+        <aside>Note: You might be wondering where the “b” in bfloat16 comes from. The format was developed at Google Brain and thus the “b” stands for “brain”. </aside>
+
+        <p>Reducing the total number of bits comes at a price (no free lunch here either), but we have some control over how to pay. Either we can sacrifice more bits on the mantissa or exponent. For this reason there exist also two float8 formats, named according to exponent and mantissa, to flexibly choose the most appropriate format. We can look at the possible range of numbers for each format:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+
+        <p>We can see that float32 spans 80 orders of magnitude and float16 sacrifices a lot of range while bfloat16 maintains the full range. The two float8 formats reduce the range even further where e5e2 can maintain float16 range and e4m3 has an even smaller ranger.</p>
+
+        <p>How come some format are able to maintain the range and other not? Let’s investigate the resolution by plotting 10,000 points between 1 and 2. Each point will be rounded to the nearest representable number in each format:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>We can see here that bfloat16 maintained the range of float32 over float16 but did this with the cost of sacrificing more precision. In case of float8 the situation is even more dire as e4m3 can represent 7 and e5m2 only 3 number on the interval 1-2.</p>
+
+        <p>A common metric to measure a formats resolution is epsilon: the first representable number after 1.00. We can see that for the float32 format $10^{-4}$  is an upper bound (it’s actually <d-math>1.19^{-7}</d-math>). For float16 it is <d-math>\tilde 10^{-3}</d-math> and for bfloat 10x higher still.</p>
+
+        <p>The idea of mixed precision training is to use some of these lower precisions formats while maintaining the performance of full precision training. It turns out we <strong>can’t</strong> totally abandon float32 and usually will need to maintain some parts in full precision.</p>
+
+        <p>This is why lower precision training is usually called <strong><em>mixed precision</em></strong> training. </p>
+
+        <p>Let’s now take a look at training models with 16 bits and then see if we can take it a step further all the way down to 8 bits.</p>
+
+        
+        
         <h4>FP16 and BF16 training</h4>
+
+        <p>Naively switching all the tensors and operations to float16 unfortunately doesn’t work and the result is usually diverging losses. However, the original mixed precision training paper<d-cite bitex-key="micikevicius2018mixedprecisiontraining"></d-cite> came up with three tricks to match float32 trainings:</p>
+
+        <ol>
+            <li><strong>FP32 copy of weights</strong>: There are two possible issues with float16 weights. During training some of the weights can become very small and will be rounded to 0. However, even if the weights themselves are not close to zero, if the updates are very small the difference in magnitude can cause the weights to underflow during the addition. Once the weights are zero they will remain 0 for the rest of training as there is no gradient signal coming through anymore.</li>
+            <li><strong>Loss scaling</strong>: We have a similar issue with the gradients as well as gradients tend to be much smaller than 1 and are thus at risk to underflow. A simple, yet effective, strategy is to scale the loss before the backward pass and unscale the gradients after the backward pass. This ensures that there is no underflow during the backward pass and the scaling is not affecting training as we unscale before processing the gradients further (e.g. clipping) and the optimization step.  </li>
+            <li><strong>Accumulation</strong>: Finally, when performing arithmetic operations in float16 such as in dot products, we can also face under or overflows. Does targeting certain types of arithmetic operations to accumulate the intermediate results in float32 during the operation and then casting the accumulated result back to fp16. For the same reason gradients are also accumulated in float32.</li>
+        </ol>
+        
+        <p>With these techniques, you get consistently stable training while benefitting from higher throughput due to the faster, lower precision operations. Naturally, as the curious reader you are and by now slightly addicted to maximizing the throughput, you ask the question: can we go further and faster? </p>
+
+        <p>Maybe!</p>
         
         <h4>FP8 pretraining</h4>
         
+        <p>Even if we perfectly overlap communication with computation, we always eventually run into the low level theoretical FLOPS limit of the hardware itself, i.e. the efficiency of each individual operation on our hardware. This is where numerical precision becomes crucial. For instance, on NVIDIA's H100 GPU, FP8 matrix multiplications (GEMM operations) achieve twice the theoretical FLOPS of bfloat16, making lower-precision training an attractive path for further optimization.</p>
+        
+        <p>Recent research - including  FP8-LM<d-cite bibtex-key="peng2023fp8lmtrainingfp8large"></d-cite>, torchao<d-cite bibtex-key="torchao"></d-cite>, and DeepSeek-V3<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite> - has demonstrated the potential of FP8 training for large-scale models. Still, FP8 pretraining introduces a significant challenge: stability. At lower precision, numerical instability often leads to loss divergence, making it difficult to match the accuracy of higher-precision training.</p>
+        
+        <p>We know that instability increases as learning rates rise for a fixed model size<d-cite bibtex-key="wortsman2023smallscaleproxieslargescaletransformer"></d-cite>, making FP8 pretraining particularly tricky.</p>
+        
+        <p>The first, successful, very large scale training with FP8 mixed precision was publicly reported on DeepSeek-V3. The authors carefully analyzed each operation of the forward pass (Fprop) as well as the activation (Dgrad) and weight (Wgrad) backward pass. Similar to BF16 mixed precision training, some aggregation and master weights are kept in higher precision while the operations themselves are performed in FP8.  </p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>In order to switch from high precision (e.g. FP32 or BF16) to lower precision (e.g. FP16 or FP8) with smaller range, we need to normalize the range of values by computing the absolute maximum. DeepSeek-V3 also introduces a quantization scheme, where the ranges are normalized per tile: 1x128 for inputs/activations and 128x128 for weights and scale elements. This makes the normalization less susceptible to outliers. There is a number of additional tricks they deploy to also reduce the memory and communication footprint which you can follow in section 3.3. of the DeepSeek-V3 technical report<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. </p>
+
+        <p>Here’s a summary of a few known approaches to FP8 training:</p>
+
+        <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>GEMM's precision</th>
+                <th>Master model weights</th>
+                <th>Accumulated gradients</th>
+                <th>Model weights</th>
+                <th>Gradients</th>
+                <th>Optimizer States</th>
+                <th>Total Memory</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>bfloat16 with fp32 mixed precision baseline</td>
+                <td>bf16</td>
+                <td>fp32</td>
+                <td>fp32</td>
+                <td>bf16</td>
+                <td>bf16</td>
+                <td>fp32 + fp32</td>
+                <td>4 + 4 + 2 + 2 + 4 + 4 = 20 bytes</td>
+              </tr>
+              <tr>
+                <td>Above without FP32 grad accumulation</td>
+                <td>bf16</td>
+                <td>fp32</td>
+                <td></td>
+                <td>bf16</td>
+                <td>bf16</td>
+                <td>fp32 + fp32</td>
+                <td>4 + 2 + 2 + 4 + 4 = 16 bytes</td>
+              </tr>
+              <tr>
+                <td>Transformer Engine</td>
+                <td>fp8</td>
+                <td></td>
+                <td></td>
+                <td>fp32</td>
+                <td>fp32</td>
+                <td>fp32 + fp32</td>
+                <td>4 + 4 + 4 + 4 = 16 bytes (20% reduction)</td>
+              </tr>
+              <tr>
+                <td>FP8-LM's O3 level</td>
+                <td>fp8</td>
+                <td>fp16</td>
+                <td>fp16</td>
+                <td>fp8</td>
+                <td>fp8</td>
+                <td>fp8 + fp16</td>
+                <td>2 + 2 + 1 + 1 + 1 + 2 = 9 bytes (55%)</td>
+              </tr>
+              <tr>
+                <td>DeepSeek-V3</td>
+                <td>fp8</td>
+                <td>fp32</td>
+                <td>fp32</td>
+                <td>fp8</td>
+                <td>bf16</td>
+                <td>bf16 + bf16</td>
+                <td>4+4+1+2+2+2 = 15 (25%)</td>
+              </tr>
+              <tr>
+                <td>nanotron's FP8</td>
+                <td>fp8</td>
+                <td>bf16</td>
+                <td>fp32</td>
+                <td>fp8</td>
+                <td>fp8</td>
+                <td>fp8 + fp8</td>
+                <td>2 + 4 + 1 + 1 + 1 + 1 = 10 bytes (50%)</td>
+              </tr>
+            </tbody>
+           </table>
+
+        <p>Overall, FP8 is still an experimental technique and methods are evolving, but will likely become the standard soon replacing bf16 mixed-precision. To follow public implementations of this, please head to the nanotron’s implementation in [TODO: link to appendix]. </p>
+
+        <p>In the future, Blackwell, the next generation of NVIDIA chips, <a href="https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/">have been announced </a> to support FP4 training, further speeding up training but without a doubt also introducing a new training stability challenge.</p>
+
+        <p>We now arrived at the end of the distributed training journey. Let’s take a step back and conclude.</p>
+
         <h2>Conclusion</h2>
         
+        
+        <p>Congratulations! You've completed quite a journey - from understanding how to train a simple model on a single GPU, all the way to mastering the complex techniques used to efficiently train massive language models like Llama-405B and DeepSeek-V3. By now, you should feel confident interpreting advanced parallelism diagrams like the one below, which would have seemed daunting when you first started.</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+
+        <p>In distributed training, many concepts sound easy enough when you first hear them, like “Pipeline parallelism just distributes layers on different GPUs”, but we also worked through all the challenging details when implementing those methods. </p>
+
+        <p>However, not only did you learn something in the process, but we also want to share some insights we gained along the way, as well as give you ideas on what to work on next if you want to gain more experience in distributed training.</p>
+        
+        <p>Let’s start with a brief recap of all the things we covered in these past hours and days!</p>
+
         <h3>What you learned</h3>
         
-        <h3>What we learned</h3>
+        <p>Working through this whole blog post you mastered a ranged of concepts:</p>
         
+        <ul>
+            <li>Basic principle of model training</li>
+            <li>Collective communication primitives </li>
+            <li>Memory anatomy of a LLM</li>
+            <li>Distributed training with DP and ZeRO </li>
+            <li>Model parallelism with TP, SP, CP and PP</li>
+            <li>Fast kernels and mixed precision training</li>
+            <li>Overlapping communication and computation</li>
+            <li>Profiling distributed training</li>
+        </ul>
+
+        <p>Furthermore, you saw code implementations of most methods and how to benchmark a distributed training. But it hasn’t been only a learning experience for you, also we learned a thing or two!</p>
+
+        <h3>What we learned</h3>
+
+        <p>Running benchmarks on a cluster turned out to be much more challenging than we initially expected! What seemed like straightforward tasks often became complex debugging sessions:
+        </p>
+
+        <ul>
+            <li>PyTorch processes would sometimes fail to clean up properly</li>
+            <li>Slurm job manager would forcefully terminate jobs, leading to node failures </li>
+            <li>Simple benchmarks that should take minutes would stretch into hours</li>
+            <li>We had to spend significant time:</li>
+            <ul>
+                <li>Minimizing cluster restart times and optimize idle time</li>
+                <li>Analyzing detailed NCCL debug logs</li>
+                <li>Understand memory usage patterns and CUDA memory allocator behaviors</li>
+                <li>Improving pipeline parallelism performance on multi-node</li>
+            </ul>
+        </ul>
+        
+        <p>These challenges deserve their own story, but they taught us valuable lessons about the complexities of distributed training infrastructure. What looks simple in theory often requires careful attention to many moving parts in practice.</p>
+
+        <p>Let's analyze the results of our benchmarks and understand how different configurations affect each other. All benchmarks were run with a sequence length of 4096 and a global batch size of 1M tokens. We'll look at two key visualizations that help illustrate our findings.
+        </p>
+        
+        <p>First, let's examine this heatmap visualization:</p>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>Heatmap visualization showing the optimal training configurations across different model sizes and compute node counts. For each combination, the configuration details include Data Parallelism (DP), Tensor Parallelism (TP), Pipeline Parallelism (PP), Gradient Accumulation Steps (GAS), Micro Batch Size (MBS), and ZeRO optimization stage. The color intensity indicates the Model FLOPs Utilization (MFU), with brighter colors representing higher efficiency.</p>
+
+        <p>To complement this, let's look at the relationships between different parameters:</p>
+        
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>Parallel coordinates plot showing the relationship between different model parallelism configurations (Data Parallel degree, Tensor Parallel degree, Pipeline Parallel degree), training hyperparameters (gradient accumulation steps, micro batch size), ZeRO stage and the resulting Model FLOPs Utilization (MFU). Each line represents a different training configuration, with colors indicating the MFU value - warmer colors show higher efficiency.</p>
+
+        <p>From these visualizations, we can draw several important insights:
+        </p>
+
+        <ol>
+            <li>As we increase the number of nodes (higher parallelism), we observe a decrease in efficiency. This effect is particularly pronounced for smaller models, which have a lower compute-to-model-size ratio. While we might typically compensate for small model size by increasing the batch size, we're constrained by our global batch size limit of 1M.
+            </li>
+            <li>Larger models present a different challenge. As model size increases, memory requirements grow substantially. This creates two scenarios with fewer nodes: either the model doesn't fit at all, or it barely fits but runs inefficiently due to operating near the GPU memory limits.</li>
+            <li>Our benchmarks demonstrate how performance heavily depends on implementation quality. When we first implemented both parallelism strategies, Tensor Parallelism (TP) outperformed Pipeline Parallelism (PP). After optimizing our PP code, it became the faster option. Now that we're improving the communication overlap in our TP implementation, we expect it to regain the performance lead.</li>
+        </ol>
+
+        <p>These findings highlight the challenges of reproducing theoretical results in practice, especially given the limited availability of production training code. Through open-source projects like picotron and nanotron, we hope to make these distributed training techniques more accessible and foster collaboration on simpler, more efficient codebases that help researchers and practitioners make the most of their hardware resources.</p>
+
         <h3>What’s next?</h3>
+
+        <p>You should have a good overview of all the distributed training concepts but there are still things to learn and details we couldn’t cover. To get deeper in the field we recommend doing some of the following steps:</p>
+        
+        <ul>
+            <li>Carefully read some of the landmark or very recent papers. You can find a list of some of the most impactful papers in [TODO References]</li>
+            <li>Start from scratch and implement an algorithm yourself. Often a method only fully “clicks” if you implemented it yourself.</li>
+            <li>Dive into one of the widely used frameworks and start contributing: fix bugs, answer issues, or implement a new feature. That’s the best way to get in any ML field!</li>
+        </ul>
+        
+        <p>We hope this blog helps you get started in distributed training or helps you to better understand methods that you may already be applying by using some distributed training frameworks.</p>
         
         <h2>References</h2>
         
