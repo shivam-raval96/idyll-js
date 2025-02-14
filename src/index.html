@@ -1888,7 +1888,7 @@
         
         <h4>FP16 and BF16 training</h4>
 
-        <p>Naively switching all the tensors and operations to float16 unfortunately doesn’t work and the result is usually diverging losses. However, the original mixed precision training paper<d-cite bitex-key="micikevicius2018mixedprecisiontraining"></d-cite> came up with three tricks to match float32 trainings:</p>
+        <p>Naively switching all the tensors and operations to float16 unfortunately doesn’t work and the result is usually diverging losses. However, the original mixed precision training paper<d-cite bibtex-key="micikevicius2018mixedprecisiontraining"></d-cite> came up with three tricks to match float32 trainings:</p>
 
         <ol>
             <li><strong>FP32 copy of weights</strong>: There are two possible issues with float16 weights. During training some of the weights can become very small and will be rounded to 0. However, even if the weights themselves are not close to zero, if the updates are very small the difference in magnitude can cause the weights to underflow during the addition. Once the weights are zero they will remain 0 for the rest of training as there is no gradient signal coming through anymore.</li>
