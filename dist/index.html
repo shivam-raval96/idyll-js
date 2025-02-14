@@ -51,6 +51,115 @@
     <d-article>
         <d-contents>
         </d-contents>
+
+        
+    <script>
+        // Function to enhance the SVG content by adding styles and data attributes
+        function enhanceSVGContent(originalContent) {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(originalContent, 'image/svg+xml');
+    
+          // Create a style element with hover effects and insert it as the first child of the SVG
+          const styleElement = doc.createElementNS('http://www.w3.org/2000/svg', 'style');
+          styleElement.textContent = `
+            path[data-element-type="layer"] {
+              transition: all 0.3s;
+              cursor: pointer;
+            }
+            path[data-element-type="layer"]:hover {
+              fill: #b197fc !important;
+              transform: translate(0, -2px);
+            }
+    
+            path[data-element-type="gradient"] {
+              transition: all 0.3s;
+              cursor: pointer;
+            }
+            path[data-element-type="gradient"]:hover {
+              fill: #f06595 !important;
+              transform: translate(0, -2px);
+            }
+    
+            path[data-element-type="forward"] {
+              transition: all 0.3s;
+              cursor: pointer;
+            }
+            path[data-element-type="forward"]:hover {
+              stroke: #0c8599 !important;
+              stroke-width: 4 !important;
+            }
+    
+            path[data-element-type="backward"] {
+              transition: all 0.3s;
+              cursor: pointer;
+            }
+            path[data-element-type="backward"]:hover {
+              stroke: #e8590c !important;
+              stroke-width: 4 !important;
+            }
+    
+            path[data-element-type="optimization"] {
+              transition: all 0.3s;
+              cursor: pointer;
+            }
+            path[data-element-type="optimization"]:hover {
+              stroke: #087f5b !important;
+              stroke-width: 4 !important;
+            }
+          `;
+          doc.documentElement.insertBefore(styleElement, doc.documentElement.firstChild);
+    
+          // Process neural network layers (purple nodes)
+          doc.querySelectorAll('path[fill="#d0bfff"]').forEach((node, index) => {
+            node.setAttribute('data-element-id', `layer-${index}`);
+            node.setAttribute('data-element-type', 'layer');
+          });
+    
+          // Process gradient nodes (pink nodes)
+          doc.querySelectorAll('path[fill="#f783ac"]').forEach((node, index) => {
+            node.setAttribute('data-element-id', `gradient-${index}`);
+            node.setAttribute('data-element-type', 'gradient');
+          });
+    
+          // Process arrows by matching stroke colors
+          const arrowTypes = {
+            '#15aabf': 'forward',
+            '#fd7e14': 'backward',
+            '#099268': 'optimization'
+          };
+    
+          Object.entries(arrowTypes).forEach(([color, type]) => {
+            doc.querySelectorAll(`path[stroke="${color}"]`).forEach((arrow, index) => {
+              arrow.setAttribute('data-element-id', `${type}-${index}`);
+              arrow.setAttribute('data-element-type', type);
+            });
+          });
+    
+          // Make the SVG responsive
+          doc.documentElement.setAttribute('width', '100%');
+          doc.documentElement.setAttribute('height', 'auto');
+          doc.documentElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    
+          return new XMLSerializer().serializeToString(doc);
+        }
+    
+        // Function to load an SVG file via fetch
+        async function loadSVG(url) {
+          try {
+            const response = await fetch(url);
+            if (!response.ok) {
+              throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const svgText = await response.text();
+            const enhancedSVG = enhanceSVGContent(svgText);
+            document.getElementById('svg-container').innerHTML = enhancedSVG;
+          } catch (error) {
+            console.error('Error loading SVG:', error);
+            document.getElementById('svg-container').innerHTML = '<p>Error loading SVG.</p>';
+          }
+        }
+    </script>
+
         
         <p>Fueled by the scaling laws<d-cite bibtex-key="kaplan2020scalinglaws"></d-cite><d-cite bibtex-key="hoffmann2022chinchilla"></d-cite>, the trend of training ever larger language models on vaster amounts of data has been driving progress in AI for the past couple years. Initially, the development of the largest models happened exclusively behind closed doors of a handful of research labs but recently opened up more with the release of models such as Llama 3.1 405B<d-cite bibtex-key="grattafiori2024llama3herdmodels"></d-cite> and DeepSeek R1<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. While these models have <a href="https://huggingface.co/meta-llama">openly shared</a> <a href="https://huggingface.co/deepseek-ai">weights</a> and their training recipes are described in <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">reports</a>, the challenging engineering to involved to train at the necessary infrastructure scale is still hidden between the lines of a handful of papers and complex training frameworks. This ~~long blog post~~ open-source book is here to open this black box!</p>
 
@@ -223,7 +332,37 @@
         </ol>
 
         <p>It looks generally like this: </p>
-        <p><img alt="image.png" src="assets/images/placeholder.png" /></p>
+        <div class="svg-container" id="svg-container">
+        </div>
+        <div class="info" id="info">Hover over the network elements to see their details</div>
+        <script>
+                // Load the SVG file (adjust the path if needed)
+                loadSVG('../assets/svg/figure-01.svg');
+            
+                // Set up event listeners to display a description of the hovered element
+                const svgContainer = document.getElementById('svg-container');
+                svgContainer.addEventListener('mouseover', function(event) {
+                  const target = event.target;
+                  if (target.tagName.toLowerCase() === 'path' && target.hasAttribute('data-element-id')) {
+                    const elementId = target.getAttribute('data-element-id');
+                    const elementType = target.getAttribute('data-element-type');
+                    const descriptions = {
+                      layer: 'Neural Network Layer',
+                      gradient: 'Gradient Update Layer',
+                      forward: 'Forward Pass Connection',
+                      backward: 'Backward Pass Connection',
+                      optimization: 'Optimization Step'
+                    };
+                    const description = descriptions[elementType] || elementType;
+                    document.getElementById('info').textContent = `Hovering over: ${description} (${elementId})`;
+                  }
+                });
+            
+                svgContainer.addEventListener('mouseout', function() {
+                  document.getElementById('info').textContent = 'Hover over the network elements to see their details';
+                });
+         
+        </script>
 
         <aside>As we’ll see later, these steps may be repeated or intertwined but for now we’ll start simple.</aside>
 
@@ -1573,7 +1712,8 @@
 }</pre>
     </d-appendix>
 
-    <script>
+
+        <script>
         const article = document.querySelector('d-article');
         const toc = document.querySelector('d-contents');
         if (toc) {
