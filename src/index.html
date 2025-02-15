@@ -52,7 +52,7 @@
         <d-contents>
         </d-contents>
         
-        <p>Fueled by the scaling laws<d-cite bibtex-key="kaplan2020scalinglaws"></d-cite><d-cite bibtex-key="hoffmann2022chinchilla"></d-cite>, the trend of training ever larger language models on vaster amounts of data has been driving progress in AI for the past couple years. Initially, the development of the largest models happened exclusively behind closed doors of a handful of research labs but recently opened up more with the release of models such as Llama 3.1 405B<d-cite bibtex-key="grattafiori2024llama3herdmodels"></d-cite> and DeepSeek R1<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. While these models have <a href="https://huggingface.co/meta-llama">openly shared</a> <a href="https://huggingface.co/deepseek-ai">weights</a> and their training recipes are described in <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">reports</a>, the challenging engineering to involved to train at the necessary infrastructure scale is still hidden between the lines of a handful of papers and complex training frameworks. This ~~long blog post~~ open-source book is here to open this black box!</p>
+        <p>Fueled by the scaling laws<d-cite bibtex-key="kaplan2020scalinglaws"></d-cite><d-cite bibtex-key="hoffmann2022chinchilla"></d-cite>, the trend of training ever larger language models on vaster amounts of data has been driving progress in AI for the past couple years. Initially, the development of the largest models happened exclusively behind closed doors of a handful of research labs but recently opened up more with the release of models such as Llama 3.1 405B<d-cite bibtex-key="grattafiori2024llama3herdmodels"></d-cite> and DeepSeek R1<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. While these models have <a href="https://huggingface.co/meta-llama">openly shared</a> <a href="https://huggingface.co/deepseek-ai">weights</a> and their training recipes are described in <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">reports</a>, the challenging engineering to involved to train at the necessary infrastructure scale is still hidden between the lines of a handful of papers and complex training frameworks. This <s>long blog post</s> open-source book is here to open this black box!</p>
 
         <aside>Reading time: 7 days. For the best reading experience, we recommend not using a mobile phone.</aside>
 
@@ -178,8 +178,15 @@
         <p><img alt="Picotron implements each key concept in a self-contained way, such that the method can be studied separately and in isolation." src="assets/images/placeholder.png" /></p>
 
         <p><strong>Real training efficiency benchmarks:</strong> Finally, how to <em>actually</em> scale your LLM training depends on your infrastructure, such as the kind of chips, interconnect etc., and we can’t give a single unified recipe. What we will give though is a way to benchmark several setups and it is what we have done on our cluster! We ran over 4100 distributed experiments with up to 512 GPUs to scan many possible distributed training layouts and model sizes. TODO: link to dataset too </p>
-
-        <p><img alt="An overview of the over 4000 experiments across all Llama architectures where each data point corresponds to an experiment launch." src="assets/images/placeholder.png" /></p>
+        
+        <iframe id="plotFrame" src="assets/data/benchmarks/benchmarks_interactive.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <script>
+            window.addEventListener('load', function() {
+                const frame = document.getElementById('plotFrame');
+                frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
+                frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
+            });
+        </script>
 
         <p>As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on we’ll cover in the post.</p>
 
