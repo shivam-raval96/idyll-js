@@ -83,7 +83,7 @@ export function activationMemory(
     if (recomputation === "none" || recomputation === "selective") {
 
         data = {
-            name: "activationMemory",
+            name: "Activation Memory",
             children: [
                 ...Array.from({ length: L }, (_, index) => ({
                     name: `Layer ${index + 1}`,
@@ -101,7 +101,7 @@ export function activationMemory(
         };
     } else if (recomputation === "full") {
         data = {
-            name: "activationMemory",
+            name: "Activation Memory",
             children: [
                 { name: 'LayerInput', value: s * b * h * bytesPerValue * L },
                 { name: 'Dropout', value: inputDropout },
@@ -139,7 +139,7 @@ export function paramGradsOpt(h, L, s, v, k = 8, dp = 1, zero = 0, mixed = true)
     const bytesPerParameter = mixed ? 2 : 4;
 
     const data = {
-        name: "ParametersGradientOps",
+        name: "Parameters / Gradients / Optimizer States",
         children: [
             { name: 'Parameters', value: zero >= 3 ? bytesPerParameter * n / dp : bytesPerParameter * n },
             { name: 'Gradients', value: zero >= 2 ? bytesPerParameter * n / dp : bytesPerParameter * n },
@@ -220,23 +220,33 @@ export function updateGraph() {
 
     const color = d => {
         switch (d.data.name) {
-            case 'Parameters': return '#117fc9';  // Blue
-            case 'Gradients': return '#ffad5c';  // Orange
-            case 'OptimizerAverages': return '#f67d8e';  // Red
-            case 'activationMemory': return '#ffad5c';  // Orange
-            case 'fixed100GB': return '#bae2b4';  // Green
-            case 'Attention': return '#f67d8e';  // Red
-            case 'Feedforward': return '#4aacef';  // Light Blue
-            case 'LayerNorm': return '#fb8b28';  // Dark Orange
-            case 'Dropout': return '#4ead4e';  // Dark Green
-            case 'Projection': return '#d94361';  // Dark Red
-            case 'Cross Entropy': return '#b492d3';  // Violet
-            case 'Total': return '#bae2b4';  // Green
-            case 'root': return '#f3f3f3';  // Light Grey
-            default: return '#a0c4ff';  // Lighter Blue (for unexpected cases)
-        }
-    };
-
+            // Root and Total (container levels)
+            case 'root': return 'rgb(225, 225, 225)';  // Light Grey
+            case 'Total': return 'rgb(225, 225, 225)';  // Light Grey
+            
+            // Give distinct colors to the main section containers
+            case 'Activation Memory': return 'rgb(78, 165, 183)';  // Orange
+            case 'Parameters / Gradients / Optimizer States': return 'rgb(232, 137, 171)';  // Teal Blue
+    
+            // Parameters / Gradients / Optimizer States branch
+            case 'Parameters': return 'rgb(206, 192, 250)';  // Blue
+            case 'Gradients': return 'rgb(227, 138, 66)';   // Orange
+            case 'OptimizerAverages': return 'rgb(78, 165, 183)';  // Pink
+            
+            // activationMemory branch - Layer components
+            case 'Attention': return 'rgb(206, 192, 250)';  // Purple
+            case 'Feedforward': return 'rgb(171, 232, 241)';  // Light Blue
+            case 'LayerNorm': return 'rgb(232, 137, 171)';  // Light Green
+            
+            // activationMemory branch - other components
+            case 'Dropout': return 'rgb(67, 145, 108)';  // Dark Green
+            case 'Projection': return 'rgb(174, 214, 251)';  // Sky Blue
+            case 'Cross Entropy': return 'rgb(232, 137, 171)';  // Pink
+            
+            // Default for any Layer nodes and unexpected cases
+            default: return 'rgb(227, 138, 66)';  // Light Grey
+        };
+      };
 
     if (d3.select('#tooltip').empty()) {
       d3.select('body')
@@ -272,7 +282,7 @@ export function updateGraph() {
         .attr("height", d => d.y1 - d.y0)
         .attr("fill", d => color(d))
         .attr("stroke", d => d.depth === 1 ? color(d) : "white")
-        .attr("stroke-width", 0.5);
+        .attr("stroke-width", 1);
 
     const fontSize = 10;
     const padding = 2;
@@ -290,16 +300,19 @@ export function updateGraph() {
             if (d.depth === 1 || d.depth === 2) {
                 node.attr("transform", `translate(${padding},${fontSize + padding})`)
                     .attr("font-weight", "bold")
+                    .attr("font-size", 12)
                     .text(`${name}: ${value}`);
             } else {
                 // Child nodes
                 node.attr("transform", `translate(${padding},${fontSize + padding})`)
                     .text(name[0].toUpperCase())  // Display only the first letter
+                    .attr("font-weight", "bold")
                     .append("title")  // Add title for hover effect
                     .text(`${name}: ${value}`);
             }
         });
 
+    /* 
     // Adjust legend positioning
     const legendData = root.children[0].children.concat(root.children[0]);
     const legend = svg.append("g")
@@ -325,10 +338,10 @@ export function updateGraph() {
         .attr("y", 9.5)
         .attr("dy", "0.32em")
         .text(d => `${d.data.name}: ${formatBytes(d.value)}`);
-
+    */
     console.log('Treemap nodes created');
 }
-
+    
 function formatBytes(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB'];
     if (bytes === 0) return '0 Bytes';
