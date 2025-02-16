@@ -234,7 +234,7 @@
         <p>It looks generally like this: </p>
 
         <div class="svg-container" id="svg-first_steps_simple_training"> </div>
-        <div class="info" id="info">Hover over the network elements to see their details</div>
+        <div class="info" id="svg-first_steps_simple_training-info">Hover over the network elements to see their details</div>
         <script src="../assets/images/first_steps_simple_training.js"></script>
 
         <p>In this figure, the boxes on the top line can be seen as successive layers inside a model (same for the last line). The red boxes are the associated gradients for each of these layers, computed during the backward pass.</p>
@@ -297,8 +297,9 @@
 
         <p>Using this snippet [TODO: link to appendix A5], we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
 
-        <!--<div class="svg-container l-body-outset" id="svg-first_steps_memory_profile"> </div>
-        <script src="../assets/images/first_steps_memory_profile.js"></script>-->
+        <div class="svg-container l-body-outset" id="svg-first_steps_memory_profile"> </div>
+        <div class="info" id="svg-first_steps_memory_profile-info">Hover over the elements to see their details</div>
+        <script src="../assets/images/first_steps_memory_profile.js"></script>
 
         <iframe id="plotFrame" src="assets/data/benchmarks/memory-profile.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe>
 
@@ -353,7 +354,7 @@
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
             <p class="note-box-content">
-                Some librarie store grads in fp32 which would require an additional <d-math>m_{params\_fp32} = 4 * N</d-math> memory. This is done for example in nanotron, because <code>bf16</code> is lossy for smaller values and we always prioritize stability. See  <a href="https://github.com/microsoft/DeepSpeed/issues/1773">this DeepSpeed issue</a> for more information.
+                Some libraries store grads in fp32 which would require an additional <d-math>m_{params\_fp32} = 4 * N</d-math> memory. This is done for example in nanotron, because <code>bf16</code> is lossy for smaller values and we always prioritize stability. See  <a href="https://github.com/microsoft/DeepSpeed/issues/1773">this DeepSpeed issue</a> for more information.
 
             </p>
         </div>
@@ -415,7 +416,14 @@
 
         <p>An interesting observation here is how the memory is not static for a given model but it scales linearly with both the sequence length and batch size. This means the activation memory is the part which will blow up when we increase our batch size or train with longer sequences. We can use this equation to look at how memory usage changes for various sequence lengths for example for Llama models (<code>bs=1</code>):</p>
 
-        <p><img alt="memusage_activations.svg" src="/assets/images/memusage_activations.svg" /></p>
+        <iframe class="l-body-outset" id="plotFrame2" src="assets/data/benchmarks/memusage_activations.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <script>
+            window.addEventListener('load', function() {
+                const frame = document.getElementById('plotFrame2');
+                frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
+                frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
+            });
+        </script>
 
         <p>This graph tells a striking story: for short sequences (or similar for small batch-sizes), activations are almost negligible, but starting at around 2-4k tokens they come to take a significant amount of memory while parameter, gradient and optimizer states usage (that we’ll discuss later) stays roughly independent of the sequence length and batch size.</p>
 
@@ -429,8 +437,9 @@
         
         <p>The general idea behind <strong><em>activation recomputation</em></strong> – also called <em>gradient checkpointing</em> or <em>rematerialization</em> – is to discard some activations during the forward pass to save memory and spend some extra compute to recompute these on the fly during the backward pass. Without recomputation, we store every hidden state between two learnable operations (e.g. FF, LayerNorm etc.), such that we can use them during the backward pass to compute gradients. When we use recomputation we typically will only store activations at a few key points along the model architecture, discard the rest of activations and recompute them on the fly during the backward pass from the nearest saved activations, basically performing again a sub-part of the forward pass to trade of memory for compute. It generally looks like this:</p>
 
-        <p><img alt="image.png" src="/assets/images/activation_recomputation.png" /></p>
-
+        <div class="svg-container" id="svg-activation_recomputation"> </div>
+        <div class="info" id="svg-activation_recomputation-info">Hover over the network elements to see their details</div>
+        <script src="../assets/images/activation_recomputation.js"></script>
         <p>There are several strategies to select key activations to store:</p>
 
         <ul>

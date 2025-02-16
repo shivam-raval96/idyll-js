@@ -151,10 +151,10 @@ svgContainer2.addEventListener('mouseover', function(event) {
       'cache': 'Cache Operation'
     };
     const description = descriptions[elementType] || elementType;
-    document.getElementById('info').textContent = `Hovering over: ${description} (${elementId})`;
+    document.getElementById('svg-first_steps_memory_profile-info').textContent = `Hovering over: ${description} (${elementId})`;
   }
 });
 
 svgContainer2.addEventListener('mouseout', function() {
-  document.getElementById('info').textContent = 'Hover over the network elements to see their details';
+  document.getElementById('svg-first_steps_memory_profile-info').textContent = 'Hover over the elements to see their details';
 });

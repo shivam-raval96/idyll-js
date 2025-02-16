@@ -121,12 +121,12 @@ async function loadSVG(url, containerId) {
 }
 
 // Load the SVG file (adjust the path if needed)
-loadSVG('../assets/images/first_steps_simple_training.svg', 'svg-first_steps_simple_training');
+loadSVG('../assets/images/activation_recomputation.svg', 'svg-activation_recomputation');
 
 // Set up event listeners to display a description of the hovered element
-const svgContainer = document.getElementById('svg-first_steps_simple_training');
+const svgContainer3 = document.getElementById('svg-activation_recomputation');
 
-svgContainer.addEventListener('mouseover', function (event) {
+svgContainer3.addEventListener('mouseover', function (event) {
       const target = event.target;
       if (target.tagName.toLowerCase() === 'path' && target.hasAttribute('data-element-id')) {
             const elementId = target.getAttribute('data-element-id');
@@ -140,10 +140,10 @@ svgContainer.addEventListener('mouseover', function (event) {
                   optimization: 'Optimization Step'
             };
             const description = descriptions[elementType] || elementType;
-            document.getElementById('svg-first_steps_simple_training-info').textContent = `Hovering over: ${description} (${elementId})`;
+            document.getElementById('svg-activation_recomputation-info').textContent = `Hovering over: ${description} (${elementId})`;
       }
 });
 
-svgContainer.addEventListener('mouseout', function () {
-      document.getElementById('svg-first_steps_simple_training-info').textContent = 'Hover over the network elements to see their details';
+svgContainer3.addEventListener('mouseout', function () {
+      document.getElementById('svg-activation_recomputation-info').textContent = 'Hover over the network elements to see their details';
 });
