@@ -849,7 +849,7 @@
 
         <p>In practice a small example of the operation looks like this:</p>
 
-        <p><img class"l-body" alt="TP diagram" src="/assets/images/tp_diagram.svg" /></p>
+        <p><img class="l-body" width="500px" alt="TP diagram" src="/assets/images/tp_diagram.svg" /></p>
 
         <p>Let’s see how we can parallelise this operation! In tensor parallelism, tensors will be split into N shards along a particular dimension and distributed across N GPUs. Matrices can be split either on the column part or row part leading to row and column parallelism. One thing we’ll see in the following is that choosing row or column sharding will require different communications primitives.</p>
 
@@ -997,11 +997,11 @@
             
         <p>For sequence parallelism (SP), we use different operations labeled "g" and "g*". Specifically, we avoid using all-reduce in the SP region since that would require gathering the full activations and increase our peak memory usage, defeating the purpose of SP.</p>
         
-        <p><img alt="image.png" src="/assets/images/tp_sp_diagram_zoomed.png" /></p>
-
         <p>So what is actually happening here? As a famous LLM would say, let’s take it step-by-step:</p>
 
-        <p><strong>Initial LayerNorm (SP Region)</strong></p>
+        <div class="l-body" style="display: grid; grid-template-columns: 1fr 1fr;">
+        <div>
+          <p><strong>Initial LayerNorm (SP Region)</strong></p>
         <ul>
             <li>Input tensors X1<em> and X2</em> (b,s/2,h) enter LayerNorm, already split across sequence dimension</li>
             <li>Each GPU computes LayerNorm independently on its sequence chunk and give Y1<em> and Y2</em></li>
@@ -1027,6 +1027,13 @@
             <li>"g*" operation (reduce-scatter) which reduces for previous row-linear correctness while scattering along sequence dimension</li>
             <li>W1* is (b,s/2,h)</li>
         </ul>
+
+      </div>
+      <div>
+        <img alt="image.png" src="/assets/images/tp_sp_diagram_zoomed.png" />
+      </div>
+    </div>
+
 
         <p>A key advantage of sequence parallelism is that it reduces the maximum activation size we need to store. In tensor parallelism alone, we had to store activations of shape (b,s,h) at various points. However, with sequence parallelism, the maximum activation size is reduced to <d-math>\frac{b \cdot s \cdot h}{tp}</d-math> since we always either split along the sequence or hidden dimensions.</p>
 
@@ -1395,10 +1402,10 @@
 
         <p>So we can now decrease the bubble by adding microbatches and interleaved stages, but note that quantitatively, the amount of communication also increases by <d-math>v</d-math> so it’s a trade off. In the following plot you can see several configurations for a PP setup with <d-math>p=8</d-math>, where the special case of <d-math>m=1, v=1</d-math> corresponds to naive pipeline parallelism and the configurations with <d-math>v=1</d-math> are AFAB or 1F1B setups and <d-math>v \neq 1</d-math> are interleaved configurations.</p>
 
-        <iframe class="l-body" id="plotFrame13" src="assets/data/benchmarks/pp_bubblesize.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <iframe class="l-body" id="plotFrame23" src="assets/data/benchmarks/pp_bubblesize.html" width="90%" scrolling="no" frameborder="0"></iframe>
         <script>
             window.addEventListener('load', function() {
-                const frame = document.getElementById('plotFrame13');
+                const frame = document.getElementById('plotFrame23');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
