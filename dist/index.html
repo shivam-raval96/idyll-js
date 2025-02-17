@@ -297,10 +297,10 @@
 
         <p>Using this snippet [TODO: link to appendix A5], we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
 
-        <div class="svg-container l-body-outset" id="svg-first_steps_memory_profile"> </div>
+        <!-- <div class="svg-container l-body-outset" id="svg-first_steps_memory_profile"> </div>
         <div class="info" id="svg-first_steps_memory_profile-info">Hover over the elements to see their details</div>
         <script src="../assets/images/first_steps_memory_profile.js"></script>
-
+ -->
         <iframe id="plotFrame" src="assets/data/benchmarks/memory-profile.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe>
 
         <p>Clearly the first step looks very different from the subsequent ones, but let’s first have a look at the general anatomy of a step: first the activations increase quickly as we do the forward pass, then during the backward pass the gradients build up and as the backward pass propagates, the stored activations used to compute the gradients are progressively cleared. Finally, we perform the optimization step during which we need all the gradients and then update the optimizer states before we start the next forward pass. </p>

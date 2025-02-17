@@ -159,6 +159,10 @@ d-contents > nav a.active {
         border-bottom-width: 1px;
         border-bottom-style: solid;
         border-bottom-color: rgba(0, 0, 0, 0.1);
+        overflow-y: scroll;
+        max-height: 75%;
+        scrollbar-width: none;
+        z-index: -100;
     }
 }
 
@@ -189,6 +193,10 @@ d-contents a:hover {
         position: -webkit-sticky; /* For Safari */
         position: sticky;
         top: 10px; /* Adjust this value if needed */
+        overflow-y: scroll;
+        max-height: 75%;
+        scrollbar-width: none;
+        z-index: -100;
     }
 }
 
