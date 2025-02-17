@@ -1252,9 +1252,13 @@
 
         <p>Sequence and context parallelism can help for long sequences but don’t help much if sequence length is not the root cause of our memory issues but rather the size of the model itself. For large model (70B+), the size of the weights alone can already push past the limits of the 4-8 GPUs on a single node. We can solve this issue by summoning the fourth (and last) parallelism dimension: “pipeline parallelism”.</p>
 
+        <p>Pipeline parallelism is a simple but powerful technique - we split our model's layers across multiple GPUs! For example, if we have 8 GPUs, we could put layers 1-4 on GPU 1, layers 5-8 on GPU 2, and so on. This way, each GPU only needs to store and process a portion of the model's layers, significantly reducing the memory requirements per GPU. Let's take the example of a 8B model:</p>
+
         <p><img alt="pp_memoryusage.svg" src="/assets/images/pp_memoryusage.svg" /></p>
 
-        <p>Pipeline Parallelism is conceptually very simple –we’ll simply spread the layers of our model across GPUs – but the devil lies in implementing it efficiently. Let’s dive in it!</p>
+        <p>Looking at the figure above, we notice something interesting: while the parameters are nicely split across GPUs, the activation memory remains the same on each GPU! This is because each GPU still needs to process the full batch of data, just with different layers. The activations from one GPU's layers need to be sent to the next GPU to continue the forward pass.</p>
+
+        <p>This introduces a new type of communication pattern: instead of communicating parameters like in data parallelism with ZeRO, we're now passing activation tensors sequentially between GPUs in a "pipeline". While conceptually simple, implementing this efficiently is quite tricky. Let's dive into the details!</p>
 
         <h3>Splitting layers on various nodes - All forward, all backward</h3>
         
@@ -1321,9 +1325,6 @@
         <p><img alt="image.png" src="/assets/images/pp_1f1b.svg" /></p>
 
         <p>The bubble still has the same size so our training efficiency is not significantly improved. However we only need to store activations for <d-math>p</d-math> micro-batches instead of <d-math>m</d-math> which quite reduce the activation memory explosion we had in the AFAB schedule. As a consequence we can add more microbatches which then will actually reduce the bubble.</p>
-        
-        <!-- TODO: @Nouamane add this figure -->
-        <p><img alt="image.png" src="/assets/images/pp_1f1b_scaling.png" /></p>
 
         <p>A major complexity of this setup, visible on the above graph is how forward and backward passes are not cleanly consecutive anymore but performed in parallel across devices. This means we will have to schedule the switch from forward to backward passes independently on each device instead of in a simple and common central training loop as usual.</p>
 
@@ -1341,12 +1342,20 @@
                     <script src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fpipeline_parallel%2Fpipeline_parallel.py%23L85-L145&style=github&type=code&showBorder=on&showLineNumbers=on&showFileMeta=on&showFullPath=on&showCopy=on"></script>
                 </div>
         </details>
-                
-        <p>So reordering a bit the computations helped a lot improving the memory pressure from activations. Could we get even better performance with more intricate schedules? Yes!</p>
+        
+        <p>Let's look at how the 1F1B Pipeline Parallelism schedule scales in practice:</p>
+        
+        <p><img alt="Throughput scaling of Pipeline Parallelism with varying microbatch sizes" src="/assets/images/pp_1f1b_scaling.png" /></p>
+        
+        <p>On the left, with microbatches equal to PP degree minus one (m=pp-1), we see how detrimental the pipeline bubble can be - performance drops significantly as we scale PP. The right plot shows that using many more microbatches than PP degree (m=32 >> pp-1) helps reduce this effect. However, we can't maintain this ratio of m>>pp-1 indefinitely since we're ultimately constrained by our target global batch size - as we add more PP degree, we're increasing the bubble size.</p>
+        
+        <p>Interestingly, when scaling from one node (pp=8) to two nodes (pp=16), the performance only drops by 14% - a much better scaling than Tensor Parallelism which typically sees around 43% performance degradation in similar cross-node scenarios. This makes Pipeline Parallelism particularly attractive for distributed training across multiple nodes.</p>
+        
+        <p>While 1F1B significantly reduces our activation memory footprint, the pipeline bubble remains a major efficiency bottleneck. With the bubble size still proportional to the number of pipeline stages, we're leaving valuable GPU compute idle. Can we design an even smarter schedule to minimize this wasted computation time?</p>
         
         <h3>Interleaving stages</h3>
-        
-        <p>This schedule has let us improved memory usage but not much the size of the idle buddle. Can we also also reduce the time spent in the bubble?</p>
+                
+        <p>The 1F1B schedule has let us improved memory usage but not much the size of the idle buddle. Can we also also reduce the time spent in the bubble?</p>
         
         <p>Well it turns out this is possible if we are willing to bring in a few additional communications. Time to talk about <strong><em>interleaved stages</em></strong>.</p>
         
