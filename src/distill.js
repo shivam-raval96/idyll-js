@@ -2102,7 +2102,7 @@ d-appendix > distill-appendix {
       </div>
       <div >
           <h3>Published</h3>
-          <div>May 31, 2024</div>
+          <div>Feb 19, 2025</div>
       </div>
     </div>
 `;

@@ -16,7 +16,7 @@
         <script id='distill-front-matter' type="text/json">{
     "title": "The Ultra-Scale Playbook: Training LLMs on GPU Clusters",
     "description": "This blog covers everything about scaling LLMs in 2025.",
-    "published": "Sept 28, 2024",
+    "published": "Feb 19, 2025",
     "affiliation": {"name": "HuggingFace"},
     "authors": [
       {
@@ -37,14 +37,18 @@
     </script>
     </d-front-matter>
     <d-title>
-        <h1 class="l-page" style="text-align: center;">The Ultra-Scale Playbook: Training LLMs on GPU Clusters</h1>
+        <h1 class="l-page" style="text-align: center;">The Ultra-Scale Playbook:<br>Training LLMs on GPU Clusters</h1>
         <div id="title-plot" class="main-plot-container l-screen">
-            <figure>
-                <img src="assets/images/banner.png" alt="FineWeb">
-            </figure>
-            <!-- <div id="clusters-plot">
-            <img src="assets/images/clusters.png" alt="Clusters">
-        </div> -->
+            <iframe id="banner" 
+                src="assets/data/benchmarks/banner.html" scrolling="no" frameborder="0" loading="lazy" style="display: block; margin: 0 auto; position: relative;">
+            </iframe>
+            <script>
+                window.addEventListener('load', function() {
+                    const frame = document.getElementById('banner');
+                    frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
+                    frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
+                });
+            </script>
         </div>
     </d-title>
     <d-byline></d-byline>
