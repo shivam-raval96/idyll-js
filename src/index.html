@@ -849,7 +849,7 @@
 
         <p>In practice a small example of the operation looks like this:</p>
 
-        <p><img alt="image.png" src="/assets/images/tp_diagram.png" /></p>
+        <p><img class"l-body" alt="TP diagram" src="/assets/images/tp_diagram.svg" /></p>
 
         <p>Let’s see how we can parallelise this operation! In tensor parallelism, tensors will be split into N shards along a particular dimension and distributed across N GPUs. Matrices can be split either on the column part or row part leading to row and column parallelism. One thing we’ll see in the following is that choosing row or column sharding will require different communications primitives.</p>
 
@@ -911,7 +911,16 @@
 
         <p>Tensor parallelism does help reduce activation memory for the matrix multiplications since the intermediate activations are sharded across GPUs. However, we still need to gather the full activations for operations like LayerNorm, which means we're not getting the full memory benefits we could. Additionally, it introduces significant communication requirements that heavily depend on the network infrastructure. The inability to hide this particular AllReduce behind computation means it directly adds to the critical path of forward propagation.</p>
 
-        <p><img alt="Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training." src="/assets/images/tp_scaling.svg" /></p>
+        <iframe class="l-body-outset" id="plotFrame13" src="assets/data/benchmarks/tp_scaling.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <script>
+            window.addEventListener('load', function() {
+                const frame = document.getElementById('plotFrame13');
+                frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
+                frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
+            });
+        </script>
+<!-- 
+        <p><img alt="Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training." src="/assets/images/tp_scaling.svg" /></p> -->
 
         <p>Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training.</p>
 
@@ -1254,7 +1263,15 @@
 
         <p>Pipeline parallelism is a simple but powerful technique - we split our model's layers across multiple GPUs! For example, if we have 8 GPUs, we could put layers 1-4 on GPU 1, layers 5-8 on GPU 2, and so on. This way, each GPU only needs to store and process a portion of the model's layers, significantly reducing the memory requirements per GPU. Let's take the example of a 8B model:</p>
 
-        <p><img alt="pp_memoryusage.svg" src="/assets/images/pp_memoryusage.svg" /></p>
+        <iframe class="l-body" id="plotFrame12" src="assets/data/benchmarks/pp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <script>
+            window.addEventListener('load', function() {
+                const frame = document.getElementById('plotFrame12');
+                frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
+                frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
+            });
+        </script>
+        <!-- <p><img alt="pp_memoryusage.svg" src="/assets/images/pp_memoryusage.svg" /></p> -->
 
         <p>Looking at the figure above, we notice something interesting: while the parameters are nicely split across GPUs, the activation memory remains the same on each GPU! This is because each GPU still needs to process the full batch of data, just with different layers. The activations from one GPU's layers need to be sent to the next GPU to continue the forward pass.</p>
 
@@ -1378,7 +1395,15 @@
 
         <p>So we can now decrease the bubble by adding microbatches and interleaved stages, but note that quantitatively, the amount of communication also increases by <d-math>v</d-math> so it’s a trade off. In the following plot you can see several configurations for a PP setup with <d-math>p=8</d-math>, where the special case of <d-math>m=1, v=1</d-math> corresponds to naive pipeline parallelism and the configurations with <d-math>v=1</d-math> are AFAB or 1F1B setups and <d-math>v \neq 1</d-math> are interleaved configurations.</p>
 
-        <p><img alt="pp_bubblesize.png" src="/assets/images/pp_bubblesize.png" /></p>
+        <iframe class="l-body" id="plotFrame13" src="assets/data/benchmarks/pp_bubblesize.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <script>
+            window.addEventListener('load', function() {
+                const frame = document.getElementById('plotFrame13');
+                frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
+                frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
+            });
+        </script>
+        <!-- <p><img alt="pp_bubblesize.png" src="/assets/images/pp_bubblesize.png" /></p> -->
 
 
         <p>Scheduling also becomes more complex here as we need to decide on a GPU whether we are prioritizing at a given moment earlier micro-batches meaning that we close the forward and backward loops as fast as possible (so called “depth-first”, i.e. prioritizing getting batches out of the model as fast as possible) or we prioritize to first complete the forward passes of all microbatches in the queue before going over to backward passes (so called “breadth-first” i.e. prioritizing filling in the pipeline as much as possible). This is explained in detail in the "Breadth-Fist Pipeline" paper<d-cite bibtex-key="lamypoirier2023breadthfirstpipelineparallelism"></d-cite>.</p>
