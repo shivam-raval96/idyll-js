@@ -38,17 +38,13 @@
     </d-front-matter>
     <d-title>
         <h1 class="l-page" style="text-align: center;">The Ultra-Scale Playbook:<br>Training LLMs on GPU Clusters</h1>
-        <div id="title-plot" class="main-plot-container l-screen">
+        <div id="title-plot" class="main-plot-container l-screen" style="overflow-x: hidden; width: 100%; text-align: center;">
             <iframe id="banner" 
-                src="assets/data/benchmarks/banner.html" scrolling="no" frameborder="0" loading="lazy" style="display: block; margin: 0 auto; position: relative;">
+                src="assets/data/benchmarks/banner.html" scrolling="no" frameborder="0" width="1200"
+                height="675" loading="lazy" style="margin: 0 auto; position: relative;">
             </iframe>
-            <script>
-                window.addEventListener('load', function() {
-                    const frame = document.getElementById('banner');
-                    frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
-                    frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
-                });
-            </script>
+            <p style="text-align: center; font-style: italic; margin-top: 10px; max-width: 900px; margin-left: auto; margin-right: auto;">We ran over 4000 scaling experiments on up to 512 GPUs and measured throughput (size of markers) and GPU utilization (color of markers). Note that both are normalized per model size in this visualization.</p>
+  
         </div>
     </d-title>
     <d-byline></d-byline>
@@ -181,16 +177,9 @@
 
         <p><img alt="Picotron implements each key concept in a self-contained way, such that the method can be studied separately and in isolation." src="assets/images/placeholder.png" /></p>
 
-        <p><strong>Real training efficiency benchmarks:</strong> Finally, how to <em>actually</em> scale your LLM training depends on your infrastructure, such as the kind of chips, interconnect etc., and we can’t give a single unified recipe. What we will give though is a way to benchmark several setups and it is what we have done on our cluster! We ran over 4100 distributed experiments with up to 512 GPUs to scan many possible distributed training layouts and model sizes. TODO: link to dataset too </p>
+        <p><strong>Real training efficiency benchmarks:</strong> Finally, how to <em>actually</em> scale your LLM training depends on your infrastructure, such as the kind of chips, interconnect etc., and we can’t give a single unified recipe. What we will give though is a way to benchmark several setups and it is what we have done on our cluster! We ran over 4100 distributed experiments (over 16k including test runs) with up to 512 GPUs to scan many possible distributed training layouts and model sizes. TODO: link to dataset too </p>
         
-        <iframe id="plotFrame" src="assets/data/benchmarks/benchmarks_interactive.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
-            window.addEventListener('load', function() {
-                const frame = document.getElementById('plotFrame');
-                frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
-                frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
-            });
-        </script>
+        <iframe id="plotFrame" src="assets/data/benchmarks/benchmarks_interactive.html" scrolling="no" frameborder="0" height="840" width="720"></iframe>
 
         <p>As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on we’ll cover in the post.</p>
 
