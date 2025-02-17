@@ -1364,10 +1364,10 @@
         
         <p><img alt="Throughput scaling of Pipeline Parallelism with varying microbatch sizes" src="/assets/images/pp_1f1b_scaling.png" /></p>
         
-        <p>On the left, with microbatches equal to PP degree minus one (m=pp-1), we see how detrimental the pipeline bubble can be - performance drops significantly as we scale PP. The right plot shows that using many more microbatches than PP degree (m=32 >> pp-1) helps reduce this effect. However, we can't maintain this ratio of m>>pp-1 indefinitely since we're ultimately constrained by our target global batch size - as we add more PP degree, we're increasing the bubble size.</p>
+        <p>On the left, with microbatches equal to PP degree minus one (<d-math>m = p - 1</d-math>), we see how detrimental the pipeline bubble can be - performance drops significantly as we scale PP. The right plot shows that using many more microbatches than PP degree (<d-math>m = 32 \gg p - 1</d-math>) helps reduce this effect. However, we can't maintain this ratio of <d-math>m \gg p - 1</d-math> indefinitely since we're ultimately constrained by our target global batch size - as we add more PP degree, we're increasing the bubble size according to <d-math>r_{bubble} = \frac{p - 1}{m}</d-math>.</p>
         
-        <p>Interestingly, when scaling from one node (pp=8) to two nodes (pp=16), the performance only drops by 14% - a much better scaling than Tensor Parallelism which typically sees around 43% performance degradation in similar cross-node scenarios. This makes Pipeline Parallelism particularly attractive for distributed training across multiple nodes.</p>
-        
+        <p>Interestingly, when scaling from one node (<d-math>p = 8</d-math>) to two nodes (<d-math>p = 16</d-math>), the performance only drops by 14% - a much better scaling than Tensor Parallelism which typically sees around 43% performance degradation in similar cross-node scenarios. This makes Pipeline Parallelism particularly attractive for distributed training across multiple nodes.</p>
+
         <p>While 1F1B significantly reduces our activation memory footprint, the pipeline bubble remains a major efficiency bottleneck. With the bubble size still proportional to the number of pipeline stages, we're leaving valuable GPU compute idle. Can we design an even smarter schedule to minimize this wasted computation time?</p>
         
         <h3>Interleaving stages</h3>
