@@ -2313,18 +2313,192 @@
         <h2>References</h2>
         
         <h3>Landmark LLM Scaling Papers</h3>
-        
+
+        <div>
+            <a href="https://arxiv.org/abs/1909.08053"><strong>Megatron-LM</strong></a>
+            <p>Introduces tensor parallelism and efficient model parallelism techniques for training large language models.</p>
+        </div>
+
+        <div>
+            <a href="https://developer.nvidia.com/blog/using-deepspeed-and-megatron-to-train-megatron-turing-nlg-530b-the-worlds-largest-and-most-powerful-generative-language-model/"><strong>Megatron-Turing NLG 530B</strong></a>
+            <p>Describes the training of a 530B parameter model using a combination of DeepSpeed and Megatron-LM frameworks.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/2204.02311"><strong>PaLM</strong></a>
+            <p>Introduces Google's Pathways Language Model, demonstrating strong performance across hundreds of language tasks and reasoning capabilities.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/2312.11805"><strong>Gemini</strong></a>
+            <p>Presents Google's multimodal model architecture capable of processing text, images, audio, and video inputs.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/2412.19437v1"><strong>DeepSeek-V3</strong></a>
+            <p>DeepSeek's report on architecture and training of the DeepSeek-V3 model.</p>
+        </div>
+
+
         <h3>Training Frameworks</h3>
-        
+
+        <div>
+            <a href="https://github.com/facebookresearch/fairscale/tree/main"><strong>FairScale</strong></a>
+            <p>PyTorch extension library for large-scale training, offering various parallelism and optimization techniques.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/NVIDIA/Megatron-LM"><strong>Megatron-LM</strong></a>
+            <p>NVIDIA's framework for training large language models with model and data parallelism.</p>
+        </div>
+
+        <div>
+            <a href="https://www.deepspeed.ai/"><strong>DeepSpeed</strong></a>
+            <p>Microsoft's deep learning optimization library featuring ZeRO optimization stages and various parallelism techniques.</p>
+        </div>
+
+        <div>
+            <a href="https://colossalai.org/"><strong>ColossalAI</strong></a>
+            <p>Integrated large-scale model training system with various optimization techniques.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/pytorch/torchtitan"><strong>torchtitan</strong></a>
+            <p>A PyTorch native library for large model training.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/EleutherAI/gpt-neox"><strong>GPT-NeoX</strong></a>
+            <p>EleutherAI's framework for training large language models, used to train GPT-NeoX-20B.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/Lightning-AI/litgpt"><strong>LitGPT</strong></a>
+            <p>Lightning AI's implementation of state-of-the-art open-source LLMs with focus on reproducibility.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/PrimeIntellect-ai/OpenDiLoCo"><strong>DiLoco</strong></a>
+            <p>Training language models across compute clusters with DiLoCo.</p>
+        </div>
+
         <h3>Debugging</h3>
-        
+
+        <div>
+            <a href="https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html"><strong>Speed profiling</strong></a>
+            <p>Official PyTorch tutorial on using the profiler to analyze model performance and bottlenecks.</p>
+        </div>
+
+        <div>
+            <a href="https://pytorch.org/blog/understanding-gpu-memory-1/"><strong>Memory profiling</strong></a>
+            <p>Comprehensive guide to understanding and optimizing GPU memory usage in PyTorch.</p>
+        </div>
+
+        <div>
+            <a href="https://pytorch.org/tutorials/intermediate/tensorboard_profiler_tutorial.html"><strong>TensorBoard Profiler Tutorial</strong></a>
+            <p>Guide to using TensorBoard's profiling tools for PyTorch models.</p>
+        </div>
+
         <h3>Distribution Techniques</h3>
-        
-        <h3>CUDA Kernels</h3>
-        
+
+        <div>
+            <a href="https://siboehm.com/articles/22/data-parallel-training"><strong>Data parallelism</strong></a>
+            <p>Comprehensive explanation of data parallel training in deep learning.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/1910.02054"><strong>ZeRO</strong></a>
+            <p>Introduces Zero Redundancy Optimizer for training large models with memory optimization.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/2304.11277"><strong>FSDP</strong></a>
+            <p>Fully Sharded Data Parallel training implementation in PyTorch.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/2205.05198"><strong>Tensor and Sequence Parallelism + Selective Recomputation</strong></a>
+            <p>Advanced techniques for efficient large-scale model training combining different parallelism strategies.</p>
+        </div>
+
+        <div>
+            <a href="https://developer.nvidia.com/blog/scaling-language-model-training-to-a-trillion-parameters-using-megatron/#pipeline_parallelism"><strong>Pipeline parallelism</strong></a>
+            <p>NVIDIA's guide to implementing pipeline parallelism for large model training.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/2211.05953"><strong>Breadth first Pipeline Parallelism</strong></a>
+            <p>Includes broad discussions around PP schedules.</p>
+        </div>
+
+        <div>
+            <a href="https://andrew.gibiansky.com/blog/machine-learning/baidu-allreduce/"><strong>All-reduce</strong></a>
+            <p>Detailed explanation of the ring all-reduce algorithm used in distributed training.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/zhuzilin/ring-flash-attention"><strong>Ring-flash-attention</strong></a>
+            <p>Implementation of ring attention mechanism combined with flash attention for efficient training.</p>
+        </div>
+
+        <div>
+            <a href="https://coconut-mode.com/posts/ring-attention/"><strong>Ring attention tutorial</strong></a>
+            <p>Tutorial explaining the concepts and implementation of ring attention.</p>
+        </div>
+
+        <div>
+            <a href="https://www.deepspeed.ai/tutorials/large-models-w-deepspeed/#understanding-performance-tradeoff-between-zero-and-3d-parallelism"><strong>ZeRO and 3D</strong></a>
+            <p>DeepSpeed's guide to understanding tradeoffs between ZeRO and 3D parallelism strategies.</p>
+        </div>
+
+        <div>
+            <a href="https://arxiv.org/abs/1710.03740"><strong>Mixed precision training</strong></a>
+            <p>Introduces mixed precision training techniques for deep learning models.</p>
+        </div>
+
         <h3>Hardware</h3>
-        
+
+        <div>
+            <a href="https://www.arxiv.org/abs/2408.14158"><strong>Fire-Flyer - a 10,000 PCI chips cluster</strong></a>
+            <p>DeepSeek's report on designing a cluster with 10k PCI GPUs.</p>
+        </div>
+
+        <div>
+            <a href="https://engineering.fb.com/2024/03/12/data-center-engineering/building-metas-genai-infrastructure/"><strong>Meta's 24k H100 Pods</strong></a>
+            <p>Meta's detailed overview of their massive AI infrastructure built with NVIDIA H100 GPUs.</p>
+        </div>
+
+        <div>
+            <a href="https://www.semianalysis.com/p/100000-h100-clusters-power-network"><strong>Semianalysis - 100k H100 cluster</strong></a>
+            <p>Analysis of large-scale H100 GPU clusters and their implications for AI infrastructure.</p>
+        </div>
+
         <h3>Others</h3>
+
+        <div>
+            <a href="https://github.com/stas00/ml-engineering"><strong>Stas Bekman's Handbook</strong></a>
+            <p>Comprehensive handbook covering various aspects of training LLMs.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/bigscience-workshop/bigscience/blob/master/train/tr11-176B-ml/chronicles.md"><strong>Bloom training chronicles</strong></a>
+            <p>Detailed documentation of the BLOOM model training process and challenges.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/facebookresearch/metaseq/blob/main/projects/OPT/chronicles/OPT175B_Logbook.pdf"><strong>OPT logbook</strong></a>
+            <p>Meta's detailed logbook documenting the training process of the OPT-175B model.</p>
+        </div>
+
+        <div>
+            <a href="https://www.harmdevries.com/post/model-size-vs-compute-overhead/"><strong>Harm's law for training smol models longer</strong></a>
+            <p>Investigation into the relationship between model size and training overhead.</p>
+        </div>
+
+        <div>
+            <a href="https://www.harmdevries.com/post/context-length/"><strong>Harm's blog for long context</strong></a>
+            <p>Investigation into long context training in terms of data and training cost.</p>
+        </div>
         
         <h2>Appendix</h2>
 
