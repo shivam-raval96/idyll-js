@@ -1510,7 +1510,8 @@
 
         <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and interoperable with both Pipeline Parallelism and ZeRO-3, because it relies on the distributive property of matrix multiplication that allows weights and activations to be sharded and computed independently before being combined. However, TP has two important limitations: First, since its communication operations are part of the critical path of computation, it doesn't scale well beyond a certain point as communication overhead begins to dominate. Second, unlike ZeRO and PP which are model-agnostic, TP requires careful handling of activation sharding - sometimes along the hidden dimension (in the TP region) and sometimes along the sequence dimension (in the SP region) - making it more complex to implement correctly and requiring model-specific knowledge to ensure proper sharding patterns throughout.</p>
         
-        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <div class="l-page"><img alt="TP & SP diagram" src="/assets/images/5D_nutshell_tp_sp.svg" /></div>
+        <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
 
 
         <p>When combining parallelism strategies, TP will typically be kept for high-speed intra-node communications while ZeRO-3 or PP can use parallelism groups spanning lower speed inter-node communications, since their communication patterns are more amenable to scaling. The main consideration is organizing the GPU groups efficiently for each parallelism dimension to maximize throughput and minimize communication overhead, while being mindful of TP's scaling limitations.</p>
@@ -1520,7 +1521,9 @@
 
         <p><strong>Context Parallelism (CP)</strong> specifically targets the challenge of training with very long sequences by sharding activations along the sequence dimension across GPUs. While most operations like MLPs and LayerNorm can process these sharded sequences independently, attention layers require communication since each token needs access to keys/values from the full sequence. This is handled efficiently through ring attention patterns that overlap computation and communication. CP is particularly valuable when scaling to extreme sequence lengths (128k+ tokens) where even with full activation recomputation the memory requirements for attention would be prohibitive on a single GPU.</p>
         
-        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <div class="l-page"><img alt="CP diagram" src="/assets/images/5d_nutshell_cp.svg" /></div>
+
+        <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
         
         
         <p><strong>Expert Parallelism (EP)</strong> specifically targets the challenge of training Mixture of Experts (MoE) models by sharding specialized "experts" across GPUs and dynamically routing tokens to relevant experts during computation. The key communication pattern in EP is the all-to-all operation needed to route tokens to their assigned experts and gather the results back. While this introduces some communication overhead, it enables scaling model capacity significantly since each token only needs to compute through a fraction of the total parameters. This partitioning of experts across GPUs becomes essential when working with models that have a large number of experts, like DeepSeek which uses 256 experts.</p>
@@ -1533,14 +1536,15 @@
             <li>Expert Parallelism primarly affects the MoE layers (which replace standard MLP blocks), leaving attention and other components unchanged</li>
         </ul>
  
-        <div class="note-box">
-            <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>This similarity between EP and DP in terms of input handling is why some implementations consider Expert Parallelism to be a subgroup of Data Parallelism, with the key difference being that EP uses specialized expert routing rather than having all GPUs process inputs through identical model copies.
-            </p>
-        </div>
+        <div class="l-page"><img alt="EP diagram" src="/assets/images/5d_nutshell_ep.svg" /></div>
 
-        <p>TODO: the text between the table and figueres is still a bit sparse.</p>
+        <div class="note-box">
+          <p class="note-box-title">📝 Note</p>
+          <p class="note-box-content">
+              <p>This similarity between EP and DP in terms of input handling is why some implementations consider Expert Parallelism to be a subgroup of Data Parallelism, with the key difference being that EP uses specialized expert routing rather than having all GPUs process inputs through identical model copies.
+          </p>
+      </div>
+
 
         <table>
             <thead>
@@ -2578,13 +2582,26 @@
       year={2025},
 }</pre>
     </d-appendix>
+    <script>
+      function toggleTOC() {
+          const content = document.querySelector('.toc-content');
+          const icon = document.querySelector('.toggle-icon');
+          
+          content.classList.toggle('collapsed');
+          icon.classList.toggle('collapsed');
+      }
+    </script>
 
     <script>
         const article = document.querySelector('d-article');
         const toc = document.querySelector('d-contents');
         if (toc) {
             const headings = article.querySelectorAll('h2, h3, h4');
-            let ToC = `<nav role="navigation" class="l-text figcaption"><h3>Table of contents</h3>`;
+            // let ToC = `<nav role="navigation" class="l-text figcaption"><h3>Table of contents</h3>`;
+            let ToC = `<nav role="navigation" class="l-text figcaption"><div class="toc-header" onclick="toggleTOC()">
+            <span class="toc-title">Table of Contents</span>
+            <span class="toggle-icon">▼</span>
+            </div><div class="toc-content">`;
             let prevLevel = 0;
 
             for (const el of headings) {
@@ -2606,7 +2623,7 @@
                 }
                 if (level === 0)
                     ToC += '<div>' + link + '</div>';
-                else
+                else if (level === 1)
                     ToC += '<li>' + link + '</li>';
             }
 
@@ -2614,10 +2631,10 @@
                 ToC += '</ul>'
                 prevLevel--;
             }
-            ToC += '</nav>';
+            ToC += '</div></nav>';
             toc.innerHTML = ToC;
             toc.setAttribute('prerendered', 'true');
-            const toc_links = document.querySelectorAll('d-contents > nav a');
+            const toc_links = document.querySelectorAll('d-contents > nav div a');
 
             window.addEventListener('scroll', (_event) => {
                 if (typeof (headings) != 'undefined' && headings != null && typeof (toc_links) != 'undefined' && toc_links != null) {

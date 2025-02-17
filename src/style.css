@@ -150,6 +150,7 @@ d-contents > nav a.active {
 @media (max-width: 1199px) {
     d-contents {
         display: none;
+        background: white;
         justify-self: start;
         align-self: start;
         padding-bottom: 0.5em;
@@ -160,7 +161,7 @@ d-contents > nav a.active {
         border-bottom-style: solid;
         border-bottom-color: rgba(0, 0, 0, 0.1);
         overflow-y: scroll;
-        height: calc(100vh - 80px);
+        height: calc(100vh - 40px);
         scrollbar-width: none;
         z-index: -100;
     }
@@ -170,6 +171,31 @@ d-contents a:hover {
     border-bottom: none;
 }
 
+toc-title {
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #333;
+}
+
+toggle-icon {
+    transition: transform 0.3s;
+}
+
+toggle-icon.collapsed {
+    transform: rotate(-90deg);
+}
+
+.toc-content {
+    margin-top: 15px;
+    overflow: hidden;
+    max-height: 1000px;
+    transition: max-height 0.3s ease-out;
+}
+
+.toc-content.collapsed {
+    max-height: 0;
+    margin-top: 0;
+}
 
 @media (min-width: 1200px) {
     d-article {
@@ -179,6 +205,7 @@ d-contents a:hover {
 
     d-contents {
         align-self: start;
+        background: white;
         grid-column-start: 1 !important;
         grid-column-end: 4 !important;
         grid-row: auto / span 6;
@@ -186,16 +213,17 @@ d-contents a:hover {
         margin-top: 0em;
         padding-right: 3em;
         padding-left: 2em;
-        border-right: 1px solid rgba(0, 0, 0, 0.1);
+        /* border-right: 1px solid rgba(0, 0, 0, 0.1);
         border-right-width: 1px;
         border-right-style: solid;
-        border-right-color: rgba(0, 0, 0, 0.1);
+        border-right-color: rgba(0, 0, 0, 0.1); */
         position: -webkit-sticky; /* For Safari */
         position: sticky;
         top: 10px; /* Adjust this value if needed */
-        overflow-y: scroll;
-        height: calc(100vh - 80px);
+        overflow-y: auto;
+        height: calc(100vh - 40px);
         scrollbar-width: none;
+        transition: max-height 0.3s ease-out;
         z-index: -100;
     }
 }
@@ -205,7 +233,7 @@ d-contents nav h3 {
     margin-bottom: 1em;
 }
 
-d-contents nav div {
+d-contents nav div div {
     color: rgba(0, 0, 0, 0.8);
     font-weight: bold;
 }
