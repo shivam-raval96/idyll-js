@@ -2307,7 +2307,7 @@
         
         <p>We know that instability increases as learning rates rise for a fixed model size<d-cite bibtex-key="wortsman2023smallscaleproxieslargescaletransformer"></d-cite>, making FP8 pretraining particularly tricky.</p>
         
-        <iframe class="l-body-outset" id="plotFP8Loss" src="/assets/data/fp8/fp8_training_loss_curves.html" width="90%" scrolling="no" frameborder="0"></iframe>
+        <iframe class="l-body-outset" id="plotFP8Loss" src="/assets/data/fp8/fp8_training_loss_curves.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe>
 
         <p>The first, successful, very large scale training with FP8 mixed precision was publicly reported on DeepSeek-V3. The authors carefully analyzed each operation of the forward pass (Fprop) as well as the activation (Dgrad) and weight (Wgrad) backward pass. Similar to BF16 mixed precision training, some aggregation and master weights are kept in higher precision while the operations themselves are performed in FP8.  </p>
         
