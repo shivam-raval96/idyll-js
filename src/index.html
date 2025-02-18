@@ -2405,53 +2405,45 @@
         <h2>Conclusion</h2>
         
         
-        <p>Congratulations! You've completed quite a journey - from understanding how to train a simple model on a single GPU, all the way to mastering the complex techniques used to efficiently train massive language models like Llama-405B and DeepSeek-V3. By now, you should feel confident interpreting advanced parallelism diagrams like the one below, which would have seemed daunting when you first started.</p>
+        <p>Congratulations, dear reader, you made it to the end! We've completed quite a journey: we started from understanding how to train a simple model on a single GPU, all the way to mastering all the intricate techniques used to efficiently train massive language models like Llama-405B and DeepSeek-V3 on thousands of GPUs. By now, you can read a diagram, like Llama-3's 4D parallel setup, with ease:</p>
         
         <p><img alt="image.png" src="/assets/images/conclusion_llama3_parallelism.png" /></p>
 
-        <p>In distributed training, many concepts sound easy enough when you first hear them, like “Pipeline parallelism just distributes layers on different GPUs”, but we also worked through all the challenging details when implementing those methods. </p>
+        <p>Orchestrating large clusters of GPUs to train LLMs efficiently is no easy feat. We learned how to optimize computations and communications between GPUs such that they run with maximum utilization at all times. It involves choosing the right parallelization strategy for a given model and cluster size, overlapping communication and computation where possible, and writing custom kernels that take into account the hardware layout to perform an operation as fast as possible on the GPU.</p>
 
-        <p>However, not only did you learn something in the process, but we also want to share some insights we gained along the way, as well as give you ideas on what to work on next if you want to gain more experience in distributed training.</p>
-        
-        <p>Let’s start with a brief recap of all the things we covered in these past hours and days!</p>
+        <p>You might still believe that this knowledge is a bit niche and only concerns the small set of people that pretrain LLMs. Historically, that mayb be true, but as models are growing rapidly even people who want to fine-tune models require distributd training setups. So diving deeper into all things distributed might prove very timely.</p>
 
-        <h3>What you learned</h3>
-        
-        <p>Working through this whole blog post you mastered a ranged of concepts:</p>
-        
-        <ul>
-            <li>Basic principle of model training</li>
-            <li>Collective communication primitives </li>
-            <li>Memory anatomy of a LLM</li>
-            <li>Distributed training with DP and ZeRO </li>
-            <li>Model parallelism with TP, SP, CP and PP</li>
-            <li>Fast kernels and mixed precision training</li>
-            <li>Overlapping communication and computation</li>
-            <li>Profiling distributed training</li>
-        </ul>
-
-        <p>Furthermore, you saw code implementations of most methods and how to benchmark a distributed training. But it hasn’t been only a learning experience for you, also we learned a thing or two!</p>
+        <p>This has been a long learning journey, but not just for you! Running thousands of benchmarks on a GPU cluster was more challenging than we anticipated and we want to share a few highlights of our learning experience.</p>
 
         <h3>What we learned</h3>
 
-        <p>Running benchmarks on a cluster turned out to be much more challenging than we initially expected! What seemed like straightforward tasks often became complex debugging sessions:
+        <p>Our goal for this blogpost was not only to discuss theory and implementations but provide actual data points as well. So the plan was simple: lets run every possible distributed configuration for every model and a number of cluster sizes (namely 1-64 nodes of 8xH100s). Even after excluding impossible configuration we still needed to run thousands of experiments. </p>
+
+        <aside>We want to take this opportunity to apologize to our co-workers for blocking most of the science cluster and in turn forgive any threats that may have been whispered.</aside>
+
+        <p>   
+        On paper this sounds easy enough: we can easily launch big arrays of jobs on our cluster. However, when we launched the first batches is when the troubles began:
         </p>
 
         <ul>
             <li>PyTorch processes would sometimes fail to clean up properly</li>
             <li>Slurm job manager would forcefully terminate jobs, leading to node failures </li>
             <li>Simple benchmarks that should take minutes would stretch into hours</li>
-            <li>We had to spend significant time:</li>
-            <ul>
-                <li>Minimizing cluster restart times and optimize idle time</li>
-                <li>Analyzing detailed NCCL debug logs</li>
-                <li>Understand memory usage patterns and CUDA memory allocator behaviors</li>
-                <li>Improving pipeline parallelism performance on multi-node</li>
-            </ul>
+            <li>Some jobs would hang indefinitely</li>
+        </ul>
+
+        <p>So in order to run all experiments in a finite amount of time required some additional engineering. In particular we spent a significant amount of time on the following:</p>
+
+        <ul>
+            <li>Minimizing cluster restart times and optimize idle time</li>
+            <li>Analyzing detailed NCCL debug logs</li>
+            <li>Understand memory usage patterns and CUDA memory allocator behaviors</li>
+            <li>Improving pipeline parallelism performance on multi-node</li>
         </ul>
         
         <p>These challenges deserve their own story, but they taught us valuable lessons about the complexities of distributed training infrastructure. What looks simple in theory often requires careful attention to many moving parts in practice.</p>
 
+        <!--
         <p>Let's analyze the results of our benchmarks and understand how different configurations affect each other. All benchmarks were run with a sequence length of 4096 and a global batch size of 1M tokens. We'll look at two key visualizations that help illustrate our findings.
         </p>
         
@@ -2462,7 +2454,6 @@
 
         <p>To complement this, let's look at the relationships between different parameters:</p>
         
-        <!-- <p><img alt="image.png" src="/assets/images/what_we_learnt_parallel_coordinates.html" /></p> -->
         <iframe id="plotFrame" src="/assets/images/what_we_learnt_parallel_coordinates.html" height="540" width="1000" scrolling="no" frameborder="0"></iframe>
 
         <p>Parallel coordinates plot showing the relationship between different model parallelism configurations (Data Parallel degree, Tensor Parallel degree, Pipeline Parallel degree), training hyperparameters (gradient accumulation steps, micro batch size), ZeRO stage and the resulting Model FLOPs Utilization (MFU). Each line represents a different training configuration, with colors indicating the MFU value - warmer colors show higher efficiency.</p>
@@ -2476,19 +2467,19 @@
             <li>Larger models present a different challenge. As model size increases, memory requirements grow substantially. This creates two scenarios with fewer nodes: either the model doesn't fit at all, or it barely fits but runs inefficiently due to operating near the GPU memory limits.</li>
             <li>Our benchmarks demonstrate how performance heavily depends on implementation quality. When we first implemented both parallelism strategies, Tensor Parallelism (TP) outperformed Pipeline Parallelism (PP). After optimizing our PP code, it became the faster option. Now that we're improving the communication overlap in our TP implementation, we expect it to regain the performance lead.</li>
         </ol>
+        -->
+        <p>Reproducing theoretical results in practice is challenging, especially given the limited availability of production training code. Through open-source projects like picotron and nanotron, we hope to make these distributed training techniques more accessible and foster collaboration on simpler, more efficient codebases that help researchers and practitioners make the most of their hardware resources.</p>
 
-        <p>These findings highlight the challenges of reproducing theoretical results in practice, especially given the limited availability of production training code. Through open-source projects like picotron and nanotron, we hope to make these distributed training techniques more accessible and foster collaboration on simpler, more efficient codebases that help researchers and practitioners make the most of their hardware resources.</p>
+        <h3>So, what’s next?</h3>
 
-        <h3>What’s next?</h3>
-
-        <p>You should have a good overview of all the distributed training concepts but there are still things to learn and details we couldn’t cover. To get deeper in the field we recommend doing some of the following steps:</p>
+        <p>You now have good overview of the main distributed training concepts but at the same time we just scratched to surface of on some aspects. There are many ways to dive deep into a subject but here are some steps that we recommend:</p>
         <ul>
             <li>Carefully read some of the landmark or very recent papers. You can find a list of some of the most impactful papers in <a target="_self" href="#references" class="">References</a>.</li>
             <li>Start from scratch and implement an algorithm yourself. Often a method only fully “clicks” if you implemented it yourself.</li>
             <li>Dive into one of the widely used frameworks and start contributing: fix bugs, answer issues, or implement a new feature. That’s the best way to get in any ML field!</li>
         </ul>
         
-        <p>We hope this blog helps you get started in distributed training or helps you to better understand methods that you may already be applying by using some distributed training frameworks.</p>
+        <p>We hope this book helps you get started in distributed training and that you will train the next generation of awesome models to the hum of your GPU cluster!</p>
         
         <h2>References</h2>
         
