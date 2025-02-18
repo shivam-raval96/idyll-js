@@ -52,18 +52,22 @@
         <d-contents>
         </d-contents>
         
-        <p>Fueled by the scaling laws<d-cite bibtex-key="kaplan2020scalinglaws"></d-cite><d-cite bibtex-key="hoffmann2022chinchilla"></d-cite>, the trend of training ever larger language models on vaster amounts of data has been driving progress in AI for the past couple years. Initially, the development of the largest models happened exclusively behind closed doors of a handful of research labs but recently opened up more with the release of models such as Llama 3.1 405B<d-cite bibtex-key="grattafiori2024llama3herdmodels"></d-cite> and DeepSeek R1<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. While these models have <a href="https://huggingface.co/meta-llama">openly shared</a> <a href="https://huggingface.co/deepseek-ai">weights</a> and their training recipes are described in <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">reports</a>, the challenging engineering to involved to train at the necessary infrastructure scale is still hidden between the lines of a handful of papers and complex training frameworks. This <s>long blog post</s> open-source book is here to open this black box!</p>
+        <p>
+          Thousands of GPUs humming in perfect harmony. That's what it takes to train today's most powerful AI models – a symphony of computing power that until recently was the exclusive domain of elite research labs. Open source has transformed this landscape, but not completely. Yes, you can download the latest <a href="https://huggingface.co/meta-llama">Llama</a> or <a href="https://huggingface.co/deepseek-ai">DeepSeek</a> models. Yes, you can read their <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> and <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">experiment</a> reports. But the most challenging part – the training code, the knowledge and technics necessary to coordinate GPUs to train these massive systems – remains shrouded in complexity and spread around a series of disconnected papers and often private codebases.
+          </p>
+          <aside>Reading time: 2-4 days. For the best reading experience, we recommend not using a mobile phone.</aside>
+          <p>
+            This open-source book is here to changes that. Starting from the basics, we'll walk you through the knowledge necessary to scale the training of large language models from one GPU to tens, hundreds and even thousands of GPUs, illustrating theory with practical code examples and reproducible benchmarks.
+        </p>
 
-        <aside>Reading time: 7 days. For the best reading experience, we recommend not using a mobile phone.</aside>
+        <p>As the size of the clusters used to train these models grew, various techniques such as data parallelism, tensor parallelism, pipeline parallelism or context parallelism as well as ZeRO or kernel fusion have been invented to makes sure that GPUs are highly utilized at all times. This significantly reduces training time and makes the best use of this expensive hardware. Even more, as the challenge of scaling up AI training goes beyond just building the initial models and teams have found that fine-tuning large models on specialized data often produces the best results, generally involving the same distributed training techniques. In this book we'll progressively go over all of these techniques –from the simplest to the most raffined one– while keeping a single story-line to understand where each method comes from.</p>
 
-        <p>In this book we invite you to follow us in the wonderful world of scaling training of Large Language Models to tens, hundreds, thousands of GPUs. It assumes you know the basics on LLM architecture and training, but are new to distributed training. This writing can be seen as a second part of a trilogy following our first blog on processing data for pre-training, the so-called “<a href="https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1">FineWeb blog post</a>”. Having read both blog posts, you should have almost all the core knowledge needed to deeply understand how LLMs are being built nowadays, just missing a bit the final spices like data mixing or architecture choices to complete the recipe (stay tuned…).</p>
-
-        <p>Pre-training LLMs from scratch now requires amounts of compute which exceed in almost every case the use of a single GPU or machine. The clusters used to train these models range from hundreds to thousands of nodes each usually equipped with 4 to 8 GPUs. To make the best use of such an expensive hardware as well as to train in a reasonable time, a range of distributed training methods have been developed with the goal of ensuring that GPUs are highly utilized at all times. Efficiently scaling LLM training is also not confined to pretraining anymore, as fine-tuning larger models on more domain specific data is becoming the standard practice to achieve the best results.</p>
+        <p>We'll assumes you have some simple basic knowledge about current LLM architecture and are roughtly familiar with how deep learning model are trained, but you can be generally new to distributed training. If needed, the basics of model training can be found in great courses found at <a href="https://www.deeplearning.ai">DeepLearning.ai</a> or on the <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">PyTorch tutorial sections</a>. This book can be seen as the second part of a trilogy following our first blog on processing data for pre-training, the so-called “<a href="https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1">FineWeb blog post</a>”. Having read both blog posts, you should have almost all the core knowledge needed to fully understand how how performing LLMs are being built nowadays, just missing some final spices regarding data mixing and architecture choices to complete the recipe (stay tuned for part three…).</p>
 
         <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating
             the template on which we based this blog post.</aside>
         
-        <p>In this post we’ll cover these scaling methods exhaustively while keeping a single story-line to understand where each technique comes from. We’ll cover data, tensor, pipeline and context parallelism as well as ZeRO and kernel fusion. The post is built on the following <strong>three foundations</strong>:</p>
+        <p>The book is built on the following <strong>three general foundations</strong>:</p>
 
         <p><strong>Quick intros on theory and concepts:</strong> before diving into code and experiments, we want to understand how each method works at a high level and what it’s advantages and limits are. You’ll learn about which parts of a language model eat away your memory and when during training it happens. You’ll learn how we can solve memory constraints by parallelizing the models and increase the throughput by scaling up GPUs. As a result you'll understand how the following widget to compute the memory breakdown of a transformer model works: </p>
 
@@ -170,22 +174,59 @@
         </div>
 
         <p>While this widget gives a theoretical breakdown the following tool can be used to predict the memory usage:</p>
+        <ul>
+          <li>
+            <p>
+              <a href="https://huggingface.co/spaces/nanotron/predict_memory">predict_memory</a>
+            </p>
+          </li>
+          <li>
+            <p>
+              <a href="https://pytorch.org/docs/stable/torch_cuda_memory.html">torch_cuda_memory</a>
+            </p>
+          </li>
+        </ul>
+
+        <p><strong>Clear code implementations:</strong> theory is one thing, but we discover all kinds of edge cases and important details when we implement something. That’s why we link to implementation references where possible. Depending on the case, we’ll use two code references:</p>
         
-        <p><img alt="image.png" src="assets/images/placeholder.png"/></p>
+        <ul>
+          <li>
+            <p>
+              the <a href="https://github.com/huggingface/picotron">picotron</a> repository is built for education, thus it implements concepts usually in single, self-contained short files.
+            </p>
+          </li>
+          <li>
+            <p>
+              On the other hand, to look at production ready code, we’ll refer to the <a href="https://github.com/huggingface/nanotron">nanotron</a> implementations which is a production training codebase used at Hugging Face.
+            </p>
+          </li>
+        </ul>
+        
+        <!-- <p><img alt="Picotron implements each key concept in a self-contained way, such that the method can be studied separately and in isolation." src="assets/images/placeholder.png" /></p> -->
 
-        <p><strong>Clear code implementations:</strong> theory is one thing, but we discover all kinds of edge cases and important details when we implement something. That’s why we link to implementation references where possible. Depending on the case, we’ll use two code references: the <a href="https://github.com/huggingface/picotron">picotron</a> repository is built for education, thus it implements concepts usually in single, self-contained short files. On the other hand, to look at production ready code, we’ll refer to the <a href="https://github.com/huggingface/nanotron">nanotron</a> implementations which is a production training codebase used at Hugging Face.</p>
-
-        <p><img alt="Picotron implements each key concept in a self-contained way, such that the method can be studied separately and in isolation." src="assets/images/placeholder.png" /></p>
-
-        <p><strong>Real training efficiency benchmarks:</strong> Finally, how to <em>actually</em> scale your LLM training depends on your infrastructure, such as the kind of chips, interconnect etc., and we can’t give a single unified recipe. What we will give though is a way to benchmark several setups and it is what we have done on our cluster! We ran over 4100 distributed experiments (over 16k including test runs) with up to 512 GPUs to scan many possible distributed training layouts and model sizes. TODO: link to dataset too </p>
+        <p><strong>Real training efficiency benchmarks:</strong> Finally, how to <em>actually</em> scale your LLM training depends on your infrastructure, such as the kind of chips, interconnect etc., and we can’t give a single unified recipe. What we will give though is a way to benchmark several setups and it is what we have done on our cluster! We ran over 4100 distributed experiments (over 16k including test runs) with up to 512 GPUs to scan many possible distributed training layouts and model sizes. </p>
         
         <iframe id="plotFrame" src="assets/data/benchmarks/benchmarks_interactive.html" scrolling="no" frameborder="0" height="840" width="720"></iframe>
 
-        <p>As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on we’ll cover in the post.</p>
+        <p>As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on the challenges we'll cover in the book.</p>
 
-        <h2>TL;DR</h2>
 
-        <p>This book is very extensive so we decide to start with a very general overview of how you can think about distributed training. At a high level, the key challenge in scaling LLM training is to make a training step (forward/backward/optimizer step) with a large batch size the fastest possible.</p>
+        <h2>High level overview</h2>
+
+        <p> All the techniques we'll cover in this book tackle one or several of the following three key challenges, which we'll keep bumping into throughout the book:</p>
+        <ol>
+          <li><strong>Memory Usage</strong>: it's a hard limitation - if a training step doesn't fit in memory, training cannot proceed</li>
+          <li><strong>Compute Efficiency</strong>: we want our hardware to spend most time computing, so we need to reduce time spent on data transfers or waiting for other GPUs to perform work.</li>
+          <li><strong>Communication overhead</strong>: we want to minimize communication overhead as it keeps GPUs idle. To archieve this we will try to make best use of intra-node (fast) and inter-node (slower) bandwidths as well as overlap communication with compute as much as possible.</li>
+          </ol>
+        <p>In many places we'll see that we can trade one of these (computation, communication, memory) for another (e.g. recomputation or Tensor Parallelism). Finding the right balance is key to scaling training.</p>
+        <p>
+          As this book is very extensive, we've made a <a href="assets/images/ultra-cheatsheet.svg">cheatsheet</a> to help you navigate the book and get the general take-away. Keep it close to your heart as you navigate these stormy waters!
+        </p>
+        <div class="center"><a href="assets/images/ultra-cheatsheet.svg"><img src="assets/images/ultra-cheatsheet.svg" alt="Cheatsheet" /></a></div>
+        
+
+        <!-- <p>This book is very extensive so we decide to start with a very general overview of how you can think about distributed training. At a high level, the key challenge in scaling LLM training is to make a training step (forward/backward/optimizer step) with a large batch size the fastest possible.</p>
         <p>When scaling up models and input batches, we quickly end up in situations where either our target batch size won't fit in memory, or/and the model itself is too large to fit in a single GPU's memory.</p>
         <p>To solve this scaling issue we’ll need to carefully evaluate different parallelization strategies and find the optimal balance between three main factors:</p>
         <ol>
@@ -209,8 +250,8 @@
         </li>
         </ol>
         <p>But let’s not get too much ahead of our self and scale progressively. To guide you along the journey and as a practical reference we summarized the key concepts in a cheatsheet:</p>
-        <p>[TODO: ADD CHEATSHEET]</p>
-        <p>Now that we nailed a few key concept and terms let’s get started by revisiting the basic training steps of an LLM!</p>
+        <p>[TODO: ADD CHEATSHEET]</p> -->
+        <!-- <p>Time to get started by quickly revisiting the basic training steps of an LLM!</p> -->
                 
         <h2>First Steps: Training on one GPU</h2>
         
@@ -232,13 +273,14 @@
 
         <p>In this figure, the boxes on the top line can be seen as successive layers inside a model (same for the last line). The red boxes are the associated gradients for each of these layers, computed during the backward pass.</p>
 
-        <p>The batch size (<d-math>bs</d-math>) is one of the important hyper-parameters for model training and affects both model convergence and throughput.</p>
+        <p>The <strong>batch size (<d-math>bs</d-math>)</strong> is one of the important hyper-parameters for model training and affects both model convergence and throughput.</p>
 
-        <p>If the batch size is too small, gradients will tend to be noisy and the model may not be able to converge to the most optimal performance, on the contrary it can be useful in early training to navigate quickly in the training landscape. On the other hand, a batch size too large will make less use of each training token rendering convergence slower and wasting compute. You can find a nice discussion of this topic in OpenAI’s paper on large batch training<d-cite bibtex-key="mccandlish2018largebatchtraining"></d-cite> or Section 4.2 of MiniMax-01 <a href="https://filecdn.minimax.chat/_Arxiv_MiniMax_01_Report.pdf">technical report</a>.</p>
+        <p>A small batch size can be useful early in training to quickly move along the training landscape reaching an optimal learning point. However, further along the model training, small batch sizes will keep gradients noisy and the model may not be able to converge to the most optimal final performances. At the other extreme, a large batch size while giving very accurate gradient estimations will tend to make less use of each training token rendering convergence slower and potentially wasting compute. You can find a nice early discussion of this topic in OpenAI’s paper on large batch training<d-cite bibtex-key="mccandlish2018largebatchtraining"></d-cite> or Section 4.2 of MiniMax-01 <a href="https://filecdn.minimax.chat/_Arxiv_MiniMax_01_Report.pdf">technical report</a>.
+        </p>
 
-        <aside>For instance, during DeepSeek-V3/R1 training “the batch size is gradually increased from 3072 to 15360 in the training of the first 469B tokens, and then keeps 15360 in the remaining training”.</aside>
+        <aside>For instance, during DeepSeek-V3/R1 training “the batch size is gradually increased from 3072 input sequences to 15360 in the training of the first 469B tokens, and then keeps at 15360 input samples in the remaining training”.</aside>
 
-        <p>Batch size also affects the time it takes to train on a given text dataset: a small batch size will require more optimizer steps to train on the same amount of samples. Optimizer steps are costly (in compute time) and the total time to train will thus increase compared to a larger batch size. This being said, note that the batch size can often be adjusted quite largely around the optimal batch size without major impact to the performance of the model, i.e. the sensitivity of final model performances to the exact batch size value is usually rather low around the optimal batch size.</p>
+        <p>Batch size also affects the time it takes to train on a given text dataset: a small batch size will require more optimizer steps to train on the same amount of samples. Optimizer steps are costly (in compute time) and the total time to train will thus increase compared to using a larger batch size. This being said, note that the batch size can often be adjusted quite largely around the optimal batch size without major impact to the performance of the model, i.e. the sensitivity of final model performances to the exact batch size value is usually rather low around the optimal batch size.</p>
 
         <p>In the LLM pretraining community, batch sizes are commonly reported in terms of tokens rather than in number of samples (<d-math>bst</d-math> = Batch Size Tokens), this makes training numbers generally independent of the exact input sequence length used during the training.</p>
 
@@ -250,14 +292,11 @@
 
         <p>From here onward we’ll show the formulas for the batch size in terms of samples but you can always get its token-unit counterpart by multiplying it with the sequence length.</p>
 
-        <p>A sweet spot for recent LLM training is typically on the order of 4-60 million tokens per batch. However, a typical issue when scaling the training of our model to these large batch sizes is out-of-memory issues, ie. our GPU doesn’t have enough memory.</p>
+        <p>A sweet spot for recent LLM training is typically on the order of 4-60 million tokens per batch. The batch size as well as the training corpus have been steadily increasing over the years: Llama 1 was trained with a batch size of ~4M tokens for 1.4 trillions tokens while DeepSeek was trained with a batch size of ~60M tokens for 14 trillion tokens.</p>
 
-        <aside>Note: Llama 1 was trained with a batch size of ~4M tokens for 1.4 trillions tokens while DeepSeek was trained with a batch size of ~60M tokens for 14 trillion tokens.
-        </aside>
+        <p><strong>And our first challenge is already coming ahead when scaling the training of our model to these large batch sizes: out-of-memory issues. What should we do when our GPU doesn’t have enough memory to hold a full batch of our target batch size?</strong></p>
 
-        <p><strong>It’s time to tackle our first scaling problem: what if our model starts exploding GPU memory before we’ve reached our target batch size (maybe in some case even when using the lowest possible batch size, <code>bs=1</code>)?</strong></p>
-
-        <p>Let’s start by quickly understanding what led to our out-of-memory issue in the first place. This will help us gain some useful intuitions for later.</p>
+        <p>Let’s start by quickly understanding what led to our out-of-memory issue in the first place. This will help us gain some useful intuitions on the memory requirements for training a model.</p>
 
         <h3>Memory usage in Transformers</h3>
 
