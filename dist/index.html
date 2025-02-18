@@ -2693,22 +2693,384 @@
         
         
         <h2>Appendix</h2>
-
+        
         <h3>A0: Parallel Programming Crash Course</h3>
         
+
+        <p>Throughout the blogpost we  scale LLM training from one to hundreds of GPUs. This will require the communication and synchronization of weights, gradients, and data between all the machines. There’s a set of distributed patterns to achieve exactly that called <strong><em>collective operations</em></strong>. In this section we’ll do a small crash course of all the operations like <em>Broadcast, AllReduce, Scatter</em> and more. Let’s dive in!</p>
+        
+        <p>The general setup is that we have a number of independent nodes which could be CPU cores, GPUs, or compute nodes. Each performs some computation and then we want to communicate the result or parts of it to the other nodes for the next computation step (t+1).</p>
+        
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_general.png" style="width: 400px" /></p>
+
+
+        <p>Maybe we need to send the result from one node to all other nodes, or we need to sum all the intermediate results from each node to report the overall result. Usually, there is one node with an elevated status that plays a central role, here denoted with <code>root</code> that is the target or source of some operations. Let’s start with one of the simplest primitives: a broadcast operation.</p>
+        
+ 
+
         <h4>Broadcast</h4>
+
+        <p>A very common pattern is that you have some data on Node 1 and you want to share it with all the other nodes so they can do some computation with the data. The broadcast operation does just that:</p>
+        
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_broadcast.png" style="width: 400px" /></p>
+
+
+        <p>Collective operations are natively provided by PyTorch so we can easily write a small example that demonstrates how broadcasting works. We first need to initialize a process group with <code>dist.initi_process_group</code> which sets up the communication backend (we’ll talk about NCCL later), it determines how many workers (aka nodes) exists and assigns a rank to each one (which we can get with <code>dist.get_rank</code>). Finally, it establishes a connection between the workers.</p>
+
+        <p>To showcase the <code>dist.broadcast</code> operation, let's create a tensor with non-zero values on <code>rank=0</code> and tensors full of zeros on the other workers. We then distribute the <code>rank=0</code> tensor to all other ranks with <code>dist.broadcast(tensor, src=0)</code> :</p>
+        
+        <d-code block language="python">
+            import torch
+            import torch.distributed as dist
+
+            def init_process():
+                dist.init_process_group(backend='nccl')
+                torch.cuda.set_device(dist.get_rank())
+                
+            def example_broadcast():
+                if dist.get_rank() == 0:
+                    tensor = torch.tensor([1, 2, 3, 4, 5], dtype=torch.float32).cuda()
+                else:
+                    tensor = torch.zeros(5, dtype=torch.float32).cuda()
+                print(f"Before broadcast on rank {dist.get_rank()}: {tensor}")
+                dist.broadcast(tensor, src=0)
+                print(f"After broadcast on rank {dist.get_rank()}: {tensor}")
+                
+            init_process()
+            example_broadcats()
+        </d-code>
+
+
+        <p>You can run the above script with <code>torchrun --nproc_per_node=3 dist_op.py</code> (you’ll need 3 GPUs for this or change <code>nproc_per_node</code> accordingly) and you should see the following output:</p>
+
+        <d-code block language="python">
+            Before broadcast on rank 0: tensor([1., 2., 3., 4., 5.], device='cuda:0')
+            Before broadcast on rank 1: tensor([0., 0., 0., 0., 0.], device='cuda:1')
+            Before broadcast on rank 2: tensor([0., 0., 0., 0., 0.], device='cuda:2')
+
+            After broadcast on rank 0: tensor([1., 2., 3., 4., 5.], device='cuda:0')
+            After broadcast on rank 1: tensor([1., 2., 3., 4., 5.], device='cuda:1')
+            After broadcast on rank 2: tensor([1., 2., 3., 4., 5.], device='cuda:2')
+        </d-code>
+
+        <p>Great, seems like it works as expected. Note that the rank messages can be printed out of order as we have no control over which print statement is executed first (we ordered them here for readability). Now let’s move on to the Reduce and AllReduce patterns! </p>
+        
+
 
         <h4>Reduce & AllReduce</h4>
         
-        <h4>A quick focus on Ring AllReduce</h4>
+        <p>Reduce patterns are among the most fundamental patterns in distributed data processing. The idea is that you want to combine the data present on each node through a function <code>f()</code> which can be for instance summation or averaging. In the Reduce paradigm the result is sent to the root node only, whereas in the AllReduce case the result is broadcasted to all nodes:</p>
         
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_reduce_allreduce.png" style="width: 1000px" /></p>
+
+
+        <p>Of course no magic “free flying” node that can perform this operation and generally each node does a partial computation in a ring or tree structure of the nodes. Here is a simple example: let’s say we need to compute a sum of numbers on each nodes and our nodes are connected in a ring pattern. The first node sends its number to a neighbour which adds its number to the received number before forwarding it to the next neighbour. At the end of a round along the ring of nodes, the first node will receive the total sum.</p>
+
+        <p>Here’s the code to run a simple Reduce operation summing the tensors, we specify the operation to use with <code>op=dist.ReduceOp.SUM</code> (you can find more information on the supported operations in the <a href="https://pytorch.org/docs/stable/distributed.html#torch.distributed.ReduceOp">Pytorch docs</a>):</p>
+        
+        <d-code block language="python">
+            def example_reduce():
+                tensor = torch.tensor([dist.get_rank() + 1] * 5, dtype=torch.float32).cuda()
+                print(f"Before reduce on rank {dist.get_rank()}: {tensor}")
+                dist.reduce(tensor, dst=0, op=dist.ReduceOp.SUM)
+                print(f"After reduce on rank {rank}: {tensor}")
+    
+            init_process()
+            example_reduce()
+        </d-code>
+
+        <p>Note that in the Reduce operation only the tensor on the <code>dst</code> node is updated:</p>
+
+        <d-code block language="python">
+            Before reduce on rank 0: tensor([1., 1., 1., 1., 1.], device='cuda:0')
+            Before reduce on rank 1: tensor([2., 2., 2., 2., 2.], device='cuda:1')
+            Before reduce on rank 2: tensor([3., 3., 3., 3., 3.], device='cuda:2')
+
+            After reduce on rank 0: tensor([6., 6., 6., 6., 6.], device='cuda:0')
+            After reduce on rank 1: tensor([2., 2., 2., 2., 2.], device='cuda:1')
+            After reduce on rank 2: tensor([3., 3., 3., 3., 3.], device='cuda:2')
+        </d-code>
+
+        <p>Similarly we can perform an AllReduce (we don’t need to specify a destination in this case):</p>
+
+        <d-code block language="python">
+            def example_all_reduce():
+                tensor = torch.tensor([dist.get_rank() + 1] * 5, dtype=torch.float32).cuda()
+                print(f"Before all_reduce on rank {dist.get_rank()}: {tensor}")
+                dist.all_reduce(tensor, op=dist.ReduceOp.SUM)
+                print(f"After all_reduce on rank {dist.get_rank()}: {tensor}")
+                
+            init_process()
+            example_all_reduce()
+        </d-code>
+
+        <p>In this case the result is available on all nodes:</p>
+        
+        <d-code block language="python">
+            Before all_reduce on rank 0: tensor([1., 1., 1., 1., 1.], device='cuda:0')
+            Before all_reduce on rank 1: tensor([2., 2., 2., 2., 2.], device='cuda:1')
+            Before all_reduce on rank 2: tensor([3., 3., 3., 3., 3.], device='cuda:2')
+            
+            After all_reduce on rank 0: tensor([6., 6., 6., 6., 6.], device='cuda:0')
+            After all_reduce on rank 1: tensor([6., 6., 6., 6., 6.], device='cuda:1')
+            After all_reduce on rank 2: tensor([6., 6., 6., 6., 6.], device='cuda:2')
+        </d-code>
+
+        <p>Now let’s turn to our next distributed communication operation. In many real cases, each node individually perform many complex computations and we need to share the final results among nodes. Gather and AllGather are the operations we want to use in this case. Let’s take a look!</p>
+
         <h4>Gather & AllGather </h4>
         
+        <p>Gather and AllGather are quite similar to the Broadcast in that they allow distributing data among node without modification. The main difference to Broadcast is that there is not one value we need to share from one node to all other nodes but each node has an individual chunk of data that we want to either gather all data on one node (in case of Gather) or gather all data on all nodes (in the case of AllGather). A picture being worth 1000 words, let’s take a look:</p>
+
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_gather_allgather.png" style="width: 1000px" /></p>
+
+        <p>Note that the dashed lines indicate that some data actually doesn’t move at all (since it’s already present on the node).</p>
+
+        <p>In the case of the gather operation we need to prepare a container objects where the gathered tensors can be stored in this example the <code>gather_list</code>:</p>
+
+        <d-code block language="python">
+            def example_gather():
+                tensor = torch.tensor([dist.get_rank() + 1] * 5, dtype=torch.float32).cuda()
+                if dist.get_rank() == 0:
+                    gather_list = [
+                        torch.zeros(5, dtype=torch.float32).cuda()
+                        for _ in range(dist.get_world_size())
+                        ]
+                else:
+                    gather_list = None
+                print(f"Before gather on rank {dist.get_rank()}: {tensor}")
+                dist.gather(tensor, gather_list, dst=0)
+                if dist.get_rank() == 0:
+                    print(f"After gather on rank 0: {gather_list}")
+                
+            init_process()
+            example_gather()
+        </d-code>
+
+        <p>And we see that the `gather_list` indeed contains the tensors of all ranks:</p>
+
+        <d-code block language="python">
+            Before gather on rank 0: tensor([1., 1., 1., 1., 1.], device='cuda:0')
+            Before gather on rank 1: tensor([2., 2., 2., 2., 2.], device='cuda:1')
+            Before gather on rank 2: tensor([3., 3., 3., 3., 3.], device='cuda:2')
+
+            After gather on rank 0: [tensor([1., 1., 1., 1., 1.], device='cuda:0'),
+                                     tensor([2., 2., 2., 2., 2.], device='cuda:0'),
+                                     tensor([3., 3., 3., 3., 3.], device='cuda:0')]
+        </d-code>
+
+        <p>The only thing we need to change for the AllGather example is that every node will need a placeholder for the results:</p>
+
+        <d-code block language="python">
+            def example_all_gather():
+                tensor = torch.tensor([dist.get_rank() + 1] * 5, dtype=torch.float32).cuda()
+                gather_list = [
+                    torch.zeros(5, dtype=torch.float32).cuda()
+                    for _ in range(dist.get_world_size())
+                    ]
+                print(f"Before all_gather on rank {dist.get_rank()}: {tensor}")
+                dist.all_gather(gather_list, tensor)
+                print(f"After all_gather on rank {dist.get_rank()}: {gather_list}")
+                
+            init_process()
+            example_all_gather()
+        </d-code>
+
+        <p>And indeed we can see that now each node has all the data:</p>
+
+        <d-code block language="python">
+            Before all_gather on rank 0: tensor([1., 1., 1., 1., 1.], device='cuda:0')
+            Before all_gather on rank 1: tensor([2., 2., 2., 2., 2.], device='cuda:1')
+            Before all_gather on rank 2: tensor([3., 3., 3., 3., 3.], device='cuda:2')
+
+            After all_gather on rank 0: [tensor([1., 1., 1., 1., 1.], device='cuda:0'),
+                                         tensor([2., 2., 2., 2., 2.], device='cuda:0'),
+                                         tensor([3., 3., 3., 3., 3.], device='cuda:0')]
+            After all_gather on rank 1: [tensor([1., 1., 1., 1., 1.], device='cuda:1'),
+                                         tensor([2., 2., 2., 2., 2.], device='cuda:0'),
+                                         tensor([3., 3., 3., 3., 3.], device='cuda:0')]
+            After all_gather on rank 2: [tensor([1., 1., 1., 1., 1.], device='cuda:2'),
+                                         tensor([2., 2., 2., 2., 2.], device='cuda:2'),
+                                         tensor([3., 3., 3., 3., 3.], device='cuda:2')]
+        </d-code>
+
+        <p>Now what about the inverse of a gather? In this case we would have all the data on one node and want to distribute/slice it among node, possibly with some intermediate processing? We can use the Scatter, or in the case of an operation in between a Reduce Scatter pattern:</p>
+
         <h4>Scatter & ReduceScatter</h4>
+        
+        <p>As the name subtly suggests, the goal of the Scatter operation is to take data on one node and distribute slices of it to all other nodes. It’s thus different from the Broadcast operation which copy data without slicing and it’s the logical the inverse of the Gather operation.</p>
+
+        <p>The ReduceScatter pattern is slightly more complex: imagine you apply an operation like in the Reduce case but instead of moving the result to just one node we also distribute it evenly to all nodes:</p>
+
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_scatter_reducescatter.png" style="width: 1000px" /></p>
+
+        <p>The Scatter operation is written in code as the opposite of the Gather: instead of preparing a list of tensors as target we prepare the source data as a list of tensors we want to distribute. We also need to specify the <code>src</code>:</p>
+
+        <d-code block language="python">
+            def example_scatter():
+                if dist.get_rank() == 0:
+                    scatter_list = [
+                        torch.tensor([i + 1] * 5, dtype=torch.float32).cuda()
+                        for i in range(dist.get_world_size())
+                        ]
+                    print(f"Rank 0: Tensor to scatter: {scatter_list}")
+                else:
+                    scatter_list = None
+                tensor = torch.zeros(5, dtype=torch.float32).cuda()
+                print(f"Before scatter on rank {dist.get_rank()}: {tensor}")
+                dist.scatter(tensor, scatter_list, src=0)
+                print(f"After scatter on rank {dist.get_rank()}: {tensor}")
+                
+            init_process()
+            example_scatter()
+        </d-code>
+
+        <p>As a result we can see how the empty tensors got filled with the contents of the <code>scatter_list</code></p>
+
+        <d-code block language="python">
+            Rank 0: Tensor to scatter: [tensor([1., 1., 1., 1., 1.], device='cuda:0'),
+                                        tensor([2., 2., 2., 2., 2.], device='cuda:0'),
+                                        tensor([3., 3., 3., 3., 3.], device='cuda:0')]
+            Before scatter on rank 0: tensor([0., 0., 0., 0., 0.], device='cuda:0')
+            Before scatter on rank 1: tensor([0., 0., 0., 0., 0.], device='cuda:1')
+            Before scatter on rank 2: tensor([0., 0., 0., 0., 0.], device='cuda:2')
+
+            After scatter on rank 0: tensor([1., 1., 1., 1., 1.], device='cuda:0')
+            After scatter on rank 1: tensor([2., 2., 2., 2., 2.], device='cuda:1')
+            After scatter on rank 2: tensor([3., 3., 3., 3., 3.], device='cuda:2')
+        </d-code>
+
+        <p>Let’s create more interesting data to demonstrate the ReduceScatter logic: on each node we create a list of 2-elements vector on each node with a power exponent and an offset function of the node rank (it’s a bit hard to imagine so just look below for an example): </p>
+
+        <d-code block language="python">
+            def example_reduce_scatter():
+                rank = dist.get_rank()
+                world_size = dist.get_world_size()
+                input_tensor = [
+                    torch.tensor([(rank + 1) * i for i in range(1, 3)], dtype=torch.float32).cuda()**(j+1) 
+                    for j in range(world_size)
+                    ]
+                output_tensor = torch.zeros(2, dtype=torch.float32).cuda()
+                print(f"Before ReduceScatter on rank {rank}: {input_tensor}")
+                dist.reduce_scatter(output_tensor, input_tensor, op=dist.ReduceOp.SUM)
+                print(f"After ReduceScatter on rank {rank}: {output_tensor}")    
+    
+            init_process()
+            example_reduce_scatter()
+        </d-code>
+
+        <p>Let’s print the pattern of data that we created. We also immediately see the ReduceScatter pattern: the first rank received the sum of the first tensor from each node, and the second rank contains the sum of the second tensor on each node and so on:</p>
+
+        <d-code block language="python">
+            Before ReduceScatter on rank 0: [tensor([1., 2.], device='cuda:0'),
+											 tensor([1., 4.], device='cuda:0'),
+											 tensor([1., 8.], device='cuda:0')]
+            Before ReduceScatter on rank 1: [tensor([2., 4.], device='cuda:1'),
+                                             tensor([ 4., 16.], device='cuda:1'),
+                                             tensor([ 8., 64.], device='cuda:1')]
+            Before ReduceScatter on rank 2: [tensor([3., 6.], device='cuda:2'),
+                                             tensor([ 9., 36.], device='cuda:2'),
+                                             tensor([ 27., 216.], device='cuda:2')]
+
+            After ReduceScatter on rank 0: tensor([ 6., 12.], device='cuda:0')
+            After ReduceScatter on rank 1: tensor([14., 56.], device='cuda:1')
+            After ReduceScatter on rank 2: tensor([ 36., 288.], device='cuda:2')
+        </d-code>
+
+
+        <p>Let's have a quick look at a common implementation of AllReduce that uses ReduceScatter and AllGather: Ring AllReduce.</p>
+
+        <h4>A quick focus on Ring AllReduce</h4>
+        
+        <p><strong><em>Ring AllReduce</em></strong> is one specific implementation of AllReduce, optimized for scalability. Rather than all devices communicating with each other directly, which could create communication bottlenecks, Ring All-Reduce can be broken down into two key steps: ReduceScatter and AllGather. Here's how it works:</p>
+
+        <ol>
+            <li><strong>ReduceScatter</strong></li>
+            <ul>
+                <li>Each device splits its data (e.g., gradients) into chunks and sends one chunk to its neighbour. Simultaneously, each device receives a chunk from its other neighbour.</li>
+                <li>As each device receives a chunk, it adds (reduces) its corresponding chunk to the received one.</li>
+                <li>This process continues around the ring until each device holds a partially reduced chunk, representing a sum of the gradients across all devices for that chunk.</li>
+            </ul>
+            <li><strong>AllGather</strong></li>
+            <ul>
+                <li>Now, each device needs to collect the fully reduced chunks from other devices.</li>
+                <li>The devices start sending their reduced chunks to neighbours.</li>
+                <li>Each device forwards the chunks it receives until every device has all the fully reduced chunks, giving each device the complete, summed-up gradient.</li>
+            </ul>
+        </ol>
+
+        <p>Let’s illustrate this with the following gifs, where we have 5 GPUs, each with a tensor of length 5. The first animation shows the ReduceScatter step, where, at the end, each GPU receives the reduced results for a specific chunk of data (orange rectangle).</p>
+
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_reduce_scatter.gif" style="width: 400px" /></p>
+
+        <p>The next animation shows the AllGather step, where, at the end, each GPU obtains the full results of the AllReduce operation:</p>
+
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_all_gather.gif" style="width: 400px" /></p>
+
+        <p>You may have noticed that each of the <d-math>N</d-math> GPUs sends and receives values <d-math>N-1</d-math> times during both the reduce-scatter and all-gather steps. Each GPU sends <d-math>\frac{K}{N}</d-math> values per transfer, where <d-math>K</d-math> is the total number of values in the array being summed across the GPUs. Therefore, the total amount of data transferred to and from each GPU is  <d-math>2 \times (N-1) \times \frac{K}{N}</d-math>. When <d-math>N</d-math>  (the number of GPUs) is large, the total amount of data transferred to and from each GPU is approximately <d-math>2 \times K</d-math>, where <d-math>K</d-math> is the total number of parameters.</p>
+
+
+        <p><strong>There are two key things to keep in mind for AllReduce:</strong></p>
+        <ol>
+            <li>The communication cost for AllReduce is approximately <d-math>2xK</d-math> when  <d-math>N</d-math> (the number of GPUs) is large.</li>
+            <li>An AllReduce operation can be broken down into a reduce-scatter followed by an all-gather. The communication cost for these two operations is half that of the AllReduce, which is approximately <d-math>K</d-math>.</li>
+        </ol>
+
+        <p>As we can see this implementation can make efficient use of even a limited bandwidth between nodes.</p>
+
+        <p>We now have seen the main building block of distributed operations but before we see them in action let’s have a look at a special operation used for synchronization: the Barrier.</p>
         
         <h4>Barrier</h4>
         
+        <p>The Barrier is a simple operation to synchronize all nodes. A barrier is not lifted until all nodes have reached it. Then only are they allowed to continue with further computations:</p>
+
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/a0_barrier.png" style="width: 400px" /></p>
+
+        <p>We can easily simulate delayed nodes by setting up a different sleep time on each node and see how long it takes for all of them to pass the barrier:</p>
+
+        <d-code block language="python">
+            def example_barrier():
+                rank = dist.get_rank()
+                t_start = time.time()
+                print(f"Rank {rank} sleeps {rank} seconds.")
+                time.sleep(rank)  # Simulate different processing times
+                dist.barrier()
+                print(f"Rank {rank} after barrier time delta: {time.time()-t_start:.4f}")
+    
+            init_process()
+            example_barrier()
+        </d-code>
+
+        <p>We can see that although the first rank didn’t sleep at all it also took it 2sec to pass the barrier:</p>
+
+        <d-code block language="python">
+            Rank 0 sleeps 0 seconds.
+            Rank 1 sleeps 1 seconds.
+            Rank 2 sleeps 2 seconds.
+
+            Rank 0 after barrier time delta: 2.0025
+            Rank 1 after barrier time delta: 2.0025
+            Rank 2 after barrier time delta: 2.0024
+        </d-code>
+
+        <p>We need to be careful with synchronizing all nodes like this, as this defeat the purpose of parallel independent operations and might thus slow down the whole processing. In many situations it can be just fine if a fast node already starts processing the next job as the fast node could be slower in a next iteration therefore evening out the delay over the whole process.</p>
+
+        <p>Before turning to practical distributed training implementations, let’s first solve a mystery: what the heck is NCCL?</p>
+
         <h4>NCCL: NVIDIA Collective Communications Library</h4>
+
+        <p>When training large models on many GPUs we may sometimes strike gold but we will always encounter nickel (or NCCL 🥁)! What’s is that?</p>
+
+        <p>There are several libraries that implement collective communication and are support by PyTorch: there’s the classic <strong><em>MPI</em></strong> (Message Passing Interface), there’s <strong><em>Gloo</em></strong> by Meta, and finally there is `NCCL` (NVIDIA Collective Communications Library). They all provide similar functionality in terms of collective communication patterns but are optimized for different hardware setups; NCCL is designed to serve GPU-GPU communication efficiently while MPI and Gloo are setup for CPU-CPU or CPU-GPU communication. PyTorch provides a <a href="https://pytorch.org/docs/stable/distributed.html#which-backend-to-use">great guide</a> to decide which one to use:</p>
+
+        <ul>
+            <li>GPU training: use NCCL</li>
+            <li>CPU training: use Gloo</li>
+        </ul>
+
+        <p>There are a few finer points in the decision tree that we leave to the reader to explore in the PyTorch guide referenced above.</p>
+
+        <p>Now that we covered the fundamental operations for distributed training and when you should should be ready to follow the blog post easily.</p>
         
         <h3>A1: Distributed Training Profiling</h3>
 
