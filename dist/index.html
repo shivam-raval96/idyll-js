@@ -311,14 +311,15 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
+            <div class="note-box-content">
+            <p>
                 You would think for a model you could compute the memory requirements exactly but there are a few additional memory occupants that makes it hard to be exact:
         <ul>
             <li>CUDA Kernels typically require 1-2 GB of GPU memory, which you can quickly verify by running <code>import torch; torch.ones((1, 1)).to("cuda")</code> and then checking the GPU memory with <code>nvidia-smi</code>.</li>
             <li>Some rest memory usage from buffers, intermediate results and some memory that can’t be used due to fragmentation</li>
         </ul>
         We’ll neglect these last two contributors as they are typically small and constant factors.
-            </p>
+            </p></div>
         </div>
 
         <p>These items are stored as tensors which come in different <em>shapes</em> and <em>precisions</em>. The <em>shapes</em> are determined by hyper-parameters such as batch size, sequence length, model hidden dimensions, attention heads, vocabulary size, and potential model sharding as we’ll see later. <em>Precision</em> refers to formats like FP32, BF16, or FP8, which respectively require 4, 2, or 1 byte to store each single value in the tensor.</p>
@@ -388,16 +389,16 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                Some libraries store grads in fp32 which would require an additional <d-math>m_{params\_fp32} = 4 * N</d-math> memory. This is done for example in nanotron, because <code>bf16</code> is lossy for smaller values and we always prioritize stability. See  <a href="https://github.com/microsoft/DeepSpeed/issues/1773">this DeepSpeed issue</a> for more information.
-            </p>
+            <div class="note-box-content">
+                <p>Some libraries store grads in fp32 which would require an additional <d-math>m_{params\_fp32} = 4 * N</d-math> memory. This is done for example in nanotron, because <code>bf16</code> is lossy for smaller values and we always prioritize stability. See  <a href="https://github.com/microsoft/DeepSpeed/issues/1773">this DeepSpeed issue</a> for more information.</p>
+            </div>
         </div>
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                The FP32 copy of parameters (<d-math>m_{params\_fp32}</d-math>) is sometimes called "master weights" in the literature and codebases.
-            </p>
+            <div class="note-box-content">
+                <p>The FP32 copy of parameters (<d-math>m_{params\_fp32}</d-math>) is sometimes called "master weights" in the literature and codebases.</p>
+            </div>
         </div>
 
         <p>Interestingly, mixed precision itself doesn’t save overall memory as it just distributes the memory differently across the three components, and in fact adds another 4 bytes over full precision training if we accumulate gradients in FP32. It’s still advantageous as computing the forward/backward passes in half precision allows us to (1) use optimized lower precision operations on the GPU which are faster and (2) reduces the activation memory requirements during the forward pass which is a large part of the memory usage as we saw on the graph above and below.</p>
@@ -498,12 +499,13 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
+            <div class="note-box-content">
+              <p>
                 When you’re measuring how efficient your training setup is at using your GPU/TPU/accelerator, you usually want to take recomputation into account to compute total FLOPS (Floating point operations per second) and compare it to theoretical maximum FLOPS of the GPU/TPU/accelerator. Taking recomputation into account when calculating FLOPS for a training step gives a value called “hardware FLOPS” which is the real number of operations performed on the accelerator. Dividing this number by the duration of the training step and the maximum accelerator FLOPS yields the <strong><em>Hardware FLOPS Utilization (HFU).</em></strong>
-                <br>
-                <br>
+              </p><p>
                 However, what really matters at the end of the day is the start-to-end time needed to train a model on a given dataset. So when comparing various GPU/TPU/accelerator together, if one of these accelerator provide for instance enough memory to skip recomputation and thus perform less operation per second (lower HFU) but for a faster training, it should be rewarded not punished. Thus, an alternative is to compute what is called <strong><em>Model FLOPS Utilization (MFU)</em></strong> which, in contrast to HFU, only takes into account the required operations for the forward+backward passes through the model, and do not include recomputation in the measured FLOPs. This value is thus more specific to the model than the training implementation.
-            </p>
+              </p>
+            </div>
         </div>
 
 
@@ -677,9 +679,9 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>When performing communication operations, tensors must be contiguous in memory to avoid redundant memory copies. To perform this optimally, we often pre-allocate continuous buffers of the size of activations or model parameters specifically for communication. While this speed up communication, it also contributes in part to the peak memory usage during training.
-            </p>
+            <div class="note-box-content">
+                <p>When performing communication operations, tensors must be contiguous in memory to avoid redundant memory copies. To perform this optimally, we often pre-allocate continuous buffers of the size of activations or model parameters specifically for communication. While this speed up communication, it also contributes in part to the peak memory usage during training.</p>
+                </div>
         </div>
 
         <p>Now let's have a look what that means for the global batch size.</p>
@@ -720,9 +722,9 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>Bear in mind that at the 512+ GPUs scale, depending on the network used, the communication operations will start to be bound by <em>ring latency</em>  (time required for a signal to propagate once around the ring) which means we can no longer fully overlap the DP communications. This will decrease our compute efficiency and hit our throughput. In this case we should start exploring other dimensions to parallelize on.
-            </p>
+            <div class="note-box-content">
+                <p>Bear in mind that at the 512+ GPUs scale, depending on the network used, the communication operations will start to be bound by <em>ring latency</em>  (time required for a signal to propagate once around the ring) which means we can no longer fully overlap the DP communications. This will decrease our compute efficiency and hit our throughput. In this case we should start exploring other dimensions to parallelize on.</p>
+                </div>
         </div>
 
         <p>While data parallelism nicely overlaps the all-reduce gradient synchronization with backward computation to save time, this benefit starts to break down at large scales. Why? Because as we add more and more GPUs (hundreds or thousands), the overhead of coordinating between them grows significantly and the network requirements are becoming too large for the benefits. As a result, our setup will become less and less efficient which each additional GPU we add to the system.</p>
@@ -842,9 +844,9 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>Unfortunately these techniques are not straightforward to implement and require sophisticated use of hooks/bucketing. In practice we can just use ZeRO-3/FSDP implementation where the FSDPUnit is the entire model, more details about this later.
-            </p>
+            <div class="note-box-content">
+                <p>Unfortunately these techniques are not straightforward to implement and require sophisticated use of hooks/bucketing. In practice we can just use ZeRO-3/FSDP implementation where the FSDPUnit is the entire model, more details about this later.</p>
+            </div>
         </div>
 
         <p>In ZeRO-1 the optimizer states have been partitioned, which means that each replica only updates <d-math>\frac{1}{N_d}</d-math> of the optimizer states. The keen reader must have noticed that there is no real need to have all gradients on all DP ranks in the first place since only a subset is needed for the optimization step. Meet ZeRO-2!</p>
@@ -873,9 +875,9 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>This stage is also called FSDP (Fully Shared Data Parallelism) in PyTorch native implementation. We’ll just refer to ZeRO-3 in this blogpost but you can think of FSDP wherever you see it.
-            </p>
+            <div class="note-box-content">
+                <p>This stage is also called FSDP (Fully Shared Data Parallelism) in PyTorch native implementation. We’ll just refer to ZeRO-3 in this blogpost but you can think of FSDP wherever you see it.</p>
+            </div>
         </div>
 
         <p>So how do we do a forward or backward pass in practice if all parts of the model are distributed? Quite simply we gather them on-demand when we need them. In the forward pass this looks as follows:</p>
@@ -1030,9 +1032,9 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>One interesting note about layer normalization in tensor parallel training - since each TP rank sees the same activations after the all-gather, the layer norm weights don't actually need an all-reduce to sync their gradients after the backward pass. They naturally stay in sync across ranks. However, for dropout operations, we must make sure to sync the random seed across TP ranks to maintain deterministic behavior.
-            </p>
+            <div class="note-box-content">
+                <p>One interesting note about layer normalization in tensor parallel training - since each TP rank sees the same activations after the all-gather, the layer norm weights don't actually need an all-reduce to sync their gradients after the backward pass. They naturally stay in sync across ranks. However, for dropout operations, we must make sure to sync the random seed across TP ranks to maintain deterministic behavior.</p>
+                </div>
         </div>
 
         <p>This raises an interesting question - could we extend tensor parallelism to these remaining operations as well? Indeed, it's possible to parallelize layer norm, dropout and other operations too, which we'll explore next.</p>
@@ -1045,9 +1047,9 @@
 
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>The term Sequence Parallelism is a bit overloaded: the Sequence Parallelism in this section is tightly coupled to Tensor Parallelism and applies to dropout and layer norm operation. However, when we will move to longer sequences the attention computation will become a bottleneck, which calls for techniques such as Ring-Attention, which are sometimes also called <em>Sequence Parallelism</em> but we’ll refer to them as <em>Context Parallelism</em> to differentiate the two approaches. So each time you see sequence parallelism, remember that it is used together with tensor parallelism (in contrast to context parallelism, which can be used independently).
-            </p>
+            <div class="note-box-content">
+                <p>The term Sequence Parallelism is a bit overloaded: the Sequence Parallelism in this section is tightly coupled to Tensor Parallelism and applies to dropout and layer norm operation. However, when we will move to longer sequences the attention computation will become a bottleneck, which calls for techniques such as Ring-Attention, which are sometimes also called <em>Sequence Parallelism</em> but we’ll refer to them as <em>Context Parallelism</em> to differentiate the two approaches. So each time you see sequence parallelism, remember that it is used together with tensor parallelism (in contrast to context parallelism, which can be used independently).</p>
+                </div>
         </div>
 
         <p>Sequence parallelism (SP) involves splitting the activations and computations for the parts of the model not handled by tensor parallelism (TP) such as Dropout and LayerNorm, but along the input sequence dimension rather than across hidden dimension. This is needed because these operations require access to the full hidden dimension to compute correctly. For example, LayerNorm needs the full hidden dimension to compute mean and variance:</p>
@@ -1228,9 +1230,9 @@
         
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>Since LayerNorms in the SP region operate on different portions of the sequence, their gradients will differ across TP ranks. To ensure the weights stay synchronized, we need to all-reduce their gradients during the backward pass, similar to how DP ensures weights stay in sync. This is a small communication overhead since LayerNorm has relatively few parameters.
-            </p>
+            <div class="note-box-content">
+                <p>Since LayerNorms in the SP region operate on different portions of the sequence, their gradients will differ across TP ranks. To ensure the weights stay synchronized, we need to all-reduce their gradients during the backward pass, similar to how DP ensures weights stay in sync. This is a small communication overhead since LayerNorm has relatively few parameters.</p>
+                </div>
         </div>
 
         <p>However, there are two limits to TP and SP: 1) if we scale the sequence length the activation memory will still blow up in the TP region and 2) if the model is too big to fit with TP=8 then we will see a massive slow-down due to the inter-node connectivity.</p>
@@ -1272,9 +1274,9 @@
         
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
-            <p class="note-box-content">
-                <p>Context Parallelism shares some conceptual similarities with Flash Attention (see later for more details) - both techniques rely on online softmax computation to reduce memory usage. While Flash Attention focuses on optimizing the attention computation itself on a single GPU, Context Parallelism achieves memory reduction by distributing the sequence across multiple GPUs.
-            </p>
+            <div class="note-box-content">
+                <p>Context Parallelism shares some conceptual similarities with Flash Attention (see later for more details) - both techniques rely on online softmax computation to reduce memory usage. While Flash Attention focuses on optimizing the attention computation itself on a single GPU, Context Parallelism achieves memory reduction by distributing the sequence across multiple GPUs.</p>
+                </div>
         </div>
 
         <h3>Discovering Ring Attention</h3>
@@ -1635,9 +1637,9 @@
 
         <div class="note-box">
           <p class="note-box-title">📝 Note</p>
-          <p class="note-box-content">
-              <p>This similarity between EP and DP in terms of input handling is why some implementations consider Expert Parallelism to be a subgroup of Data Parallelism, with the key difference being that EP uses specialized expert routing rather than having all GPUs process inputs through identical model copies.
-          </p>
+          <div class="note-box-content">
+              <p>This similarity between EP and DP in terms of input handling is why some implementations consider Expert Parallelism to be a subgroup of Data Parallelism, with the key difference being that EP uses specialized expert routing rather than having all GPUs process inputs through identical model copies.</p>
+              </div>
       </div>
 
 
