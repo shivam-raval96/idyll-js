@@ -368,7 +368,7 @@
             \end{aligned}
         </d-math>
 
-        <p>Now let’s have look how things change if we train with mixed precision<d-cite bibtex-key="micikevicius2018mixedprecisiontraining"></d-cite>. The default nowadays is for mixed precision training is BF16, requires 2 bytes per parameter and gradient as well as an additional copy of the model weights and gradients in FP32, thus 12 bytes per parameter in total. In addition to the parameters and gradient, we need to store the optimizer states: for the Adam optimizer, this requires the momentum and the variance usually stored in FP32 for numerical stability, each using 4 bytes. </p>
+        <p>Now let’s have look how things change if we use a lower precision. For stability reason (see <a target="_self" href="#mixed_precision_training">the mixed-precision training section below</a>) we often don't use full low precision training but a mix of higher and lower precision called "mixed precision"<d-cite bibtex-key="micikevicius2018mixedprecisiontraining"></d-cite>. The default nowadays for mixed precision training is to generally use BF16 for most of the computations –requiring 2 bytes per parameter and gradient– as well as an additional copy of the model weights and gradients in FP32, thus 12 bytes per parameter in total. In addition to the parameters and gradient, we need to store the optimizer states: for the Adam optimizer, this requires the momentum and the variance usually stored in FP32 for numerical stability, each using 4 bytes. </p>
 
         <aside>See some more details below when we cover the ZeRO methods.</aside>
 
@@ -2722,22 +2722,29 @@
 
             window.addEventListener('scroll', (_event) => {
                 if (typeof (headings) != 'undefined' && headings != null && typeof (toc_links) != 'undefined' && toc_links != null) {
-                    // Then iterate forwards, on the first match highlight it and break
                     find_active: {
                         for (let i = headings.length - 1; i >= 0; i--) {
-                            if (headings[i].getBoundingClientRect().top - 50 <= 0) {
-                                if (!toc_links[i].classList.contains("active")) {
-                                    toc_links.forEach((link, _index) => {
-                                        link.classList.remove("active");
-                                    });
-                                    toc_links[i].classList.add('active');
+                            const heading = headings[i];
+                            // Skip headings that shouldn't be in TOC
+                            if (heading.parentElement.tagName == 'D-TITLE' || heading.getAttribute('no-toc')) {
+                                continue;
+                            }
+                            
+                            if (heading.getBoundingClientRect().top - 50 <= 0) {
+                                // Find matching TOC link by href
+                                const headingId = heading.getAttribute('id');
+                                const activeLink = Array.from(toc_links).find(link => 
+                                    link.getAttribute('href') === '#' + headingId
+                                );
+                                
+                                if (activeLink && !activeLink.classList.contains("active")) {
+                                    toc_links.forEach(link => link.classList.remove("active"));
+                                    activeLink.classList.add('active');
                                 }
                                 break find_active;
                             }
                         }
-                        toc_links.forEach((link, _index) => {
-                            link.classList.remove("active");
-                        });
+                        toc_links.forEach(link => link.classList.remove("active"));
                     }
                 }
             });
