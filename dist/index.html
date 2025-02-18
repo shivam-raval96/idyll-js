@@ -1554,81 +1554,92 @@
         <p>It's now time to turn to the last parallelism method we'll detail and which we can use to train large models efficiently: <strong>Expert parallelism</strong>.</p>
         
         <h2>Expert parallelism</h2>
-        <p>One more <s>thing</s> parallelism.</p>
 
-        <p>Before diving into Expert Parallelism, we recommend reading about the Mixture-of-Experts (MoE) architecture in <a href="https://huggingface.co/blog/moe">this blog post</a> to better understand the concepts.</p>
+        <p>This is our last parallelism method to discuss. Before tackling it, if you don't have any exposure to Mixture-of-Experts, feel free to read about them in <a href="https://huggingface.co/blog/moe">this previous, much shorter, blog post</a> we published some time ago and which should help you better understand the Mixture-of-Experts (MoE) architecture in general.</p>
 
-        <p>Mixture-of-expert models have gained some traction with models such as Mixtral<d-cite bibtex-key="jiang2024mixtralexperts"></d-cite> or more recently DeepSeek-V3/R1! The basic idea is that instead of having a single feedforward module per layer we can have several and route tokens through different ones depending on their context.</p>
+        <p>Mixture-of-expert models have gained recent traction and visibility with models such as GPT-4, Mixtral<d-cite bibtex-key="jiang2024mixtralexperts"></d-cite> or more recently DeepSeek-V3/R1. The basic idea is that instead of having a single feedforward module per layer we can have several parallel modules and route tokens through one or the other to be processed differently.</p>
 
         <p><img alt="ep_moe.png" src="/assets/images/ep_moe.png" /></p>
-        <p>MoE layer from the Switch Transformers paper<d-cite bibtex-key="fedus2022switchtransformersscalingtrillion"></d-cite></p>
+        <div class="figure-legend"><p>Illustrationg of a MoE layer taken from the Switch Transformers paper<d-cite bibtex-key="fedus2022switchtransformersscalingtrillion"></d-cite></p>
+        </div>
         
-        
-        <p>This design makes it very easy to add a new parallelism paradigm: Expert parallelism (EP). Since the feedforward layers are fully independent we can simply put each expert's feedforward layer on a different worker. Compared to TP it's much more lightweight, since we don't need to split the matrix multiplication, we just need to route the hidden states of a token to the right expert.</p>
+        <p>The design of MoE layers makes it actually easy to implement parallelism across the experts  dimension for what we will call <strong>Expert parallelism</strong> (EP). Since the feedforward layers are fully independent we can simply put each expert's feedforward layer on a different worker. Compared to TP it's much more lightweight, since we don't need to split the matrix multiplication, we just need to route the hidden states of a token to the right expert.</p>
 
-        <p>In practice, EP is typically used in conjunction with another form of parallelism - usually Data Parallelism. This is because EP only affects the MoE layers and doesn't shard the input tokens (unlike Context Parallelism which shards tokens along the sequence length dimension). This means our GPUs would be doing redundant compute for all the non-MoE blocks if we used EP alone. By combining EP with DP, we can efficiently shard both the experts and the input batches across our GPUs, as we can see in the simplified diagram below:</p>
+        <p>In practice, EP will typically be used in conjunction with other forms of parallelism - for instance Data Parallelism. This is because EP only affects the MoE layers and doesn't shard the input tokens (unlike Context Parallelism which shards tokens along the sequence length dimension). This means our GPUs would be doing redundant compute for all the non-MoE blocks if we only used EP. By combining EP with DP, we can efficiently shard both the experts and the input batches across our GPUs, as we can see in the simplified diagram below:</p>
 
         <p><img alt="ep_schema.png" src="/assets/images/ep_schema.png" /></p>
-        <p>Source: A Survey on Mixture of Experts<d-cite bibtex-key="cai2024surveymixtureexperts"></d-cite> </p>
-        <p>But let's not get ahead of ourselves - we've reserved a specific section to talk about interactions between different parallelism strategies, so look forward to that to better understand the previous diagram.</p>
+        <div class="figure-legend"><p>Source: A Survey on Mixture of Experts<d-cite bibtex-key="cai2024surveymixtureexperts"></d-cite> </p>
+        </div>
+        <p>But let's not get ahead of ourselves - our <a target="_self" href="#5d_parallelism_in_a_nutshell">following section</a> will specifically talk about all the interactions between different parallelism strategies, so don't worry if you don't understand yet this last diagram.</p>
 
-        <p>There are several tricks to make EP work in practice, closely tied to model design. For instance, DeepSeek-V3 enforces a constraint in the router, ensuring that each token is sent to at most M nodes (in their case, 4) to reduce communication overhead. While Expert parallelism has been around for a while<d-cite bibtex-key="lepikhin2020gshardscalinggiantmodels"></d-cite> it is just now gaining new traction with the MoE architecture gaining more traction.</p>
+        <p>In practice, there are a few tricks to make EP work efficiently and they are closely tied to model design. For instance, DeepSeek-V3 enforces a constraint in the router, ensuring that each token is sent to at most M nodes (in their case, 4) to keep the tokens on a single node and reduce communication overhead. While Expert parallelism has been around for a while<d-cite bibtex-key="lepikhin2020gshardscalinggiantmodels"></d-cite> it is just now gaining new traction with the MoE architecture gaining more traction.</p>
+
+        <p>We plan to add a more complete example of EP in picotron/nanotron soon, so stay tuned for more!</p>
         
-        <p>Congratulation reader, with this brief overview of Expert parallelism you have now seen all 5 parallelism strategies to scale model training: </p>
-        <ul>
+        <h2>5D parallelism in a nutshell</h2>
+
+        <p>Congratulation reader, you have now seen all 5 parallelism strategies you can use to scale model training: </p>
+        <ol>
             <li>Data Parallelism – along the batch dimension (including ZeRO)</li>
             <li>Tensor Parallelism - along the hidden dimension</li>
             <li>Sequence and Context Parallelism - along the sequence dimension</li>
             <li>Pipeline Parallelism - along the model layers</li>
             <li>Expert Parallelism - along the model experts</li>
-        </ul>
+        </ol>
 
-        <p>However, one aspect you are maybe curious right now: how do all these parallelism strategies and ZeRO compare to each other? Let’s look at the similarities and interplay!</p>
+        <p>At this stage, one aspect you are probably curious about is how all these parallelism strategies (and ZeRO) compare to each other and how they interact with each other? In a nutshell, which one should we use and combine?</p>
 
-        <h2>5D parallelism in a nutshell</h2>
-
-        <p>Let’s start with Pipeline parallelism as ZeRO-3 and Pipeline parallelism have interesting similarities and differences.</p>
+        <p>Let’s take a look at the similarities and interplay. We'll start by bringing Pipeline parallelism are ZeRO-3 side-by-side as they have interesting similarities and differences.</p>
         
-        <p>Both methods are ways to partition the model weights over several GPUs and perform communication/computation along the model depth axis (for example in ZeRO-3, we prefetch the next layer while computing). In the following we say “a layer” to simplify what should be in general called “a set of layer” (as the basis sharding unit of the model). This means in both cases the full layers are computed on device, as opposed to TP, where the layers are sharded for the computation.</p>
+        <p><strong>Pipeline parallelism vs. ZeRO-3 -</strong> Both are ways to partition the model weights over several GPUs and perform communication/computation along the model depth axis (for example in ZeRO-3, we prefetch the next layer while computing). This means in both cases the full layers are computed on device, as opposed to TP, where the layers are sharded for the computation.</p>
+        <aside>In the following we say “a layer” to simplify what should be in general called “a set of layer” (as the basis sharding unit of the model).</aside>
         
         <p>However, there are a few major differences between the two:</p>
 
+        <div class="l-body">
         <table>
             <thead>
               <tr>
+                <th> </th>
                 <th><strong>ZeRO-3</strong></th>
-                <th><strong>Pipeline parallel</strong></th>
+                <th><strong>Pipeline Parallelism</strong></th>
               </tr>
             </thead>
             <tbody>
               <tr>
-                <td>each compute unit only stores a fraction of a layer</td>
-                <td>each compute unit stores a full layer</td>
+                <td>Each compute unit stores </td>
+                <td>only a fraction of a layer</td>
+                <td>a full layer</td>
               </tr>
               <tr>
-                <td>communication is used to transfer weights</td>
-                <td>communication is used to transfer activations</td>
+                <td>Communication is used to transfer</td>
+                <td>weights</td>
+                <td>activations</td>
               </tr>
               <tr>
-                <td>model agnostic orchestration</td>
-                <td>model agnostic orchestration</td>
+                <td>Orchestration</td>
+                <td>model agnostic</td>
+                <td>model agnostic</td>
               </tr>
               <tr>
-                <td>Complex implementation to handle model partitioning and communications</td>
-                <td>Complex implementation to handle efficient PP schedules</td>
+                <td>Implementation challenges</td>
+                <td>Complex to handle model partitioning and communications</td>
+                <td>Complex to handle efficient PP schedules</td>
               </tr>
               <tr>
+                <td>Scaling considerations</td>
                 <td>Prefers large <d-math>mbs</d-math> and <d-math>seq\_len</d-math> to hide comms</td>
                 <td>Prefers large <d-math>\text{grad\_acc}</d-math> to hide bubble</td>
               </tr>
             </tbody>
            </table>
+          </div>
 
-        <p>Clearly ZeRO-3 and PP are distinctly different approaches to sharing the model layers and deciding to focus communication either on weights or on activations. While they can be combined, doing so requires increasing the global batch size significantly to amortize the communication costs, creating a tradeoff between global batch size, model size, network bandwidth, and training efficiency. If combined, ZeRO-3 should be configured to keep the weights in memory for each micro-batch in PP to minimize the communication overhead.</p>
+        <p>As you can see, ZeRO-3 and PP sove the same challenge through quite different approaches, whether you decide to focus communication either on weights or on activations. While they can be combined, it's not often done in practice as doing so requires increasing the global batch size significantly to amortize the communication costs, creating a tradeoff between global batch size, model size, network bandwidth, and training efficiency. If you decide to combine them, ZeRO-3 should be configured to keep the weights in memory for each micro-batch in PP to minimize as much as possible the communication overhead.</p>
         
-        <p>Note that ZeRO-1 and ZeRO-2 on the other hand are interesting to combine with Pipeline Parallelism as they focus on gradients and optimizer states instead of parameters and are thus complementary. For instance, DeepSeek-v3 used PP with ZeRO-1!</p>
+        <p>On the other hand, ZeRO-1 and ZeRO-2, which focus on optimizer states and gradients, can be easily combined with Pipeline Parallelism and are complementary to it. Combining them don't raise any particular new challenge. For instance, the training of DeepSeek-v3 used PP combined with ZeRO-1!</p>
 
-        <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and interoperable with both Pipeline Parallelism and ZeRO-3, because it relies on the distributive property of matrix multiplication that allows weights and activations to be sharded and computed independently before being combined. However, TP has two important limitations: First, since its communication operations are part of the critical path of computation, it doesn't scale well beyond a certain point as communication overhead begins to dominate. Second, unlike ZeRO and PP which are model-agnostic, TP requires careful handling of activation sharding - sometimes along the hidden dimension (in the TP region) and sometimes along the sequence dimension (in the SP region) - making it more complex to implement correctly and requiring model-specific knowledge to ensure proper sharding patterns throughout.</p>
+        <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and interoperable with both Pipeline Parallelism and ZeRO-3, because it relies on the distributive property of matrix multiplication that allows weights and activations to be sharded and computed independently before being combined. In practice TP has two important limitations we've discussed in the previous sections: First, since its communication operations are part of the critical path of computation, it's difficult to scale well beyond a certain point at which communication overhead begins to dominate. Second, unlike ZeRO and PP which are model-agnostic, TP requires careful handling of activation sharding - sometimes along the hidden dimension (in the TP region) and sometimes along the sequence dimension (in the SP region) - making it more cumbersome to implement correctly and requiring model-specific knowledge to ensure proper sharding patterns throughout.</p>
         
         <div class="l-page"><img alt="TP & SP diagram" src="/assets/images/5D_nutshell_tp_sp.svg" /></div>
         <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
