@@ -5396,7 +5396,7 @@ function _loadFragments() {
                     while (1) switch (_context5.prev = _context5.next) {
                       case 0:
                         fragmentName = element.id.replace('fragment-', '');
-                        fragmentPath = "/fragments/".concat(fragmentName, ".html");
+                        fragmentPath = "fragments/".concat(fragmentName, ".html");
                         return _context5.abrupt("return", new Promise(/*#__PURE__*/function () {
                           var _ref = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(resolve, reject) {
                             var fetchPromise;

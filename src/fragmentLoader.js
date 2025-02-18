@@ -36,7 +36,7 @@ async function loadFragments() {
 
         async addFetch(element) {
             const fragmentName = element.id.replace('fragment-', '');
-            const fragmentPath = `/fragments/${fragmentName}.html`;
+            const fragmentPath = `fragments/${fragmentName}.html`;
             
             return new Promise(async (resolve, reject) => {
                 try {
