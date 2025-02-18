@@ -1089,31 +1089,31 @@
         
         <p>So what is actually happening here? As a famous LLM would say, let’s take it step-by-step:</p>
 
-        <div class="l-body" style="display: grid; grid-template-columns: 1fr 1fr;">
+        <div class="l-body" style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
         <div>
-          <p><strong>Initial LayerNorm (SP Region)</strong></p>
-        <ul>
+          <p style="margin-bottom: 0;"><strong>Initial LayerNorm (SP Region)</strong></p>
+        <ul style="margin-top: 0;">
             <li>Input tensors X1<em> and X2</em> (b,s/2,h) enter LayerNorm, already split across sequence dimension</li>
             <li>Each GPU computes LayerNorm independently on its sequence chunk and give Y1<em> and Y2</em></li>
         </ul>
-        <p><strong>First Transition (SP → TP)</strong></p>
-        <ul>
+        <p style="margin-bottom: 0;"><strong>First Transition (SP → TP)</strong></p>
+        <ul style="margin-top: 0;">
             <li>"g" operation (all-gather) combines Y1<em> and Y2</em> back to full sequence length</li>
             <li> Restores Y (b,s,h) since column linear layer needs full hidden dimension h</li>
         </ul>
-        <p><strong>First Linear Layer (TP Region)</strong></p>
-        <ul>
+        <p style="margin-bottom: 0;"><strong>First Linear Layer (TP Region)</strong></p>
+        <ul style="margin-top: 0;">
             <li>A1 is a column-linear layer, so it splits Y along the hidden dimension</li>
             <li>GeLU is applied independently on each GPU</li>
             <li>Z1* is (b,s,h/2)</li>
         </ul>
-        <p><strong>Second Linear Layer (TP Region)</strong></p>
-        <ul>
+        <p style="margin-bottom: 0;"><strong>Second Linear Layer (TP Region)</strong></p>
+        <ul style="margin-top: 0;">
             <li>B1 is a row-linear layer, so it restores the hidden dimension</li>
             <li>W1 is (b,s,h)</li>
         </ul>
-        <p><strong>Final Transition (TP → SP)</strong></p>
-        <ul>
+        <p style="margin-bottom: 0;"><strong>Final Transition (TP → SP)</strong></p>
+        <ul style="margin-top: 0;">
             <li>"g*" operation (reduce-scatter) which reduces for previous row-linear correctness while scattering along sequence dimension</li>
             <li>W1* is (b,s/2,h)</li>
         </ul>
