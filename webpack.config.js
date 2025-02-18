@@ -2,47 +2,55 @@ const path = require("path");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
+const Handlebars = require("handlebars");
+const fs = require("fs");
+const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
+const HtmlMinimizerPlugin = require("html-minimizer-webpack-plugin");
 
-const COLOR_KEYS = ["color", "bgColor", "fillcolor"];
 
-const transformDataColors = async (data, path) => {
-    const {getNamedColor} = await import('./src/colors.mjs');
-    // if not json file, return
-    if (!path.endsWith(".json")) {
-        return data;
-    }
-    const parsedData = JSON.parse(data);
-    // Change the color of the data
-    const deepIterateAndSetColor = (key, val) => {
-        if (val === null) {
-            return null;
+const FRAGMENTS_PATH = "src/fragments";
+
+// Load the fragments from the fragments directory and caches it
+const loadFragmentsMap = (() => {
+    let cachedFragments = null;
+    return async () => {
+        if (cachedFragments === null) {
+            cachedFragments = {};
+            const walkDir = async (dir, basePath = '') => {
+                const files = fs.readdirSync(dir);
+                await Promise.all(files.map(async file => {
+                    const filePath = path.join(dir, file);
+                    const relativePath = path.join(basePath, file);
+                    if (fs.statSync(filePath).isDirectory()) {
+                        await walkDir(filePath, relativePath);
+                    } else {
+                        // Remove the .html extension before creating the dotted path
+                        const nameWithoutExt = relativePath.replace(/\.html$/, '');
+                        const dottedPath = 'fragment-' + nameWithoutExt.replace(/\\/g, '-').replace(/\//g, '-').replace(/\./g, '-');
+                        const content = fs.readFileSync(filePath, "utf8");
+                        // Minify the HTML content using swcMinifyFragment
+                        const minifiedRes = await HtmlMinimizerPlugin.swcMinifyFragment({"tmp.html": content})
+                        if (minifiedRes.errors) {
+                            console.error(minifiedRes.errors)
+                        }
+                        const minifiedContent = minifiedRes.code;
+                        cachedFragments[dottedPath] = minifiedContent;
+                    }
+                }));
+            };
+            await walkDir(FRAGMENTS_PATH);
         }
-        if (val == undefined) {
-            return undefined;
-        }
-        if (Array.isArray(val)) {
-            return val.map(item => deepIterateAndSetColor(key, item));
-        }
-        if (typeof val === "object") {
-            return Object.entries(val).reduce((newObj, [key, value]) => {
-                newObj[key] = deepIterateAndSetColor(key, value);
-                return newObj;
-            }, {});
-        }
-        if (COLOR_KEYS.includes(key)) {
-            const [colorName, opacity, ...rest] = val.trim().split(/\s+/);
-            const floatOpacity = parseFloat(opacity);
-            const newColor = getNamedColor(colorName, floatOpacity);
-            if (newColor !== undefined && rest.length === 0 && !isNaN(floatOpacity)) {
-                console.log(`key: ${key} in file ${path} changed from ${val} to ${newColor}`);
-                return newColor;
-            } else {
-                return val;
-            }
-        }
-        return val;
+        return cachedFragments;
     };
-    return JSON.stringify(deepIterateAndSetColor(undefined, parsedData))
+})();
+
+const transformHandlebars = async (data, path) => {
+    const fragments = await loadFragmentsMap();
+    console.log(`Available fragments: ${Object.keys(fragments).join(', ')}`);
+    // Load the template file
+    const template = Handlebars.compile(data.toString('utf8'));
+    const html = template(fragments);
+    return html;
 };
 
 module.exports = {
@@ -67,6 +75,7 @@ module.exports = {
                     },
                 },
             },
+            {}
         ],
     },
     plugins: [
@@ -76,11 +85,15 @@ module.exports = {
                 {
                     from: "assets",
                     to: "assets",
-                    transform: transformDataColors,
                 },
+                { from: "src/fragments/*", to: "fragments/[name].html" },
                 { from: "src/style.css", to: "style.css" },
                 { from: "src/bibliography.bib", to: "bibliography.bib" },
-                { from: "src/index.html", to: "index.html" },
+                { 
+                    from: "src/index.html", 
+                    to: "index.html",
+                    transform: transformHandlebars, 
+                },
             ],
         }),
     ],
@@ -91,6 +104,50 @@ module.exports = {
         hot: process.env.NODE_ENV !== 'production', // Enable hot module replacement unless in production
     },
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
+    optimization: {
+        minimizer: [
+            // Hynek: Ideally we would convert all images to webp and just use webp, but I don't have time
+            // to write script which would also modify html to reflect the new extensions.
+            new ImageMinimizerPlugin({
+                minimizer: [{
+                    implementation: ImageMinimizerPlugin.sharpMinify,
+                    options: {
+                        encodeOptions: {
+                            // For JPG
+                            jpeg: {
+                                quality: 80
+                            },
+                            // For PNG
+                            png: {
+                                quality: 80
+                            },
+                            // For WebP
+                            webp: {
+                                quality: 80
+                            }
+                        }
+                    }
+                },
+                {
+                    implementation: ImageMinimizerPlugin.svgoMinify,
+                    options: {
+                        encodeOptions: {
+                            multipass: true,
+                            plugins: [
+                                'preset-default',
+                            ]
+                        }
+                    }
+                }
+            ]
+            }),
+            //Hynek: Ideally we don't run this twice but we
+            new HtmlMinimizerPlugin({
+                test: /fragments\/.*\.html$/i,
+                minify: HtmlMinimizerPlugin.swcMinifyFragment,
+            })
+        ]
+    },
 };
 
 console.log(process.env.NODE_ENV)

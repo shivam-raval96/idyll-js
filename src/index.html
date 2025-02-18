@@ -4,6 +4,7 @@
 <head>
     <script src="distill.bundle.js" type="module" fetchpriority="high" blocking></script>
     <script src="main.bundle.js" type="module" fetchpriority="low" defer></script>
+    <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf8">
     <base target="_blank">
@@ -39,11 +40,10 @@
     <d-title>
         <h1 class="l-page" style="text-align: center;">The Ultra-Scale Playbook:<br>Training LLMs on GPU Clusters</h1>
         <div id="title-plot" class="main-plot-container l-screen" style="overflow-x: hidden; width: 100%; text-align: center;">
-            <iframe id="banner" 
-                src="assets/data/benchmarks/banner.html" scrolling="no" frameborder="0" width="1200"
-                height="675" loading="lazy" style="margin: 0 auto; position: relative;">
-            </iframe>
-            <p style="text-align: center; font-style: italic; margin-top: 10px; max-width: 900px; margin-left: auto; margin-right: auto;">We ran over 4000 scaling experiments on up to 512 GPUs and measured throughput (size of markers) and GPU utilization (color of markers). Note that both are normalized per model size in this visualization.</p>
+            <div style="display: flex; justify-content: center; position: relative;">
+                {{{fragment-banner}}}
+            </div>
+            <p style="text-align: cekter; font-style: italic; margin-top: 10px; max-width: 900px; margin-left: auto; margin-right: auto;">We ran over 4000 scaling experiments on up to 512 GPUs and measured throughput (size of markers) and GPU utilization (color of markers). Note that both are normalized per model size in this visualization.</p>
   
         </div>
     </d-title>
@@ -206,7 +206,8 @@
 
         <p><strong>Real training efficiency benchmarks:</strong> Finally, how to <em>actually</em> scale your LLM training depends on your infrastructure, such as the kind of chips, interconnect etc., and we can’t give a single unified recipe. What we will give though is a way to benchmark several setups and it is what we have done on our cluster! We ran over 4100 distributed experiments (over 16k including test runs) with up to 512 GPUs to scan many possible distributed training layouts and model sizes. </p>
         
-        <iframe id="plotFrame" src="assets/data/benchmarks/benchmarks_interactive.html" scrolling="no" frameborder="0" height="840" width="720"></iframe>
+        <!-- <iframe id="plotFrame" src="assets/data/benchmarks/benchmarks_interactive.html" scrolling="no" frameborder="0" height="840" width="720"></iframe> -->
+        <div id="fragment-benchmarks_interactive"></div>
 
         <p>As you can see, there’s a lot of ground to be covered. Before getting into the trenches of distributed training let’s take a quick high level look on the challenges we'll cover in the book.</p>
 
@@ -337,7 +338,8 @@
         <div class="info" id="svg-first_steps_memory_profile-info">Hover over the elements to see their details</div>
         <script src="../assets/images/first_steps_memory_profile.js"></script>
  -->
-        <iframe id="plotFrame" src="assets/data/benchmarks/memory-profile.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe>
+        <!-- {{!-- <iframe id="plotFrame" src="assets/data/benchmarks/memory-profile.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe> --}} -->
+        <div id="fragment-memory-profile"></div>
 
         <p>Clearly the first step looks very different from the subsequent ones, but let’s first have a look at the general anatomy of a step: first the activations increase quickly as we do the forward pass, then during the backward pass the gradients build up and as the backward pass propagates, the stored activations used to compute the gradients are progressively cleared. Finally, we perform the optimization step during which we need all the gradients and then update the optimizer states before we start the next forward pass. </p>
 
@@ -458,14 +460,14 @@
 
         <p>An interesting observation here is how the memory is not static for a given model but it scales linearly with both the sequence length and batch size. This means the activation memory is the part which will blow up when we increase our batch size or train with longer sequences. We can use this equation to look at how memory usage changes for various sequence lengths for example for Llama models (<code>bs=1</code>):</p>
 
-        <iframe class="l-body-outset" id="plotFrame3" src="assets/data/benchmarks/memusage_activations.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <div class="l-body-outset" id="fragment-memusage_activations"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame3');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
 
         <p>This graph tells a striking story: for short sequences (or similar for small batch-sizes), activations are almost negligible, but starting at around 2-4k tokens they come to take a significant amount of memory while parameter, gradient and optimizer states usage (that we’ll discuss later) stays roughly independent of the sequence length and batch size.</p>
 
@@ -493,7 +495,7 @@
 
         <p>Let’s see how drastically recomputation strategies can in practice reduce the memory footprint and how selective recomputation strikes a nice balance between memory saving and recomputation cost:</p>
 
-        <iframe id="plotFrame" src="assets/data/benchmarks/memory-recomputation.html" height="540" width="1000" scrolling="no" frameborder="0"></iframe>
+        <div id="fragment-memory-recomputation"></div>
 
         <p>Another trend that's clearly visibile here is how the activations for long sequences play a bigger role for smaller models, so the effect of recomputation becomes even more noticeable.</p>
 
@@ -732,14 +734,14 @@
         <p>Lets see this happening in practice with some benchmark:</p>
 
         <!-- <p><img alt="image.png" src="/assets/images/dp_scaling.svg"/></p> -->
-        <iframe class="l-body-outset" id="plotFrame4" src="assets/data/benchmarks/dp_scaling.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <div class="l-body-outset" id="fragment-dp_scaling"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame4');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
 
         <p>We see that above some limit, our throughput starts to drop quite significantly while the memory usage per GPU stays constant and is not affected by adding more DP ranks.</p>
 
@@ -748,14 +750,15 @@
         <p>The keen reader has already probably noted however that this assumes that we can fit at least one input sample forward pass (mbs<em>=1)</em> into our GPU memory. This is not always the case! As we can see, larger models don’t fit into a single GPU, even with activation recomputation activated: </p>
         <aside>Tip: you can quickly eyeball the minimal memory required for your model’s parameters by multiplying by 2 e.g. 70B → 140GB (=133GiB)</aside>
 
-        <iframe class="l-body-outset" id="plotFrame5" src="assets/data/benchmarks/dp_ourjourney_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame5" src="assets/data/benchmarks/dp_ourjourney_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-dp_ourjourney_memoryusage"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame5');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
         <!-- <p><img alt="dp_ourjourney_memoryusage.svg" src="/assets/images/dp_ourjourney_memoryusage.svg" /></p> -->
 
 
@@ -905,14 +908,15 @@
 
         <p>However, there is a limit here, DP only works if a layer of the model fits in a single GPU and ZeRO can only partition the parameters, gradients, and optimizer states, but not the activation memory! We recall from <a target="_self" href="#memory_usage_in_transformers">the activation memory discussion</a> that this part of the memory scales with sequence length and batch size. Naturally we could just limit those, but in practice we don’t want to be limited by hardware to train with only with a short sequence length. </p>        
         
-        <iframe class="l-body-outset" id="plotFrame6" src="assets/data/benchmarks/zero3_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame6" src="assets/data/benchmarks/zero3_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-zero3_memoryusage"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame6');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
         <!-- <p><img alt="zero3_memoryusage.svg" src="/assets/images/zero3_memoryusage.svg" /></p> -->
 
         <p>To overcome this issues, it's time to explore a new, orthogonal axis of parallelism - Tensor Parallelism (TP). Unlike ZeRO3 which relies on heavy parameter communication, TP proposes to shard parameters, gradients, optimizer states AND activations across devices without requiring any communication of model parameters between GPUs.</p>
@@ -1011,14 +1015,15 @@
 
         <p> Let's take a better look at the trade-off as we scale the TP degree:</p>
 
-        <iframe class="l-body-outset" id="plotFrame13" src="assets/data/benchmarks/tp_scaling.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame13" src="assets/data/benchmarks/tp_scaling.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-tp_scaling"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame13');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
 <!-- 
         <p><img alt="Impact of Tensor Parallelism on model performance and batch size capacity: while increasing TP leads to reduced per-GPU throughput (left), it enables processing of larger batch sizes (right), illustrating the trade-off between computational efficiency and memory availability in distributed training." src="/assets/images/tp_scaling.svg" /></p> -->
 
@@ -1028,14 +1033,15 @@
 
         <p>This being said, tensor parallelism provides important benefits for memory usage by distributing model parameters, gradients, optimizer states and activations (to some extent) across GPUs. Let's examine this effect on a 70B parameter model:</p>
 
-        <iframe class="l-body-outset" id="plotFrame7" src="assets/data/benchmarks/tp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame7" src="assets/data/benchmarks/tp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-tp_memoryusage"></div>
+<!--    <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame7');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
-            });
-        </script>
+            }); -->
+        <!-- </script> -->
         <!-- <p><img alt="tp_memoryusage.svg" src="/assets/images/tp_memoryusage.svg" /></p> -->
 
         <p>Increasing tensor parallelism reduces the memory needed for model parameters, gradients and optimizer states on each GPU to the point where we can start fitting a large model on a single node of 8 GPUs. </p>
@@ -1192,14 +1198,15 @@
 
         <p>By using sequence parallelism, we can achieve even greater activation memory savings, allowing us to push our batch size and sequence length further than what would be possible with tensor parallelism alone. Let's see what that means for our previous 70B model example:</p>
 
-        <iframe class="l-body-outset" id="plotFrame8" src="assets/data/benchmarks/tp_sp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame8" src="assets/data/benchmarks/tp_sp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-tp_sp_memoryusage"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame8');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
-            });
-        </script>
+            }); -->
+        <!-- </script> -->
         <!-- <p><img alt="tp_sp_memoryusage.svg" src="/assets/images/tp_sp_memoryusage.svg" /></p> -->
 
         <p>As we can see, we've again strongly reduced the maximum memory usage per GPU, allowing us to fit sequence lengths of 16k tokens with TP/SP=16, an improvement over the vanilla TP case! (TP=16 is still a bit large as we've seen in the previous section, but we'll see how we can improve this in the next section).</p>
@@ -1214,14 +1221,15 @@
 
         <p>We can benchmark how this communication overhead becomes increasingly problematic as we scale up tensor parallelism. Let’s measure the throughput and memory utilization as we scale TP with SP for a 3B model with 4096 seqlen:</p>
 
-        <iframe class="l-body-outset" id="plotFrame2" src="assets/data/benchmarks/tp_sp_scaling.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame2" src="assets/data/benchmarks/tp_sp_scaling.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-tp_sp_scaling"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame2');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
-            });
-        </script>
+            }); -->
+        <!-- </script> -->
 
         <!-- <p><img alt="tp_sp_scaling.svg" src="/assets/images/tp_sp_scaling.svg" /></p> -->
         <p>Here again, there's a trade-off between computational efficiency (left) and memory capacity (right). While higher parallelism degrees enable processing of significantly larger batch sizes by reducing the activation memory, they also reduce per-GPU throughput, in particular above a threshold corresponding to the number of GPUs per node.</p>
@@ -1253,14 +1261,15 @@
 
         <p>Moreover, even if we use full recomputation of the activations (which comes at a heavy compute overhead of ~30%), we still need to hold in memory some activations at the layer boundaries which scale linearly with sequence length. Let's take a look and see how Context Parallelism can help us:</p>
 
-        <iframe class="l-body-outset" id="plotFrame9" src="assets/data/benchmarks/cp_8Bmemoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame9" src="assets/data/benchmarks/cp_8Bmemoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-cp_8Bmemoryusage"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame9');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
 
         <!-- <p><img alt="image.png" src="/assets/images/cp_memoryusage.svg" /></p> -->
 
@@ -1354,14 +1363,15 @@
         
         <p>In the <a target="_self" href="#tensor-parallelism">Tensor Parallelism</a> section we saw that trying to scale Tensor parallelism past the number of GPUs per single node (typically 4 or 8) hit a lower bandwidth network called “inter-node connection” which can quite strongly impair our performances. We can see this clearly on e.g. the all-reduce operation when we benchmark it on our cluster across several nodes (each node has 8 GPUs):</p>
 
-        <iframe class="l-body-outset" id="plotFrame11" src="assets/data/benchmarks/pp_comm_bandwidth.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body-outset" id="plotFrame11" src="assets/data/benchmarks/pp_comm_bandwidth.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body-outset" id="fragment-pp_comm_bandwidth"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame11');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
 
         <!-- <p><img alt="pp_comm_bandwidth.svg" src="/assets/images/pp_comm_bandwidth.svg" /></p> -->
         <p>Inter-node communication bandwidth measurements across different node counts, showing median (lines) and 5th-95th percentile ranges (shaded areas) for AllReduce, AllGather and ReduceScatter operations.</p>
@@ -1372,14 +1382,15 @@
 
         <aside>This technique may remind you of our discussion on <a target="_self" href="#zero-redundancy-optimizer">ZeRO-3</a> where we split the model parameters across GPUs. We compare both techniques in details later in the <a target="_self" href="#5d_parallelism_in_a_nutshell">5D parallelism in a nutshell</a> section.</aside>
 
-        <iframe class="l-body" id="plotFrame12" src="assets/data/benchmarks/pp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body" id="plotFrame12" src="assets/data/benchmarks/pp_memoryusage.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body" id="fragment-pp_memoryusage"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame12');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
         <!-- <p><img alt="pp_memoryusage.svg" src="/assets/images/pp_memoryusage.svg" /></p> -->
 
         <p>Looking at the figure above, we notice something interesting: while the model parameters are nicely split across GPUs, the activation memory remains the same on each GPU! This is because each GPU still needs to process the full batch of data, just with different layers. The activations from one GPU's layers will be sent to the next GPU to continue the forward pass.</p>
@@ -1505,14 +1516,15 @@
 
         <p>So we can now decrease the bubble by adding microbatches and interleaved stages, but note that quantitatively, the amount of communication also increases by <d-math>v</d-math> so it’s a trade off. In the following plot you can see several configurations for a PP setup with <d-math>p=8</d-math>, where the special case of <d-math>m=1, v=1</d-math> corresponds to naive pipeline parallelism and the configurations with <d-math>v=1</d-math> are AFAB or 1F1B setups and <d-math>v \neq 1</d-math> are interleaved configurations.</p>
 
-        <iframe class="l-body" id="plotFrame23" src="assets/data/benchmarks/pp_bubblesize.html" width="90%" scrolling="no" frameborder="0"></iframe>
-        <script>
+        <!-- <iframe class="l-body" id="plotFrame23" src="assets/data/benchmarks/pp_bubblesize.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
+        <div class="l-body" id="fragment-pp_bubblesize"></div>
+        <!-- <script>
             window.addEventListener('load', function() {
                 const frame = document.getElementById('plotFrame23');
                 frame.style.height = frame.contentWindow.document.documentElement.scrollHeight + 'px';
                 frame.style.width = frame.contentWindow.document.documentElement.scrollWidth + 'px';
             });
-        </script>
+        </script> -->
         <!-- <p><img alt="pp_bubblesize.png" src="/assets/images/pp_bubblesize.png" /></p> -->
 
 
@@ -2321,6 +2333,8 @@
         <p>We know that instability increases as learning rates rise for a fixed model size<d-cite bibtex-key="wortsman2023smallscaleproxieslargescaletransformer"></d-cite>, making FP8 pretraining particularly tricky.</p>
         
         <iframe class="l-body-outset" id="plotFP8Loss" src="/assets/data/fp8/fp8_training_loss_curves.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe>
+        <!-- Hynek uncomment this once it's added to -->
+        <!-- <div class="l-body-outset" id="fragment-fp8_training_loss_curves"></div> -->
 
         <p>The first, successful, very large scale training with FP8 mixed precision was publicly reported on DeepSeek-V3. The authors carefully analyzed each operation of the forward pass (Fprop) as well as the activation (Dgrad) and weight (Wgrad) backward pass. Similar to BF16 mixed precision training, some aggregation and master weights are kept in higher precision while the operations themselves are performed in FP8.  </p>
         
@@ -2739,8 +2753,7 @@
         <div>
             <a href="https://gordicaleksa.medium.com/eli5-flash-attention-5c44017022ad"><strong>Aleksa's ELI5 Flash Attention</strong></a>
             <p>Easy explanation of Flash Attention</p>
-        </div>
-        
+        </div>        
         <div>
             <a href="https://github.com/tunib-ai/large-scale-lm-tutorials"><strong>TunibAI's 3D parallelism tutorial</strong></a>
             <p>Large-scale language modeling tutorials with PyTorch.</p>

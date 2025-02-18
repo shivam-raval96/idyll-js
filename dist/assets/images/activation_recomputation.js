@@ -1,1 +1,149 @@
-function enhanceSVGContent(t){const e=(new DOMParser).parseFromString(t,"image/svg+xml"),n=e.createElementNS("http://www.w3.org/2000/svg","style");return n.textContent='\n      path[data-element-type="layer"] {\n      transition: all 0.3s;\n      cursor: pointer;\n      }\n      path[data-element-type="layer"]:hover {\n      fill: #b197fc !important;\n      transform: translate(0, -2px);\n      }\n\n      path[data-element-type="layer-updated"] {\n      transition: all 0.3s;\n      cursor: pointer;\n      }\n      \n      path[data-element-type="layer-updated"]:hover {\n      fill:rgb(103, 56, 244) !important;\n      transform: scale(1.02);\n      transform: translate(0, -2px);\n      }\n\n      path[data-element-type="gradient"] {\n      transition: all 0.3s;\n      cursor: pointer;\n      }\n      path[data-element-type="gradient"]:hover {\n      fill: #f06595 !important;\n      transform: translate(0, -2px);\n      }\n\n      path[data-element-type="forward"] {\n      transition: all 0.3s;\n      cursor: pointer;\n      }\n      path[data-element-type="forward"]:hover {\n      stroke: #0c8599 !important;\n      stroke-width: 4 !important;\n      }\n\n      path[data-element-type="backward"] {\n      transition: all 0.3s;\n      cursor: pointer;\n      }\n      path[data-element-type="backward"]:hover {\n      stroke: #e8590c !important;\n      stroke-width: 4 !important;\n      }\n\n      path[data-element-type="optimization"] {\n      transition: all 0.3s;\n      cursor: pointer;\n      }\n      path[data-element-type="optimization"]:hover {\n      stroke: #087f5b !important;\n      stroke-width: 4 !important;\n      }\n',e.documentElement.insertBefore(n,e.documentElement.firstChild),e.querySelectorAll('path[fill="#d0bfff"]').forEach(((t,e)=>{t.setAttribute("data-element-id",`layer-${e}`),t.setAttribute("data-element-type","layer")})),e.querySelectorAll('path[fill="#9775fa"]').forEach(((t,e)=>{t.setAttribute("data-element-id",`layer-updated-${e}`),t.setAttribute("data-element-type","layer-updated")})),e.querySelectorAll('path[fill="#f783ac"]').forEach(((t,e)=>{t.setAttribute("data-element-id",`gradient-${e}`),t.setAttribute("data-element-type","gradient")})),Object.entries({"#15aabf":"forward","#fd7e14":"backward","#099268":"optimization"}).forEach((([t,n])=>{e.querySelectorAll(`path[stroke="${t}"]`).forEach(((t,e)=>{t.setAttribute("data-element-id",`${n}-${e}`),t.setAttribute("data-element-type",n)}))})),e.documentElement.setAttribute("width","100%"),e.documentElement.setAttribute("height","100%"),e.documentElement.setAttribute("preserveAspectRatio","xMidYMid meet"),(new XMLSerializer).serializeToString(e)}async function loadSVG(t,e){try{const n=await fetch(t);if(!n.ok)throw new Error(`HTTP error! Status: ${n.status}`);const a=enhanceSVGContent(await n.text());document.getElementById(e).innerHTML=a}catch(t){console.error("Error loading SVG:",t),document.getElementById(e).innerHTML="<p>Error loading SVG.</p>"}}loadSVG("../assets/images/activation_recomputation.svg","svg-activation_recomputation");const svgContainer3=document.getElementById("svg-activation_recomputation");svgContainer3.addEventListener("mouseover",(function(t){const e=t.target;if("path"===e.tagName.toLowerCase()&&e.hasAttribute("data-element-id")){const t=e.getAttribute("data-element-id"),n=e.getAttribute("data-element-type"),a={layer:"Neural Network Layer","layer-updated":"Neural Network Layer (updated)",gradient:"Gradient Update Layer",forward:"Forward Pass Connection",backward:"Backward Pass Connection",optimization:"Optimization Step"}[n]||n;document.getElementById("svg-activation_recomputation-info").textContent=`Hovering over: ${a} (${t})`}})),svgContainer3.addEventListener("mouseout",(function(){document.getElementById("svg-activation_recomputation-info").textContent="Hover over the network elements to see their details"}));
+
+// Function to enhance the SVG content by adding styles and data attributes
+function enhanceSVGContent(originalContent) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(originalContent, 'image/svg+xml');
+
+      // Create a style element with hover effects and insert it as the first child of the SVG
+      const styleElement = doc.createElementNS('http://www.w3.org/2000/svg', 'style');
+      styleElement.textContent = `
+      path[data-element-type="layer"] {
+      transition: all 0.3s;
+      cursor: pointer;
+      }
+      path[data-element-type="layer"]:hover {
+      fill: #b197fc !important;
+      transform: translate(0, -2px);
+      }
+
+      path[data-element-type="layer-updated"] {
+      transition: all 0.3s;
+      cursor: pointer;
+      }
+      
+      path[data-element-type="layer-updated"]:hover {
+      fill:rgb(103, 56, 244) !important;
+      transform: scale(1.02);
+      transform: translate(0, -2px);
+      }
+
+      path[data-element-type="gradient"] {
+      transition: all 0.3s;
+      cursor: pointer;
+      }
+      path[data-element-type="gradient"]:hover {
+      fill: #f06595 !important;
+      transform: translate(0, -2px);
+      }
+
+      path[data-element-type="forward"] {
+      transition: all 0.3s;
+      cursor: pointer;
+      }
+      path[data-element-type="forward"]:hover {
+      stroke: #0c8599 !important;
+      stroke-width: 4 !important;
+      }
+
+      path[data-element-type="backward"] {
+      transition: all 0.3s;
+      cursor: pointer;
+      }
+      path[data-element-type="backward"]:hover {
+      stroke: #e8590c !important;
+      stroke-width: 4 !important;
+      }
+
+      path[data-element-type="optimization"] {
+      transition: all 0.3s;
+      cursor: pointer;
+      }
+      path[data-element-type="optimization"]:hover {
+      stroke: #087f5b !important;
+      stroke-width: 4 !important;
+      }
+`;
+      doc.documentElement.insertBefore(styleElement, doc.documentElement.firstChild);
+
+      // Process neural network layers (purple nodes)
+      doc.querySelectorAll('path[fill="#d0bfff"]').forEach((node, index) => {
+            node.setAttribute('data-element-id', `layer-${index}`);
+            node.setAttribute('data-element-type', 'layer');
+      });
+
+      doc.querySelectorAll('path[fill="#9775fa"]').forEach((node, index) => {
+            node.setAttribute('data-element-id', `layer-updated-${index}`);
+            node.setAttribute('data-element-type', 'layer-updated');
+      });
+
+      // Process gradient nodes (pink nodes)
+      doc.querySelectorAll('path[fill="#f783ac"]').forEach((node, index) => {
+            node.setAttribute('data-element-id', `gradient-${index}`);
+            node.setAttribute('data-element-type', 'gradient');
+      });
+
+      // Process arrows by matching stroke colors
+      const arrowTypes = {
+            '#15aabf': 'forward',
+            '#fd7e14': 'backward',
+            '#099268': 'optimization'
+      };
+
+      Object.entries(arrowTypes).forEach(([color, type]) => {
+            doc.querySelectorAll(`path[stroke="${color}"]`).forEach((arrow, index) => {
+                  arrow.setAttribute('data-element-id', `${type}-${index}`);
+                  arrow.setAttribute('data-element-type', type);
+            });
+      });
+
+      // Make the SVG responsive
+      doc.documentElement.setAttribute('width', '100%');
+      doc.documentElement.setAttribute('height', '100%');
+      doc.documentElement.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+
+      return new XMLSerializer().serializeToString(doc);
+}
+
+// Function to load an SVG file via fetch
+async function loadSVG(url, containerId) {
+      try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            const svgText = await response.text();
+            const enhancedSVG = enhanceSVGContent(svgText);
+            document.getElementById(containerId).innerHTML = enhancedSVG;
+      } catch (error) {
+            console.error('Error loading SVG:', error);
+            document.getElementById(containerId).innerHTML = '<p>Error loading SVG.</p>';
+      }
+}
+
+// Load the SVG file (adjust the path if needed)
+loadSVG('../assets/images/activation_recomputation.svg', 'svg-activation_recomputation');
+
+// Set up event listeners to display a description of the hovered element
+const svgContainer3 = document.getElementById('svg-activation_recomputation');
+
+svgContainer3.addEventListener('mouseover', function (event) {
+      const target = event.target;
+      if (target.tagName.toLowerCase() === 'path' && target.hasAttribute('data-element-id')) {
+            const elementId = target.getAttribute('data-element-id');
+            const elementType = target.getAttribute('data-element-type');
+            const descriptions = {
+                  layer: 'Neural Network Layer',
+                  'layer-updated': 'Neural Network Layer (updated)',
+                  gradient: 'Gradient Update Layer',
+                  forward: 'Forward Pass Connection',
+                  backward: 'Backward Pass Connection',
+                  optimization: 'Optimization Step'
+            };
+            const description = descriptions[elementType] || elementType;
+            document.getElementById('svg-activation_recomputation-info').textContent = `Hovering over: ${description} (${elementId})`;
+      }
+});
+
+svgContainer3.addEventListener('mouseout', function () {
+      document.getElementById('svg-activation_recomputation-info').textContent = 'Hover over the network elements to see their details';
+});

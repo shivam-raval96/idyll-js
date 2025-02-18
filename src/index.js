@@ -1,11 +1,9 @@
 // import { plotClusters } from './clusters'
-import { init_ablation_plot } from './plotting'
 import { init_memory_plot } from './memory'
-
+import { loadFragments } from './fragmentLoader'
 
 document.addEventListener("DOMContentLoaded", () => {
     console.log("DOMContentLoaded");
-    // plotClusters();
-    init_ablation_plot();
+    loadFragments();
     init_memory_plot();
 }, { once: true });
