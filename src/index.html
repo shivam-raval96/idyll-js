@@ -1641,7 +1641,7 @@
 
         <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and interoperable with both Pipeline Parallelism and ZeRO-3, because it relies on the distributive property of matrix multiplication that allows weights and activations to be sharded and computed independently before being combined.</p>
 
-          <div class="l-page"><img alt="TP & SP diagram" src="/assets/images/5D_nutshell_tp_sp.svg" /></div>
+          <img alt="TP & SP diagram" src="/assets/images/5D_nutshell_tp_sp.svg" style="width: 1000px; max-width: none;" />
           <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
 
           
@@ -1654,7 +1654,7 @@
 
         <p><strong>Context Parallelism (CP)</strong> specifically targets the challenge of training with very long sequences by sharding activations along the sequence dimension across GPUs. While most operations like MLPs and LayerNorm can process these sharded sequences independently, attention layers require communication since each token needs access to keys/values from the full sequence. This is handled efficiently through ring attention patterns that overlap computation and communication. CP is particularly valuable when scaling to extreme sequence lengths (128k+ tokens) where even with full activation recomputation the memory requirements for attention would be prohibitive on a single GPU.</p>
         
-        <div class="l-page"><img alt="CP diagram" src="/assets/images/5d_nutshell_cp.svg" /></div>
+        <img alt="CP diagram" src="/assets/images/5d_nutshell_cp.svg" style="width: 1000px; max-width: none;" />
 
         <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
         
@@ -1669,7 +1669,7 @@
             <li>Expert Parallelism primarly affects the MoE layers (which replace standard MLP blocks), leaving attention and other components unchanged</li>
         </ul>
  
-        <div class="l-page"><img alt="EP diagram" src="/assets/images/5d_nutshell_ep.svg" /></div>
+        <img alt="EP diagram" src="/assets/images/5d_nutshell_ep.svg" style="width: 1000px; max-width: none;" />
 
         <div class="note-box">
           <p class="note-box-title">📝 Note</p>
@@ -1713,11 +1713,11 @@
 
         <p>Which leads us to this beautiful diagram to summarize all what we’ve seen:</p>
         
-        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p><img alt="image.png" src="/assets/images/5d_full.svg" style="width: 1000px; max-width: none;"/></p>
 
         <p>And to have an idea of the memory benefits of each parallelism:</p>
         
-        <div class="l-page"><img alt="5Dparallelism_8Bmemoryusage.svg" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" /></div>
+        <img alt="5Dparallelism_8Bmemoryusage.svg" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" style="width: 1000px; max-width: none;"/>
 
         <h2>How to Find the Best Training Configuration</h2>
 
@@ -2566,6 +2566,16 @@
             <p>Training language models across compute clusters with DiLoCo.</p>
         </div>
 
+        <div>
+            <a href="https://github.com/kakaobrain/torchgpipe"><strong>torchgpipe</strong></a>
+            <p>A GPipe implementation in PyTorch.</p>
+        </div>
+        
+        <div>
+            <a href="https://github.com/EleutherAI/oslo"><strong>OSLO</strong></a>
+            <p>OSLO: Open Source for Large-scale Optimization.</p>
+        </div>
+
         <h3>Debugging</h3>
 
         <div>
@@ -2729,6 +2739,10 @@
             <p>Easy explanation of Flash Attention</p>
         </div>
         
+        <div>
+            <a href="https://github.com/tunib-ai/large-scale-lm-tutorials"><strong>TunibAI's 3D parallelism tutorial</strong></a>
+            <p>Large-scale language modeling tutorials with PyTorch.</p>
+        </div>
         
         <h2>Appendix</h2>
         
