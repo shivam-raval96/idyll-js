@@ -327,7 +327,10 @@
 
         <h4>Profiling the memory usage</h4>
 
-        <p>Using this snippet [TODO: link to appendix A5], we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
+        <p>Using this snippet, we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
+
+        <aside>Check out <a target="_self" href="#a1%3A_distributed_training_profiling" class="">A1: Distributed Training Profiling</a> for a walkthrough how to profile your model.</aside>
+
 
         <!-- <div class="svg-container l-body-outset" id="svg-first_steps_memory_profile"> </div>
         <div class="info" id="svg-first_steps_memory_profile-info">Hover over the elements to see their details</div>
@@ -596,7 +599,7 @@
 
         <p><img alt="image.png" src="/assets/images/dp_diagram.png" /></p>
 
-        <aside>If you are not familiar with distributed communications patterns like broadcast, gather or all-reduce we put together a small crash course in the Appendix [TODO Link].</aside>
+        <aside>If you are not familiar with distributed communications patterns like broadcast, gather or all-reduce we put together a small crash course in <a target="_self" href="#a0%3A_parallel_programming_crash_course" class="">A0: Parallel Programming Crash Course</a>.</aside>
 
         <p>This involves our first “distributed communication” primitive: <em><strong>all-reduce</em></strong> which handles the synchronization and communication between GPU instances and nodes.</p>
 
@@ -809,7 +812,7 @@
         <ul>
             <li>Forward pass with all bf16 parameters, but different microbatches across DP ranks</li>
             <li>Backward pass with all gradients, but different microbatches across DP ranks</li>
-            <li>Perform an reduce-scatter <strong>[TODO ADD link!]</strong> on the gradients (reduce-scatter is 2 times faster than all reduce! <em>Yay, a third communication primitive!</em>)</li>
+            <li>Perform an reduce-scatter on the gradients (reduce-scatter is 2 times faster than all reduce! <em>Yay, a third communication primitive!</em>)</li>
             <li>- Each replica perform an optimizer step (has only <d-math>\frac{1}{N_d}</d-math> optimizer states) updates only on <d-math>\frac{1}{N_d}</d-math> of fp32 parameters, and then <d-math>\frac{1}{N_d}</d-math> of bf16 parameters.</li>
             <li>Perform an all-gather of bf16 parameters to send missing slices back to each replica. This is a new operation in ZeRO, and not used in vanilla DP.</li>
         </ul>
@@ -1179,7 +1182,7 @@
         </script>
         <!-- <p><img alt="tp_sp_memoryusage.svg" src="/assets/images/tp_sp_memoryusage.svg" /></p> -->
 
-        <p>Does that mean that SP incurs more communication than TP? Well, yes and no. In the forward of a vanilla TP we had two all-reduce per transformer block, and in SP we have two all-gather and two reduce-scatter per transformer block. So SP does twice the number of communication operations as TP. But since an all-reduce operation can be broken down into to an all-gather + reduce-scatter (see in [TODO: Appendix link]) they’re actually equivalent in terms of communication. Same reasoning for backward as we just use the conjugate of each operation (no-op ↔ allreduce and allgather ↔ reducescatter).</p>
+        <p>Does that mean that SP incurs more communication than TP? Well, yes and no. In the forward of a vanilla TP we had two all-reduce per transformer block, and in SP we have two all-gather and two reduce-scatter per transformer block. So SP does twice the number of communication operations as TP. But since an all-reduce operation can be broken down into to an all-gather + reduce-scatter (see the <a target="_self" href="#a_quick_focus_on_ring_allreduce" class="">A quick focus on Ring AllReduce</a> section in the appendix) they’re actually equivalent in terms of communication. Same reasoning for backward as we just use the conjugate of each operation (no-op ↔ allreduce and allgather ↔ reducescatter).</p>
 
         <p>If you’ve been paying close attention, you’ll notice that we’re talking about 4 comms ops in each layer (2 for Attention and 2 for MLP). This is how the MLP profiling looks like when using Tensor + Sequence Parallelism:</p>
 
@@ -1214,16 +1217,16 @@
         </ul>
 
         <p><strong>We have seen how TP helps us shard activations across several GPUs by splitting the attention and feedforward operations along the hidden dimension and how SP is a natural complement for the remaining operations by splitting along the sequence dimension.</strong></p>
-
-        <p>However, there are two limits to TP and SP: 1) if we scale the sequence length the activation memory will still blow up in the TP region and 2) if the model is too big to fit with TP=8 then we will see a massive slow-down due to the inter-node connectivity.</p>
-
+        
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
             <p class="note-box-content">
-                <p>Since LayerNorms in the SP region operate on different portions of the sequence, their gradients will differ across TP ranks. To ensure the weights stay synchronized, we need to allreduce their gradients during the backward pass, similar to how DP ensures weights stay in sync. This is a small communication overhead since LayerNorm has relatively few parameters.
+                <p>Since LayerNorms in the SP region operate on different portions of the sequence, their gradients will differ across TP ranks. To ensure the weights stay synchronized, we need to all-reduce their gradients during the backward pass, similar to how DP ensures weights stay in sync. This is a small communication overhead since LayerNorm has relatively few parameters.
             </p>
         </div>
 
+        <p>However, there are two limits to TP and SP: 1) if we scale the sequence length the activation memory will still blow up in the TP region and 2) if the model is too big to fit with TP=8 then we will see a massive slow-down due to the inter-node connectivity.</p>
+   
         <p>We can tackle problem 1) with Context parallelism and problem 2) with Pipeline parallelism. Let’s first have a look at Context parallelism!</p>
 
         <h2>Context Parallelism</h2>
@@ -1828,12 +1831,12 @@
         <p>On the compute side, GPUs consist of an array of compute units called <strong>Streaming Multiprocessors</strong> (SM). Each SM contains and controls a set of streaming processors, also known as cores. For example, an Nvidia H100 GPU has 132 SMs with 128 cores per SM, resulting in a total of 16,896 cores (see <a href="https://resources.nvidia.com/en-us-tensor-core">docs for tensor cores</a> for details), each capable of handling multiple threads simultaneously.</p>
     
         <p><img alt="image.png" src="/assets/images/diving_primergpu.svg" /></p>
-        <p>TODO: Original figure from https://blog.codingconfessions.com/p/gpu-computing.</p>
+        <p><em>Source: https://blog.codingconfessions.com/p/gpu-computing.</em></p>
     
         <p>The memory side is also highly hierarchical with several layers of cache and memory: <strong>Registers</strong> are the smallest units and are private to the threads during executions, <strong>Shared Memory</strong> and <strong>L1 cache are</strong> shared between the threads running on a single SM, higher up is the <strong>L2 cache</strong> shared by all SMs, finally there is the <strong>Global Memory</strong> which is the largest memory on the GPU (the advertised 80 GB for a H100 for instance) but also the slowest to access and query.</p>
     
         <p><img alt="image.png" src="/assets/images/diving_primergpu2.svg" /></p>
-        <p>TODO: Original figure from https://www.youtube.com/watch?v=ZQKMZIP3Fzg</p>
+        <p><em>Source: https://www.youtube.com/watch?v=ZQKMZIP3Fzg</em></p>
     
         <p>The goal of GPU will be to run as many workloads as possible, in parallel, on the GPU cores, by taking advantage of this hierarchical organization of compute/memory.</p>
     
@@ -1870,7 +1873,6 @@
             x & \text{if } x \geq 0
             \end{cases}
         </d-math>
-        <p>TODO: something off with spacing but seems the rendering engine</p>
 
         <p>You can start by a simple pytorch implementation and then just add the <code>@torch.compile</code> decorator on top:</p>
 
@@ -2297,7 +2299,7 @@
                 <td>Above without FP32 grad accumulation</td>
                 <td>bf16</td>
                 <td>fp32</td>
-                <td></td>
+                <td>n/a</td>
                 <td>bf16</td>
                 <td>bf16</td>
                 <td>fp32 + fp32</td>
@@ -2306,8 +2308,8 @@
               <tr>
                 <td>Transformer Engine</td>
                 <td>fp8</td>
-                <td></td>
-                <td></td>
+                <td>n/a</td>
+                <td>n/a</td>
                 <td>fp32</td>
                 <td>fp32</td>
                 <td>fp32 + fp32</td>
@@ -2346,7 +2348,7 @@
             </tbody>
            </table>
 
-        <p>Overall, FP8 is still an experimental technique and methods are evolving, but will likely become the standard soon replacing bf16 mixed-precision. To follow public implementations of this, please head to the nanotron’s implementation in [TODO: link to appendix]. </p>
+        <p>Overall, FP8 is still an experimental technique and methods are evolving, but will likely become the standard soon replacing bf16 mixed-precision. To follow a public implementations of this, please head to the nanotron’s implementation in <a href="https://github.com/huggingface/nanotron/pull/70">this PR</a>. </p>
 
         <p>In the future, Blackwell, the next generation of NVIDIA chips, <a href="https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/">have been announced </a> to support FP4 training, further speeding up training but without a doubt also introducing a new training stability challenge.</p>
 
@@ -2432,9 +2434,8 @@
         <h3>What’s next?</h3>
 
         <p>You should have a good overview of all the distributed training concepts but there are still things to learn and details we couldn’t cover. To get deeper in the field we recommend doing some of the following steps:</p>
-        
         <ul>
-            <li>Carefully read some of the landmark or very recent papers. You can find a list of some of the most impactful papers in [TODO References]</li>
+            <li>Carefully read some of the landmark or very recent papers. You can find a list of some of the most impactful papers in <a target="_self" href="#references" class="">References</a>.</li>
             <li>Start from scratch and implement an algorithm yourself. Often a method only fully “clicks” if you implemented it yourself.</li>
             <li>Dive into one of the widely used frameworks and start contributing: fix bugs, answer issues, or implement a new feature. That’s the best way to get in any ML field!</li>
         </ul>
@@ -2672,7 +2673,7 @@
 
         <div>
             <a href="https://www.thonking.ai/"><strong>thonking.ai</strong></a>
-            <p>Some of Horace He blogpost</p>
+            <p>Some of Horace He's blogposts</p>
         </div>
               
         <div>
@@ -2683,6 +2684,27 @@
         
         <h2>Appendix</h2>
 
+        <h3>A0: Parallel Programming Crash Course</h3>
+        
+        <h4>Broadcast</h4>
+
+        <h4>Reduce & AllReduce</h4>
+        
+        <h4>A quick focus on Ring AllReduce</h4>
+        
+        <h4>Gather & AllGather </h4>
+        
+        <h4>Scatter & ReduceScatter</h4>
+        
+        <h4>Barrier</h4>
+        
+        <h4>NCCL: NVIDIA Collective Communications Library</h4>
+        
+        <h3>A1: Distributed Training Profiling</h3>
+
+        <h3>A2: Math for Compute/Comms Overlap</h3>
+
+    
     </d-article>
 
     <d-appendix>
