@@ -286,7 +286,7 @@
 
         <p>So how can I quickly determine memory usage from these variable? One simple way is to do this empirically and just measure it.</p>
 
-        <h4>Memory profiling a training step</h4>
+        <h4>Profiling the memory usage</h4>
 
         <p>Using this snippet [TODO: link to appendix A5], we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
 
@@ -315,7 +315,7 @@
             N = h * v + L * (12 * h^2 + 13 * h) + 2*h
         </d-math>
 
-        <aside>We excluded the positional embedding count as rotary embeddings are not learned.</aside>
+        <aside>We excluded the positional embedding count as we're not using fixed positional embeddings.</aside>
 
         <p>In that equation, <d-math>h</d-math> is the hidden dimension, <d-math>v</d-math> the vocabulary size, and <d-math>L</d-math> the number of layers in the model. Note that looking at the equation we can see that the term that will dominate at large hidden dimensions is the <d-math>h^2</d-math> term since it’s the only one growing quadratically as we scale the parameters.</p>
 
@@ -348,7 +348,13 @@
             <p class="note-box-title">📝 Note</p>
             <p class="note-box-content">
                 Some libraries store grads in fp32 which would require an additional <d-math>m_{params\_fp32} = 4 * N</d-math> memory. This is done for example in nanotron, because <code>bf16</code> is lossy for smaller values and we always prioritize stability. See  <a href="https://github.com/microsoft/DeepSpeed/issues/1773">this DeepSpeed issue</a> for more information.
+            </p>
+        </div>
 
+        <div class="note-box">
+            <p class="note-box-title">📝 Note</p>
+            <p class="note-box-content">
+                The FP32 copy of parameters (<d-math>m_{params\_fp32}</d-math>) is sometimes called "master weights" in the literature and codebases.
             </p>
         </div>
 
@@ -400,7 +406,7 @@
         <p>Activation memory is a bit more complex to compute than the weights, gradients and optimizer states, in part because it depends on the inputs of the model. If you’re unsure why we even need to store activations for the backward pass, <a href="https://www.determined.ai/blog/act-mem-2">this reference</a> is a good quick refresh. After a careful inspection of how backward pass is computed we can estimate the total memory required for the activations in mixed precision and we arrive at the following equation:</p>
 
         <d-math block>
-            m_{act} =  L<em> seq * bs * h * (34 + \frac{5</em>n_{heads}*seq}{h})</p>
+            m_{act} =  L \cdot seq \cdot bs \cdot h \cdot (34 + \frac{5 \cdot n_{heads} \cdot seq}{h})</p>
         </d-math>
 
         <p>Here <d-math>L</d-math> is the number of layers, <d-math>seq</d-math> the sequence length, <d-math>bs</d-math> the batch size in samples, <d-math>h</d-math> the hidden dimension of the model and <d-math>n_{heads}</d-math> the number of heads.</p>
@@ -500,9 +506,48 @@
         
         <p>But if you’ve carefully followed, you probably noticed that the forward/backward passes for each micro-batch can actually be run in parallel. Forward/backward passes are independent from each other, with independent input samples being the only difference. Seems like it’s time to start extending our training to more than one GPU! </p>
 
-        <p>Let’s get a larger workstation 🖥️  with a couple of GPUs and start investigating our first scaling technique called <em><strong>data parallelism</strong> which is just a parallel version of gradient accumulation</em>.</p>
+        <h4>Profiling GPU compute and communication</h4>
 
-        <p><strong>TODO: add profiling here or not?</strong></p>
+        <p>But before then, we need another tool (and probably the most useful one) in our distributed training toolbox that would enable us to understand and validate the communications between GPUs and compute happening in each.</p>
+
+        <p>PyTorch's <a href="https://pytorch.org/tutorials/recipes/recipes/profiler_recipe.html">profiler</a> allows us to trace and visualize exactly what's happening on both CPU and GPU during training. Let's see how to use it:</p>
+
+        <d-code block language="python">
+            with torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                schedule=torch.profiler.schedule(wait=1, warmup=1, active=3),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler('./log/profile'),
+                with_stack=True
+            ) as prof:
+                for step in range(steps):
+                    train_step() 
+                    prof.step()</d-code>
+
+        <p>This generates a trace that we can visualize in TensorBoard or Chrome's trace viewer. The trace shows:</p>
+
+        <ul>
+            <li>CPU thread launching kernels asynchronously to GPU</li>
+            <li>Multiple CUDA streams handling compute and communication in parallel</li>
+            <li>Kernel execution times and memory allocation</li>
+        </ul>
+
+        <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
+        <p>Figure: Example trace showing CPU thread launching kernels asynchronously to GPU, with compute kernels and communication happening in parallel across different CUDA streams</p>
+
+        <p>The trace helps identify bottlenecks like:</p>
+        <ul>
+            <li>Sequential compute and communication that could be overlapped</li>
+            <li>Idle GPU time waiting for data transfers</li>
+            <li>Memory movement between CPU and GPU</li>
+            <li>Kernel launch overhead from CPU</li>
+        </ul>
+
+        <p>Understanding these patterns is crucial for optimizing distributed training performance. For example, the trace would clearly show if gradient synchronization is properly overlapped with backward computation as we'll discuss later.</p>
+
+        <p>Let’s get a larger workstation 🖥️  with a couple of GPUs and start investigating our first scaling technique called <em><strong>data parallelism</strong> which is just a parallel version of gradient accumulation</em>.</p>
 
         <h2>Data Parallelism</h2>
         
@@ -1584,7 +1629,7 @@
 
         <p>And to have an idea of the memory benefits of each parallelism:</p>
         
-        <p><img alt="image.png" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" /></p>
+        <div class="l-page"><img alt="5Dparallelism_8Bmemoryusage.svg" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" /></div>
 
         <h2>How to Find the Best Training Configuration</h2>
 
