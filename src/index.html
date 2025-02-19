@@ -2728,18 +2728,23 @@
 
         <h3>Training Frameworks</h3>
         <div>
-            <a href="https://github.com/facebookresearch/fairscale/tree/main"><strong>FairScale</strong></a>
-            <p>PyTorch extension library for large-scale training, offering various parallelism and optimization techniques.</p>
+            <a href="https://github.com/huggingface/nanotron"><strong>Nanotron</strong></a>
+            <p>Our framework for training large language models featuring various parallelism strategies</p>
         </div>
-
+        
         <div>
             <a href="https://github.com/NVIDIA/Megatron-LM"><strong>Megatron-LM</strong></a>
-            <p>NVIDIA's framework for training large language models with model and data parallelism.</p>
+            <p>NVIDIA's framework for training large language models featuring various parallelism strategies.</p>
         </div>
 
         <div>
             <a href="https://www.deepspeed.ai/"><strong>DeepSpeed</strong></a>
-            <p>Microsoft's deep learning optimization library featuring ZeRO optimization stages and various parallelism techniques.</p>
+            <p>Microsoft's deep learning optimization library featuring ZeRO optimization stages and various parallelism strategies.</p>
+        </div>
+
+        <div>
+            <a href="https://github.com/facebookresearch/fairscale/tree/main"><strong>FairScale</strong></a>
+            <p>PyTorch extension library for large-scale training, offering various parallelism and optimization techniques.</p>
         </div>
 
         <div>
@@ -2932,7 +2937,7 @@
 
         <div>
             <a href="https://www.thonking.ai/"><strong>thonking.ai</strong></a>
-            <p>Some of Horace He's blogposts</p>
+            <p>Some of Horace He's blogposts - Making GPUs go BRRR..</p>
         </div>
               
         <div>
@@ -3546,11 +3551,18 @@
             <li>Gradients = Parameters ≈ <d-math>num\_layers \cdot 16h^2</d-math></li>
         </ul>
 
-        <p>During backward pass, these gradients are communicated in buckets (default 25MB). The communication time for each bucket is:</p>
+        <p>During backward pass, these gradients are communicated in buckets (default 25MB). The communication time to all-reduce each bucket is:</p>
 
         <d-math block>
         t_{comm} = t_{comm\_bucket} = \frac{bucket\_size \cdot 2(DP-1)}{DP \cdot peak\_bw}
         </d-math>
+
+        <div class="note-box">
+            <p class="note-box-title">📝 Note</p>
+            <div class="note-box-content">
+                <p>For bandwidth calculations, we use the bus bandwidth formulas from the <a href="https://github.com/NVIDIA/nccl-tests/blob/master/doc/PERFORMANCE.md#summary">NCCL documentation</a>. These formulas account for the specific communication patterns when calculating effective bandwidth between GPUs.</p>
+            </div>
+        </div>
 
         <p>The computation time for backward pass is:</p>
 
