@@ -189,8 +189,8 @@ export function updateGraph() {
 
     console.log('Data for treemap:', data);
 
-    const width = 700;
-    const height = 450;
+    const width = 600;
+    const height = 600;
     const legendHeight = 50;
 
     const svg = d3.select("#graph").select("svg");
@@ -225,8 +225,8 @@ export function updateGraph() {
             case 'Total': return 'rgb(225, 225, 225)';  // Light Grey
             
             // Give distinct colors to the main section containers
-            case 'Activation Memory': return 'rgb(78, 165, 183)';  // Orange
-            case 'Parameters / Gradients / Optimizer States': return 'rgb(232, 137, 171)';  // Teal Blue
+            case 'Activation Memory': return 'rgb(61, 198, 159)';  // Orange
+            case 'Parameters / Gradients / Optimizer States': return 'rgba(232, 137, 170, 0.85)';  // Teal Blue
     
             // Parameters / Gradients / Optimizer States branch
             case 'Parameters': return 'rgb(206, 192, 250)';  // Blue

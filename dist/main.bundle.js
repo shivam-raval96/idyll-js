@@ -4920,8 +4920,8 @@ function updateGraph() {
     }]
   };
   console.log('Data for treemap:', data);
-  var width = 700;
-  var height = 450;
+  var width = 600;
+  var height = 600;
   var legendHeight = 50;
   var svg = src_select("#graph").select("svg");
   svg.selectAll("*").remove();
@@ -4952,10 +4952,10 @@ function updateGraph() {
 
       // Give distinct colors to the main section containers
       case 'Activation Memory':
-        return 'rgb(78, 165, 183)';
+        return 'rgb(61, 198, 159)';
       // Orange
       case 'Parameters / Gradients / Optimizer States':
-        return 'rgb(232, 137, 171)';
+        return 'rgba(232, 137, 170, 0.85)';
       // Teal Blue
 
       // Parameters / Gradients / Optimizer States branch

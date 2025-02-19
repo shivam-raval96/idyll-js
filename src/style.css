@@ -182,7 +182,7 @@ toggle-icon {
 }
 
 toggle-icon.collapsed {
-    transform: rotate(-90deg);
+    transform: rotate(90deg);
 }
 
 .toc-content {
@@ -296,80 +296,6 @@ d-contents nav > ul > li > a:hover {
     text-decoration: none;
 }
 
-/* memory */
-#controls {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    column-gap: 10px;
-    margin-bottom: 20px;
-    max-width: 100%;
-    @supports (container-type: inline-size) {
-        container-type: inline-size;
-    }
-}
-
-#controls .cell {
-    padding: 1px;
-    box-sizing: border-box;
-}
-
-#controls .column-1 {
-    display: flex;
-    align-items: center;
-}
-
-#controls .column-2 {
-    display: flex;
-    align-items: center;
-}
-@supports (container-type: inline-size) {
-    @container (max-width: 600px) {
-        #controls .column-2 {
-            order: 2;
-        }
-    }
-}
-
-#controls label {
-    text-align: right;
-    padding-right: 10px;
-    flex: 0 0 auto;
-    width: 150px;
-    line-height: 1.5em;
-    font-size: 0.8em;
-}
-
-#controls input[type="range"] {
-    width: 50%;
-    margin: 0 10px;
-}
-
-#controls input[type="number"] {
-    flex-shrink: 0;
-    width: 60px;
-    height: 24px;
-    border: 1px solid var(--distill-gray-light);
-    border-radius: 0.2rem;
-}
-
-#controls select {
-    width: 100%;
-    min-height: 28px;
-    border: 1px solid var(--distill-gray-light);
-    border-radius: 0.2rem;
-}
-
-#controls .column {
-    display: contents;
-}
-
-#graph svg {
-    font-family: sans-serif;
-}
-
-#graph svg rect {
-    cursor: pointer;
-}
 .note-box {
     background-color: #f6f8fa;
     border-left: 4px solid #444444;
@@ -437,6 +363,28 @@ d-code {
         justify-content: center; /* This will center your image */
 }
 
+.large-image-background-transparent {
+    /* width: 100vw; */
+    padding-top: 10px;
+    padding-bottom: 10px;
+    /* margin-left: calc(-50vw + 50%); */
+    margin-left:-100px;
+    margin-right: -100px;
+    /* margin-right: calc(-50vw + 50%); */
+    /* background: white; */
+    height: fit-content; /* This will make it match the image height */
+    display: flex;
+    justify-content: center; /* This will center your image */
+}
+
+.boxed-image {
+    padding: 0.5rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
 d-article li {
     margin-bottom: 0.0em;
 }
@@ -452,3 +400,200 @@ d-article ol ol {
 d-article hr {
     grid-column: text;
 }
+
+/* Memory visualization */
+#graph-all {
+    min-width: 500px;
+    margin-right: 10px;
+    margin-bottom: 2rem;
+    padding: 0.5rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Main container styles */
+#controls {
+    max-width: 1200px;
+    /* margin: 2rem auto; */
+    margin-bottom: 2rem;
+    margin-left: 10px;
+    padding: 0.6rem;
+    background: #f9fafb;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Grid layout */
+#controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    /* gap: 2rem; */
+}
+
+/* Cell styles */
+.cell {
+    margin-bottom: 0.2rem;
+}
+
+/* Label styles */
+label {
+    display: block;
+    /* margin-bottom: 0.5rem; */
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Input container for range + number combination */
+.input-container {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Range input styling */
+input[type="range"] {
+    flex: 1;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    appearance: none;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: #3b82f6;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #2563eb;
+}
+
+/* Number input styling */
+input[type="number"] {
+    width: 80px;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    color: #374151;
+}
+
+/* Select styling */
+select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    background: white;
+    font-size: 0.9rem;
+    color: #374151;
+    cursor: pointer;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin-right: 0.5rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Column specific styles */
+.column-1 {
+    padding-right: 0.5rem;
+}
+
+.column-2 {
+    padding-left: 0.5rem;
+}
+
+/* Checkbox container */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+/* Memory visualization styles */
+.memory-block {
+    background: #fff;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.memory-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.memory-value {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #controls {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+
+    .column-1, .column-2 {
+        padding: 0;
+    }
+}
+
+/* Hover states and transitions */
+input:hover, select:hover {
+    border-color: #3b82f6;
+}
+
+input:focus, select:focus {
+    border-color: #2563eb;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Add smooth transitions */
+input, select, button {
+    transition: all 0.15s ease;
+}
+
+/* Preset dropdown special styling */
+select[name="presets"] {
+    background-color: #f3f4f6;
+    font-weight: 500;
+}
+
+/* Memory graph enhancements */
+.activation-memory {
+    background: #dbeafe;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+.gradient-memory {
+    background: #ede9fe;
+    padding: 1rem;
+    border-radius: 8px;
+}
+

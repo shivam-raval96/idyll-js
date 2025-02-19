@@ -90,108 +90,141 @@
         <p>The book is built on the following <strong>three general foundations</strong>:</p>
 
         <p><strong>Quick intros on theory and concepts:</strong> before diving into code and experiments, we want to understand how each method works at a high level and what it’s advantages and limits are. You’ll learn about which parts of a language model eat away your memory and when during training it happens. You’ll learn how we can solve memory constraints by parallelizing the models and increase the throughput by scaling up GPUs. As a result you'll understand how the following widget to compute the memory breakdown of a transformer model works: </p>
+        <aside>Note that we're still missing Pipeline Parallelism in this widget. To be added as exercise for the reader.</aside>
 
-        <div id="graph"></div>
-        <div id="controls">
-            <div class="cell column-1">
-            <label for="a">Attention Heads (a):</label>
-            <input type="range" id="a" name="a" min="1" max="128" value="8">
-            <input type="number" id="a_input" value="8" min="1" max="128">
+        <div class="large-image-background-transparent">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                <div id="graph-all">
+                    <div class="figure-legend">Memory usage breakdown</div>
+                <div id="graph"></div>
             </div>
-            <div class="cell column-2">
-            <label for="mixed">Mixed Precision:</label>
-            <input type="checkbox" id="mixed" name="mixed" checked>
-            <span></span> <!-- Empty span to maintain grid alignment -->
-            </div>
-            <div class="cell column-1">
-            <label for="b">Micro Batch Size (b):</label>
-            <input type="range" id="b" name="b" min="1" max="53248" value="32">
-            <input type="number" id="b_input" value="32" min="1" max="53248">
-            </div>
-            <div class="cell column-2">
-            <label for="seq_parallel">Sequence Parallelism:</label>
-            <input type="checkbox" id="seq_parallel" name="seq_parallel">
-            <span></span> <!-- Empty span to maintain grid alignment -->
-            </div>
-            <div class="cell column-1">
-            <label for="h">Hidden Dimension (h):</label>
-            <input type="range" id="h" name="h" min="1" max="16384" value="512">
-            <input type="number" id="h_input" value="512" min="128" max="16384">
-            </div>
-            <div class="cell column-2">
-            <label for="recomputation">Recomputation:</label>
-            <select id="recomputation" name="recomputation">
-                <option value="none">None</option>
-                <option value="selective">Selective</option>
-                <option value="full">Full</option>
-            </select>
-            <span></span> <!-- Empty span to maintain grid alignment -->
-            </div>
-            <div class="cell column-1">
-            <label for="h_ff">Feedforward Dimension (h_ff):</label>
-            <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
-            <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
-            </div>
-            <div class="cell column-2">
-            <label for="zero">Zero:</label>
-            <select id="zero" name="zero">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-            </select>
-            <span></span> <!-- Empty span to maintain grid alignment -->
-            </div>
-            <div class="cell column-1">
-            <label for="L">Number of Layers (L):</label>
-            <input type="range" id="L" name="L" min="1" max="126" value="12">
-            <input type="number" id="L_input" value="12" min="1" max="126">
-            </div>
-            <div class="cell column-2">
-            <label for="ff_activation">FF Activation:</label>
-            <select id="ff_activation" name="ff_activation">
-                <option value="relu">ReLU</option>
-                <option value="gelu">GELU</option>
-                <option value="swiglu">SwiGLU</option>
-            </select>
-            <span></span> <!-- Empty span to maintain grid alignment -->
-            </div>
-            <div class="cell column-1">
-            <label for="s">Sequence Length (s):</label>
-            <input type="range" id="s" name="s" min="1" max="128000" value="128">
-            <input type="number" id="s_input" value="128" min="64" max="128000">
-            </div>
-            <div class="cell column-2">
-            <label for="presets">Presets:</label>
-            <select id="presets" name="presets">
-                <option value="Llama 3 Tiny">Llama 3 Tiny</option>
-                <option value="Llama 3 8B">Llama 3 8B</option>
-                <option value="Llama 3 70B">Llama 3 70B</option>
-                <option value="Llama 3 405B">Llama 3 405B</option>
-            </select>
-            <span></span> <!-- Empty span to maintain grid alignment -->
-            </div>
-            <div class="cell column-1">
-            <label for="v">Vocabulary Size (v):</label>
-            <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
-            <input type="number" id="v_input" value="30522" min="1000" max="100000">
-            </div>
-            <div class="cell column-2">
-            <label for="tp">Tensor Parallelism (t):</label>
-            <input type="range" id="tp" name="tp" min="1" max="16" value="8">
-            <input type="number" id="tp_input" value="8" min="1" max="16">
-            </div>
-            <div class="cell column-1">
-            <label for="k">Optimizer Parameters (k):</label>
-            <input type="range" id="k" name="k" min="1" max="16" value="8">
-            <input type="number" id="k_input" value="8" min="1" max="16">
-            </div>
-            <div class="cell column-2">
-            <label for="dp">Data Parallelism (d):</label>
-            <input type="range" id="dp" name="dp" min="1" max="256" value="1">
-            <input type="number" id="dp_input" value="1" min="1" max="256">
+                <div id="controls">
+                    <div class="cell column-1">
+                        <label for="a">Attention Heads (a):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="a" name="a" min="1" max="128" value="8">
+                        <input type="number" id="a_input" value="8" min="1" max="128">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="mixed">Mixed Precision:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="checkbox" id="mixed" name="mixed" checked>
+                        <span></span> <!-- Empty span to maintain grid alignment -->
+                        </div>
+                    </div>
+                    <div class="cell column-1">
+                        <label for="b">Micro Batch Size (b):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="b" name="b" min="1" max="53248" value="32">
+                        <input type="number" id="b_input" value="32" min="1" max="53248">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="seq_parallel">Sequence Parallelism:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="checkbox" id="seq_parallel" name="seq_parallel">
+                        <span></span> <!-- Empty span to maintain grid alignment -->
+                        </div>
+                    </div>
+                    <div class="cell column-1">
+                        <label for="h">Hidden Dimension (h):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="h" name="h" min="1" max="16384" value="512">
+                        <input type="number" id="h_input" value="512" min="128" max="16384">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="recomputation">Recomputation:</label>
+                        <select id="recomputation" name="recomputation">
+                            <option value="none">None</option>
+                            <option value="selective">Selective</option>
+                            <option value="full">Full</option>
+                        </select>
+                        <span></span> <!-- Empty span to maintain grid alignment -->
+                    </div>
+                    <div class="cell column-1">
+                        <label for="h_ff">Feedforward Dimension (h_ff):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="h_ff" name="h_ff" min="1" max="65536" value="2048">
+                        <input type="number" id="h_ff_input" value="2048" min="512" max="65536">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="zero">Zero:</label>
+                        <select id="zero" name="zero">
+                            <option value="0">0</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                        </select>
+                        <span></span> <!-- Empty span to maintain grid alignment -->
+                    </div>
+                    <div class="cell column-1">
+                        <label for="L">Number of Layers (L):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="L" name="L" min="1" max="126" value="12">
+                        <input type="number" id="L_input" value="12" min="1" max="126">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="ff_activation">FF Activation:</label>
+                        <select id="ff_activation" name="ff_activation">
+                            <option value="relu">ReLU</option>
+                            <option value="gelu">GELU</option>
+                            <option value="swiglu">SwiGLU</option>
+                        </select>
+                        <span></span> <!-- Empty span to maintain grid alignment -->
+                    </div>
+                    <div class="cell column-1">
+                        <label for="s">Sequence Length (s):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="s" name="s" min="1" max="128000" value="128">
+                        <input type="number" id="s_input" value="128" min="64" max="128000">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="v">Vocabulary Size (v):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="v" name="v" min="1000" max="100000" value="30522">
+                        <input type="number" id="v_input" value="30522" min="1000" max="100000">
+                        </div>
+                    </div>
+                    <div class="cell column-1">
+                        <label for="tp">Tensor Parallelism (t):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="tp" name="tp" min="1" max="16" value="8">
+                        <input type="number" id="tp_input" value="8" min="1" max="16">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="k">Optimizer Parameters (k):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="k" name="k" min="1" max="16" value="8">
+                        <input type="number" id="k_input" value="8" min="1" max="16">
+                        </div>
+                    </div>
+                    <div class="cell column-1">
+                        <label for="dp">Data Parallelism (d):</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
+                            <input type="range" id="dp" name="dp" min="1" max="256" value="1">
+                        <input type="number" id="dp_input" value="1" min="1" max="256">
+                        </div>
+                    </div>
+                    <div class="cell column-2">
+                        <label for="presets">Presets:</label>
+                        <select id="presets" name="presets">
+                            <option value="Llama 3 Tiny">Llama 3 Tiny</option>
+                            <option value="Llama 3 8B">Llama 3 8B</option>
+                            <option value="Llama 3 70B">Llama 3 70B</option>
+                            <option value="Llama 3 405B">Llama 3 405B</option>
+                        </select>
+                        <span></span> <!-- Empty span to maintain grid alignment -->
+                    </div>
+                </div>
             </div>
         </div>
+        <p>(Don't worry if you have no idea what's happening in this widget. That's why we're here.)</p>
 
         <p>While this widget gives a theoretical breakdown the following tool can be used to predict the memory usage:</p>
         <ul>
@@ -1724,8 +1757,10 @@
 
         <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and can be combined with both Pipeline Parallelism and ZeRO-3 as it relies on the distributive property of matrix multiplications which allows weights and activations to be sharded and computed independently before being combined.</p>
 
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
             <img alt="TP & SP diagram" src="/assets/images/5d_nutshell_tp_sp.svg" style="width: 1200px; max-width: none;" />
+        </div>
         </div>
 
           
@@ -1737,16 +1772,19 @@
 
         <p><strong>Context Parallelism (CP)</strong> specifically targets the challenge of training with very long sequences by sharding activations along the sequence dimension across GPUs. While most operations like MLPs and LayerNorm can process these sharded sequences independently, attention layers require communication since each token needs access to keys/values from the full sequence. As we saw in <a target="_self" href="#context_parallelism"> CP section</a>, this is handled efficiently through ring attention patterns that overlap computation and communication. CP is particularly valuable when scaling to extreme sequence lengths (128k+ tokens) where, even when using full activation recomputation, the memory requirements for attention would be prohibitive on a single GPU.</p>
         
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
             <img alt="CP diagram" src="/assets/images/5d_nutshell_cp.svg" style="width: 1200px; max-width: none;" />
         </div>
-        
+        </div>
         
         <p><strong>Expert Parallelism (EP)</strong> specifically targets the challenge of training Mixture of Experts (MoE) models by sharding specialized "experts" across GPUs and dynamically routing tokens to relevant experts during computation. The key communication operation in EP is the `all-to-all` operations routing tokens to their assigned experts and gathering the results back. While this operation introduces some communication overhead, it enables scaling model capacity significantly since each token is only processed during inference (and training) by a much smaller fraction of the total parameters. In terms of distributed training/inference, partitioning experts across GPUs becomes relevant when models scales to a large number of experts.</p>
         <aside>For instance DeepSeek V3 uses 256 experts.</aside>
         
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
             <img alt="EP diagram" src="/assets/images/5d_nutshell_ep.svg" style="width: 1200px; max-width: none;" />
+        </div>
         </div>
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
@@ -1799,15 +1837,19 @@
         <p><strong>Summarizing it all–</strong> Now what about gathering and combining all the techniques we've seen in a single diagram combining them all. Yes, we're up for the challenge!</p>
         <p>In this summary diagram, you will find illustrated activations and modules for a single transformers layer –in it's MoE variant–. We also illustrate the various directions of parallelism and the communication operations we've been discussing in all the previous sections.</p>
         
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
             <p><img alt="image.png" src="/assets/images/5d_full.svg" style="width: 1200px; max-width: none;"/></p>
             </div> 
+            </div>
 
         <p>We can also represent side-by-side a <strong>full overview</strong> of the memory savings for each one of these strategies. We'll plot them with different sequence length as well as with selective (top) and full (bottom) recomputation so you can see how they all play with activations:</p>
         
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
             <img alt="5Dparallelism_8Bmemoryusage.svg" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" style="width: 1200px; max-width: none;"/>
         </div> 
+        </div>
 
         <p>Let's finish this section with a high level view at all of these techniques, their main underlying idea and major bottleneck:</p>
 
@@ -1958,10 +2000,12 @@
         <p>All the following benchmarks were conducted with a sequence length of 4096 and a global batch size of 1M tokens. We gathered all the top configurations for each model and cluster size and plotted them in the following heatmaps:</p>
         </p>
         
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
         <p><img alt="image.png" src="/assets/images/what_we_learnt_heatmap.svg" /></p>
     </div>
-    <div class="figure-legend">
+</div>
+<div class="figure-legend">
         <p>Heatmap visualization showing the optimal training configurations across different model sizes and compute node counts (we have 8 GPUs per node). For each combination, the configuration details include Data Parallelism (DP), Tensor Parallelism (TP), Pipeline Parallelism (PP), Gradient Accumulation Steps (GAS), Micro Batch Size (MBS), and ZeRO optimization stage. The color intensity indicates the Model FLOPs Utilization (MFU), with brighter colors representing higher efficiency.</p>
     </div>
         <p>From this high-level visualization, we can draw several important insights:
@@ -2265,13 +2309,12 @@
 
         <p>However, when profiling this kernel with a tool like <code>ncu</code>, we can see issues, including low memory throughput and uncoalesced memory accesses.</p>
 
-        <div class="large-image-background">
-            <img width="1200px" alt="image.png" src="/assets/images/memorycoalescing2.png" />
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
+            <img width="1400px" alt="image.png" src="/assets/images/memorycoalescing2.png" />
+            <img width="1400px" alt="image.png" src="/assets/images/memorycoalescing3.png" />
         </div>
-        <div class="large-image-background">
-            <img width="1200px" alt="image.png" src="/assets/images/memorycoalescing3.png" />
         </div>
-
 
         <p>The reason for this is that in this kernel, two threads in the same block with Thread IDs <code>(0, 0)</code> and <code>(1, 0)</code> (which will end up in the same warp) will both load from the same column of matrix <code>B</code> but different rows of matrix <code>A</code>. Since matrix elements are stored in row-major order (meaning row elements are in consecutive memory addresses, as shown in the figure below) thread <code>(0, 0)</code> will load <d-math>A_{0,0}</d-math>, and thread <code>(1, 0)</code> will load <d-math>A_{1,0}</d-math> in the first iteration <code>i = 0</code>. These elements are not stored close to each other in memory, and this misalignment will be present at each iteration, thereby preventing memory accesses from being coalesced.</p>
         
@@ -2297,8 +2340,10 @@
 
         <p>When we profile our new kernel, we notice that the warning about uncoalesced memory accesses has disappeared, and <strong>the GPU's memory throughput has increased by approximately 10 times</strong>.</p>
         
-        <div class="large-image-background">
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
             <p><img width="1200px" alt="image.png" src="/assets/images/memorycoalescing5.png" /></p>
+        </div>
         </div>
 
         <p>We also notice that the execution time of the kernel <strong>decreases by 10x</strong>! Amazing.</p>
@@ -2685,7 +2730,15 @@
         </ul>
 
         <p>We hope this book helps you get started in distributed training and that you will train the next generation of awesome models to the hum of your GPU cluster!</p>
-        
+
+        <hr>
+
+        <p> <strong>One last word</strong> for our first readers. We're so happy with this writing piece that we've decided to distribute a limited number of physical printed editions of it as a gift for our first readers.</p>
+        <p>If you are among the first 50 people to fill in your email address below, we'll contact you later in the year to send you a real physical edition once we've formatted it as a printed copy.</p>
+        <p>We expect the book to be around 100-150 pages and to cover the same content as the blog post but we may also decide to shorten or lengthen it depending on what make sense as a printed object.</p>
+        <p>To get your physical copy, please fill in your email address in the following <a target="_blank" href="https://forms.gle/e1GkAShUCtgcwnne8">google form</a>.</p>
+        <p>Whether you are one of our first readers or coming much later to this blog post, we've very happy to see that you enjoyed this sharing of knowledge. May the force of open-source and open-science always be with you.</p>
+            
         <h3>Acknowledgements</h3>
 
         <p>We thank <a href="https://huggingface.co/eliebak">Elie</a> for conducting thorough reviews and creating the audio components using NotebookLM. Special thanks to <a href="https://huggingface.co/hynky">Hynek</a> for optimizing the frontend performance. We also thank <a href="https://huggingface.co/sbrandeis">Simon</a> for resolving some issues on the hub.</p>
@@ -3395,8 +3448,10 @@
 
         <p>This would print aggregated profiling results sorted by the total CUDA time, and the output would be:</p>
 
-        <div class="large-image-background">
-            <img alt="image.png" src="/assets/images/a1_kernels.png" style="width: 1200px; max-width: none;" />
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
+                <img alt="image.png" src="/assets/images/a1_kernels.png" style="width: 1200px; max-width: none;" />
+            </div>
         </div>
 
         <p>You can also try to inspect the trace as we previously mentioned on <code>chrome://tracing/</code></p>
@@ -3410,8 +3465,10 @@
 
         <p>After zooming in, you can observe the flow of operations when calling <code>layer_norm</code> in this trace:</p>
 
-        <div class="large-image-background">
-            <img alt="image.png" src="/assets/images/a1_profile_trace.png" style="width: 1200px; max-width: none;" />
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
+                <img alt="image.png" src="/assets/images/a1_profile_trace.png" style="width: 1200px; max-width: none;" />
+            </div>
         </div>
 
         <p>The sequence begins in the CPU (the upper section) with <code>aten::layer_norm</code>, progressing to <code>aten::native_layer_norm</code>, and then transitioning to <code>cudaLaunchKernel</code>. From there, we move on to the GPU, where the <code>vectorized_layer_norm_kernel</code> kernel is called.</p>
@@ -3437,8 +3494,10 @@
 
         <p>and open the file <code>output.ncu-rep</code> with Nsight Compute, you will have a view that looks like this:</p>
 
-        <div class="large-image-background">
-            <img alt="image.png" src="/assets/images/a1_ncu.png" style="width: 1200px; max-width: none;" />
+        <div class="large-image-background-transparent">
+            <div class="boxed-image">
+                <img alt="image.png" src="/assets/images/a1_ncu.png" style="width: 1200px; max-width: none;" />
+            </div>
         </div>
 
         <p>With clear warnings about compute and memory utilization, and how to make the kernel better in balancing compute and memory and achieve maximal occupancy.</p>
