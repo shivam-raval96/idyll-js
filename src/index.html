@@ -345,7 +345,7 @@
             </p></div>
         </div>
 
-        <p>These items are stored as tensors which come in different <em>shapes</em> and <em>precisions</em>. The <em>shapes</em> are determined by hyper-parameters such as batch size, sequence length, model hidden dimensions, attention heads, vocabulary size, and potential model sharding as we’ll see later. <em>Precision</em> refers to formats like FP32, BF16, or FP8, which respectively require 4, 2, or 1 byte to store each single value in the tensor.</p>
+        <p>These items are stored as tensors which come in different <em>shapes</em> and <em>precisions</em>. The <em>shapes</em> are determined by hyper-parameters such as batch size, sequence length, model hidden dimensions, attention heads, vocabulary size, and potential model sharding as we’ll see later. <em>Precision</em> refers to formats like FP32, BF16, or FP8, which respectively require 4, 2, or 1 byte to store each single value in the tensor. We will have a full discussion of the different precisions and their trade-offs in the <a target="_self" href="#mixed_precision_training">Mixed Precision Training</a> section, for now let's just keep in mind that the memory requirements for these various format will be different and that will impact the memory usage of the items we need to store.</p>
 
         <p>So how can I quickly determine memory usage from these variable? One simple way is to do this empirically and just measure it.</p>
 
@@ -815,7 +815,7 @@
 
         <h4>Memory usage revisited</h4>
         
-        <p>You likely remember from <a target="_self" href="#memory_usage_in_transformers"> our previous section</a> the memory usage of optimizer states, gradients, and parameters during a standard training. Lets call our model's parameters count <d-math>\Psi</d-math> (previously N but here we use the original ZeRO paper notation). In mixed-precision training with the Adam optimizer, the memory usage for each item we need to store is:</p>
+        <p>You likely remember from <a target="_self" href="#memory_usage_in_transformers"> our previous section</a> the memory usage of optimizer states, gradients, and parameters during a standard training. Lets call our model's parameters count <d-math>\Psi</d-math> (previously N but here we use the original ZeRO paper notation). In <a target="_self" href="#mixed_precision_training">Mixed Precision Training</a> (more details in a later section) with the Adam optimizer, the memory usage for each item we need to store is:</p>
 
         <ul>
             <li>Model’s parameters (half precision i.e. bf16/fp16): <d-math>2\Psi</d-math></li>
@@ -2274,30 +2274,36 @@
         
         <p>In several places now we’ve mentioned how GPU and CPU operation can be asynchronous. In particular, the host code on the CPU can schedule workload on the GPU in a non-blocking way.</p>
         
-        <p>Non-blocking can be useful for overlapping communication and computation as we saw at several part along this blog post but can be extended to the more general idea of trying to avoid at all cost going back and forth between host and GPU kernel commands. This is beautifully illustrated by <a href="https://horace.io/brrr_intro.html">Horace He</a> in these diagrams:</p>
+        <p>Non-blocking can be useful for overlapping communication and computation –as we saw many times along our journey– but can be extended to the more general idea of trying to avoid at all cost going back and forth between host and GPU kernel commands.</p>
+        <p>This idea is beautifully illustrated by <a href="https://horace.io/brrr_intro.html">Horace He</a> in these diagrams:</p>
         <div style="display: flex; gap: 20px; align-items: flex-start;">
             <div style="width: 50%;">
                 <img alt="image.png" src="/assets/images/fused_kernels1.png" style="width: 100%;" />
+                <div class="figure-legend">
                 <p>A sequence of kernels requiring back and forth between global memory and compute units</p>
+            </div>
             </div>
             <div style="width: 50%;">
                 <img alt="image.png" src="/assets/images/fused_kernels2.png" style="width: 100%;" />
-                <p>Instead of sending our triangle back to global memory just to read it back again, we instead just do all of our operations in one go.</p>
+                <div class="figure-legend">
+                    <p>Instead of sending our triangle back to global memory just to read it back again, we instead just do all of our operations in one go.</p>
+                </div>
             </div>
         </div>
 
         <p>How can we avoid this back and forth? Well the best way is to make our GPU as autonomous as possible. This is achieved by packing as many successive compute operations together in a single kernel for the GPU to run, called a “Fused Kernel”.</p>
 
 
-        <p>Fused kernel are especially efficient and simple to write for succession of point-like operations which are performed independently of each other on each input tokens. In this case, there is no point in bringing back computed values in Global Memory before moving them to SM memory and spinning up a new kernel. It’s much more efficient to keep all values local until the succession of computation has been performed.</p>
+        <p>Fused kernel are especially efficient and simple to write for succession of point-like operations which are performed independently of each other on each input tokens. In this case, there is no point in bringing back computed values in Global Memory before moving them to SM memory and spinning up a new kernel. It’s much more efficient to keep all values locally until the succession of computation has been performed.</p>
 
-        <p>What are many places in a Transformer model were this can be advantageous, for instance when. a succession of point-wise operations is performed, e.g. in the computation involved in the Layer norms.</p>
+        <p>There are many places in a Transformer model where this "fusing" approach can be applied: every time we have a succession of point-wise operations e.g. in the computation involved in the Layer norms.</p>
 
         <p>We now have all the understanding necessary to marvel at a true masterpiece of kernel engineering: <strong><em>Flash Attention</em></strong></p>
 
         <h3>Flash Attention 1-3</h3>
         
-        <p>Flash attention is a technique pioneered by <a href="https://tridao.me">Tri Dao</a> that optimizes the attention computations by writing custom CUDA kernels to make it much faster *and* more memory efficient. The idea behind Flash Attention is to make efficient use of the various memories of the GPU to avoid using too much the slowest global memory of the GPU (confusingly called the High Bandwidth Memory, HBM 🫠)</p>
+        <p>Flash attention was introduced by <a href="https://tridao.me">Tri Dao</a> and proposed to optimize the attention computations by writing custom CUDA kernels make them much faster *and* more memory efficient. The idea behind Flash Attention is to make efficient use of the various memories of the GPU to avoid relying too much on the slowest one: the global memory of the GPU.</p>
+        <aside>Note that the global memory of the GPU is confusingly called the "High Bandwidth Memory", HBM 🫠</aside>
 
         <p>A basic implementation of the attention mechanism involve a lot of transfer between memory and workers. It requires materializing the S and P matrices in HBM which means that the results need to be sent to HBM and then back to SRAM for the next computations:</p>
 
@@ -2324,9 +2330,14 @@
 
         <p>Flash-Attention is a master demonstration of the breakthrough improvements that can come when you take into account the internal memory/compute design of current GPU accelerators.</p>
 
-        <p>The techniques described so far in this section require specific modeling code changes and writing custom kernels for certain operations in order to speed up training. In this section we take a look at a range of methods that are agnostic to the modeling code and can be used for any model!</p>
+        <hr>
+
+        <p>The techniques described so far in this operation-fusion section have required us to implement modeling code changes and write custom kernels for certain operations in order to speed up training.</p>
+        <p>In the final section of our low-level dive in the compute operations themselves, we will take a look at a range of methods that are agnostic to the modeling code and can be used for any model and are so widely used that they have become a standard in the industry: <strong>Mixed Precision Training</strong>!</p>
         
         <h3>Mixed Precision Training</h3>
+
+        <p>In various sections along this book, we've talked about lower precisions formats and their impact on the memory requirements for storing activations, parameters and optimizer states. It's now time to dive deeper in the details of these formats and understand better their trade-offs, advantages and limitations.</p>
         
         <p>Mixed Precision Training, as the name suggests, involves mixing different precisions when training. The default numerical precision of PyTorch tensors is single-precision floating point format or also called FP32 or float32 which means that every number stored takes up 32 bits or 4 bytes. The available bits to represent a number are divided into 3 parts:</p>
 
@@ -2335,6 +2346,10 @@
             <li>Mantissa: determines the significant figures of a number</li>
             <li>Exponent: controls the magnitude of the number</li>
         </ul>
+
+        <p><img width="500px" alt="sign-mantissa-exponent.svg" src="/assets/images/sign-mantissa-exponent.svg" /></p>
+
+
 
         <p>The principle of floating point numbers can be easily illustrated by recalling the scientific notation of numbers, e.g. <d-math>- 5.734 \times 10^{7}</d-math>, where we first have the sign, followed by the mantissa an the exponent. As such we can represent numbers across a wide range of magnitudes with an adaptive precision. Although float32 is the default there is a range of floating point formats available in PyTorch:</p>
 
@@ -2346,8 +2361,8 @@
                 <th><strong>Format</strong></th>
                 <th><strong>Total bits</strong></th>
                 <th><strong>Sign</strong></th>
-                <th><strong>Mantissa</strong></th>
                 <th><strong>Exponent</strong></th>
+                <th><strong>Mantissa</strong></th>
               </tr>
             </thead>
             <tbody>
@@ -2355,36 +2370,36 @@
                 <td>float32</td>
                 <td>32</td>
                 <td>1</td>
-                <td>23</td>
                 <td>8</td>
+                <td>23</td>
               </tr>
               <tr>
                 <td>float16</td>
                 <td>16</td>
                 <td>1</td>
-                <td>10</td>
                 <td>5</td>
+                <td>10</td>
               </tr>
               <tr>
                 <td>bfloat16</td>
                 <td>16</td>
                 <td>1</td>
-                <td>7</td>
                 <td>8</td>
+                <td>7</td>
               </tr>
               <tr>
                 <td>float8 (e4m3)</td>
                 <td>8</td>
                 <td>1</td>
-                <td>3</td>
                 <td>4</td>
+                <td>3</td>
               </tr>
               <tr>
                 <td>float8 (e5m2)</td>
                 <td>8</td>
                 <td>1</td>
-                <td>2</td>
                 <td>5</td>
+                <td>2</td>
               </tr>
             </tbody>
            </table>
@@ -2404,11 +2419,11 @@
 
         <p>We can see here that bfloat16 maintained the range of float32 over float16 but did this with the cost of sacrificing more precision. In case of float8 the situation is even more dire as e4m3 can represent 7 and e5m2 only 3 number on the interval 1-2.</p>
 
-        <p>A common metric to measure a formats resolution is epsilon: the first representable number after 1.00. We can see that for the float32 format $10^{-4}$  is an upper bound (it’s actually <d-math>1.19^{-7}</d-math>). For float16 it is <d-math>\tilde 10^{-3}</d-math> and for bfloat 10x higher still.</p>
+        <p>A common metric to measure a formats resolution is epsilon: the first representable number after <d-math>1.00</d-math>. We can see that for the float32 format <d-math>10^{-4}</d-math> is an upper bound (it’s actually <d-math>1.19^{-7}</d-math>). For float16 it is <d-math>\tilde 10^{-3}</d-math> and for bfloat 10x higher still.</p>
 
-        <p>The idea of mixed precision training is to use some of these lower precisions formats while maintaining the performance of full precision training. It turns out we <strong>can’t</strong> totally abandon float32 and usually will need to maintain some parts in full precision.</p>
+        <p>The idea of mixed precision training is to use some of these lower precisions formats while maintaining the performance of full precision training. </p>
 
-        <p>This is why lower precision training is usually called <strong><em>mixed precision</em></strong> training. </p>
+        <p>It turns out we <strong>can’t</strong> totally abandon float32 and usually will need to maintain some parts in full precision. This is why lower precision training is usually called <strong><em>mixed precision</em></strong> training. </p>
 
         <p>Let’s now take a look at training models with 16 bits and then see if we can take it a step further all the way down to 8 bits.</p>
 
@@ -2421,10 +2436,10 @@
         <ol>
             <li><strong>FP32 copy of weights</strong>: There are two possible issues with float16 weights. During training some of the weights can become very small and will be rounded to 0. However, even if the weights themselves are not close to zero, if the updates are very small the difference in magnitude can cause the weights to underflow during the addition. Once the weights are zero they will remain 0 for the rest of training as there is no gradient signal coming through anymore.</li>
             <li><strong>Loss scaling</strong>: We have a similar issue with the gradients as well as gradients tend to be much smaller than 1 and are thus at risk to underflow. A simple, yet effective, strategy is to scale the loss before the backward pass and unscale the gradients after the backward pass. This ensures that there is no underflow during the backward pass and the scaling is not affecting training as we unscale before processing the gradients further (e.g. clipping) and the optimization step.  </li>
-            <li><strong>Accumulation</strong>: Finally, when performing arithmetic operations in float16 such as in dot products, we can also face under or overflows. Does targeting certain types of arithmetic operations to accumulate the intermediate results in float32 during the operation and then casting the accumulated result back to fp16. For the same reason gradients are also accumulated in float32.</li>
+            <li><strong>Accumulation</strong>: Finally, when performing certain arithmetic operations in 16-bit precision such as averages or summations, we can also face under or overflows. A solution is then to accumulate intermediate results in float32 during the operation and only cast the final result back to 16 bit precision.</li>
         </ol>
         
-        <p>With these techniques, you get consistently stable training while benefitting from higher throughput due to the faster, lower precision operations. Naturally, as the curious reader you are and by now slightly addicted to maximizing the throughput, you ask the question: can we go further and faster? </p>
+        <p>With these techniques, we can get a stable training while benefitting from a higher throughput due to the faster, lower precision arithmetic operations. Naturally, as a curious reader –and by now slightly addicted to maximizing the throughput– you may ask the question: can we go further and faster than 16-bit precision? </p>
 
         <p>Maybe!</p>
         
@@ -2436,6 +2451,7 @@
         
         <p>We know that instability increases as learning rates rise for a fixed model size<d-cite bibtex-key="wortsman2023smallscaleproxieslargescaletransformer"></d-cite>, making FP8 pretraining particularly tricky.</p>
         
+        <p>Here is an example of a typically divergent loss curve for FP8 training:</p>
         <iframe class="l-body-outset" id="plotFP8Loss" src="/assets/data/fp8/fp8_training_loss_curves.html" height="520" width="1000" scrolling="no" frameborder="0"></iframe>
         <!-- Hynek uncomment this once it's added to -->
         <!-- <div class="l-body-outset" id="fragment-fp8_training_loss_curves"></div> -->
@@ -2444,7 +2460,7 @@
         
         <p><img alt="image.png" src="/assets/images/fp8_diagram.png" /></p>
 
-        <p>In order to switch from high precision (e.g. FP32 or BF16) to lower precision (e.g. FP16 or FP8) with smaller range, we need to normalize the range of values by computing the absolute maximum. DeepSeek-V3 also introduces a quantization scheme, where the ranges are normalized per tile: 1x128 for inputs/activations and 128x128 for weights and scale elements. This makes the normalization less susceptible to outliers. There is a number of additional tricks they deploy to also reduce the memory and communication footprint which you can follow in section 3.3. of the DeepSeek-V3 technical report<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. </p>
+        <p>In order to switch from high precision (e.g. FP32 or BF16) to lower precision (e.g. FP16 or FP8) with smaller range, we need to normalize the range of activation values, for instance by computing their absolute maximum. DeepSeek-V3 further introduced a specific quantization scheme where the ranges are normalized per tile: 1x128 for inputs/activations and 128x128 for weights and scale elements. This makes the normalization less strongly impacted by outlier values in the activations. There is a number of additional tricks they proposed to further reduce the memory and communication footprint which you can follow in section 3.3. of the DeepSeek-V3 technical report<d-cite bibtex-key="deepseekai2024deepseekv3technicalreport"></d-cite>. </p>
 
         <p>Here’s a summary of a few known approaches to FP8 training:</p>
 
@@ -2525,11 +2541,13 @@
             </tbody>
            </table>
 
-        <p>Overall, FP8 is still an experimental technique and methods are evolving, but will likely become the standard soon replacing bf16 mixed-precision. To follow a public implementations of this, please head to the nanotron’s implementation in <a href="https://github.com/huggingface/nanotron/pull/70">this PR</a>. </p>
+        <p>Overall, FP8 remains –in early 2025– an experimental technique and methods are still evolving. Given its obvious benefits, it will likely become the standard and soon replace bf16 mixed-precision. To follow an open-source implementations of FP8 training techniques, please head to the nanotron’s implementation in <a href="https://github.com/huggingface/nanotron/pull/70">this PR</a>. </p>
 
-        <p>In the future, Blackwell, the next generation of NVIDIA chips, <a href="https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/">have been announced </a> to support FP4 training, further speeding up training but without a doubt also introducing a new training stability challenge.</p>
+        <p>Projecting further into the future, Blackwell, the next generation of NVIDIA chips, <a href="https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/">have been announced </a> to support FP4 training, further speeding up training but without a doubt also introducing a new training stability challenge.</p>
 
-        <p>We now arrived at the end of the distributed training journey. Let’s take a step back and conclude.</p>
+        <hr>
+
+        <p>This last section concluded our long journey in the land of fast and large model training on tens to thousands of GPUs. Time to slowly bring our GPU cluster to rest and take a step back to conclude on all we've learned along the way.</p>
 
         <h2>Conclusion</h2>
         
