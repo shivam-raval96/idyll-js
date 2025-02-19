@@ -424,3 +424,15 @@ d-article {
 d-code {
     font-size: 12px;
 }
+
+.large-image-background {
+        width: 100vw;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        margin-left: calc(-50vw + 50%);
+        margin-right: calc(-50vw + 50%);
+        background: white;
+        height: fit-content; /* This will make it match the image height */
+        display: flex;
+        justify-content: center; /* This will center your image */
+}
