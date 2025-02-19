@@ -82,6 +82,8 @@
 
         <p>As the size of the clusters used to train these models grew, various techniques such as data parallelism, tensor parallelism, pipeline parallelism or context parallelism as well as ZeRO or kernel fusion have been invented to makes sure that GPUs are highly utilized at all times. This significantly reduces training time and makes the best use of this expensive hardware. Even more, as the challenge of scaling up AI training goes beyond just building the initial models and teams have found that fine-tuning large models on specialized data often produces the best results, generally involving the same distributed training techniques. In this book we'll progressively go over all of these techniques –from the simplest to the most raffined one– while keeping a single story-line to understand where each method comes from.</p>
 
+        <aside>If you have questions or remarks open a discussion on the <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook/discussions?status=open&type=discussion">Community tab</a>!</aside>
+
         <p>We'll assumes you have some simple basic knowledge about current LLM architecture and are roughtly familiar with how deep learning model are trained, but you can be generally new to distributed training. If needed, the basics of model training can be found in great courses found at <a href="https://www.deeplearning.ai">DeepLearning.ai</a> or on the <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">PyTorch tutorial sections</a>. This book can be seen as the second part of a trilogy following our first blog on processing data for pre-training, the so-called “<a href="https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1">FineWeb blog post</a>”. Having read both blog posts, you should have almost all the core knowledge needed to fully understand how how performing LLMs are being built nowadays, just missing some final spices regarding data mixing and architecture choices to complete the recipe (stay tuned for part three…).</p>
 
         <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating
@@ -90,7 +92,7 @@
         <p>The book is built on the following <strong>three general foundations</strong>:</p>
 
         <p><strong>Quick intros on theory and concepts:</strong> before diving into code and experiments, we want to understand how each method works at a high level and what it’s advantages and limits are. You’ll learn about which parts of a language model eat away your memory and when during training it happens. You’ll learn how we can solve memory constraints by parallelizing the models and increase the throughput by scaling up GPUs. As a result you'll understand how the following widget to compute the memory breakdown of a transformer model works: </p>
-        <aside>Note that we're still missing Pipeline Parallelism in this widget. To be added as exercise for the reader.</aside>
+        <aside>Note that we're still missing Pipeline Parallelism in this widget. To be added as an exercise for the reader.</aside>
 
         <div class="large-image-background-transparent">
             <div style="display: grid; grid-template-columns: 1fr 1fr; align-items: center;">
@@ -387,7 +389,7 @@
 
         <h4>Profiling the memory usage</h4>
 
-        <p>Using this snippet, we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
+        <p>Using the Pytorch profiler we can understand how memory is allocated througho    ut training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
 
         <aside>Check out <a target="_self" href="#a1%3A_distributed_training_profiling" class="">A1: Distributed Training Profiling</a> for a walkthrough how to profile your model.</aside>
 
