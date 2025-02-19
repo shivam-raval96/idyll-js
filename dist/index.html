@@ -1680,8 +1680,9 @@
 
         <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and can be combined with both Pipeline Parallelism and ZeRO-3 as it relies on the distributive property of matrix multiplications which allows weights and activations to be sharded and computed independently before being combined.</p>
 
-          <img alt="TP & SP diagram" src="/assets/images/5d_nutshell_tp_sp.svg" style="width: 1000px; max-width: none;" />
-          <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
+        <div class="large-image-background">
+            <img alt="TP & SP diagram" src="/assets/images/5D_nutshell_tp_sp.svg" style="width: 1200px; max-width: none;" />
+        </div>
 
           
           <p>The main reason we don't want to use TP only for parallelism is that, in practice, TP has two limitations we've discussed in the previous sections: First, since its communication operations are part of the critical path of computation, it's difficult to scale well beyond a certain point at which communication overhead begins to dominate. Second, unlike ZeRO and PP which are model-agnostic, TP requires careful handling of activation sharding - sometimes along the hidden dimension (in the TP region) and sometimes along the sequence dimension (in the SP region) - making it more cumbersome to implement correctly and requiring model-specific knowledge to ensure proper sharding patterns throughout.</p>
@@ -1692,16 +1693,17 @@
 
         <p><strong>Context Parallelism (CP)</strong> specifically targets the challenge of training with very long sequences by sharding activations along the sequence dimension across GPUs. While most operations like MLPs and LayerNorm can process these sharded sequences independently, attention layers require communication since each token needs access to keys/values from the full sequence. As we saw in <a target="_self" href="#context_parallelism"> CP section</a>, this is handled efficiently through ring attention patterns that overlap computation and communication. CP is particularly valuable when scaling to extreme sequence lengths (128k+ tokens) where, even when using full activation recomputation, the memory requirements for attention would be prohibitive on a single GPU.</p>
         
-        <img alt="CP diagram" src="/assets/images/5d_nutshell_cp.svg" style="width: 1000px; max-width: none;" />
-
-        <!-- <p><img alt="image.png" src="/assets/images/placeholder.png" /></p> -->
+        <div class="large-image-background">
+            <img alt="CP diagram" src="/assets/images/5d_nutshell_cp.svg" style="width: 1200px; max-width: none;" />
+        </div>
         
         
         <p><strong>Expert Parallelism (EP)</strong> specifically targets the challenge of training Mixture of Experts (MoE) models by sharding specialized "experts" across GPUs and dynamically routing tokens to relevant experts during computation. The key communication operation in EP is the `all-to-all` operations routing tokens to their assigned experts and gathering the results back. While this operation introduces some communication overhead, it enables scaling model capacity significantly since each token is only processed during inference (and training) by a much smaller fraction of the total parameters. In terms of distributed training/inference, partitioning experts across GPUs becomes relevant when models scales to a large number of experts.</p>
         <aside>For instance DeepSeek V3 uses 256 experts.</aside>
         
-        <img alt="EP diagram" src="/assets/images/5d_nutshell_ep.svg" style="width: 1000px; max-width: none;" />
-
+        <div class="large-image-background">
+            <img alt="EP diagram" src="/assets/images/5d_nutshell_ep.svg" style="width: 1200px; max-width: none;" />
+        </div>
         <div class="note-box">
             <p class="note-box-title">📝 Note</p>
             <div class="note-box-content">
@@ -1753,11 +1755,15 @@
         <p><strong>Summarizing it all–</strong> Now what about gathering and combining all the techniques we've seen in a single diagram combining them all. Yes, we're up for the challenge!</p>
         <p>In this summary diagram, you will find illustrated activations and modules for a single transformers layer –in it's MoE variant–. We also illustrate the various directions of parallelism and the communication operations we've been discussing in all the previous sections.</p>
         
-        <p><img alt="image.png" src="/assets/images/5d_full.svg" style="width: 1000px; max-width: none;"/></p>
+        <div class="large-image-background">
+            <p><img alt="image.png" src="/assets/images/5d_full.svg" style="width: 1200px; max-width: none;"/></p>
+            </div> 
 
         <p>We can also represent side-by-side a <strong>full overview</strong> of the memory savings for each one of these strategies. We'll plot them with different sequence length as well as with selective (top) and full (bottom) recomputation so you can see how they all play with activations:</p>
         
-        <img alt="5Dparallelism_8Bmemoryusage.svg" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" style="width: 1000px; max-width: none;"/>
+        <div class="large-image-background">
+            <img alt="5Dparallelism_8Bmemoryusage.svg" src="/assets/images/5Dparallelism_8Bmemoryusage.svg" style="width: 1200px; max-width: none;"/>
+        </div> 
 
         <p>Let's finish this section with a high level view at all of these techniques, their main underlying idea and major bottleneck:</p>
 
