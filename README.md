@@ -8,7 +8,9 @@ pinned: false
 license: apache-2.0
 header: mini
 app_file: dist/index.html
-thumbnail: https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1/resolve/main/screenshot.jpeg
+thumbnail: >-
+  https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1/resolve/main/screenshot.jpeg
+short_description: The ultimate guide to training LLM on large GPU Clusters
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
@@ -45,5 +47,3 @@ There are two way to load HTML fragments:
 
 ## How to know which fragments are available
 - Run `npm run dev` and look at the console for available fragments
-
-
