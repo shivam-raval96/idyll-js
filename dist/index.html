@@ -277,7 +277,17 @@
         <!-- <p>Time to get started by quickly revisiting the basic training steps of an LLM!</p> -->
                 
         <h2>First Steps: Training on one GPU</h2>
-        
+
+        <div class="audio-container">
+        <audio controls>
+            <source src="../assets/audio/Single GPU Model Training_ Memory, Batch Size, and Optimization.wav" type="audio/wav">
+            Your browser does not support the audio element.
+          </audio>
+          <div class="figure-legend">
+          <p>If you fancy adding a podcast feeling to your reading experience, feel free to listen to the NotebookLM hosts discussing the first sections of this book as you're reading along.</p>
+        </div>
+        </div>
+          
         <p>Let’s start by quickly reviewing the very basics of model training before we start to scale to many GPUs. When a model is trained on a single GPU, the training typically consists of three steps: </p>
 
         <ol>
@@ -617,7 +627,18 @@
         <p>Now let’s get a larger workstation 🖥️  with a couple of GPUs and start investigating our first scaling technique called <em><strong>data parallelism</strong> which –as we'll see– is just a parallel version of gradient accumulation</em>.</p>
 
         <h2>Data Parallelism</h2>
-        
+
+        <div class="audio-container">
+            <audio controls>
+                <source src="../assets/audio/Data Parallelism and ZeRO_ Scaling Model Training.wav" type="audio/wav">
+                Your browser does not support the audio element.
+              </audio>
+              <div class="figure-legend">
+              <p>To add a podcast feeling to your reading experience, feel free to listen to the NotebookLM hosts discussing the following sections of this book as you're reading along.</p>
+            </div>
+            </div>
+              
+    
         <p>The idea behind data parallelism (DP) is to replicate the model on several GPUs (we call the replica's “model instances”) and run forward and backward passes on different micro batches of data in parallel for each GPU, hence the name Data Parallelism. You've probably already seen Data Parallelism in simple training examples but as you'll soon see we'll dive quite deeper in this section so stay tuned even if you know the general approach.</p>
 
         <p><img alt="image.png" src="/assets/images/dp_diagram.png" /></p>
@@ -946,6 +967,18 @@
         <p>What? How is this even possible?! Let's explore this seemingly magical approach together! 🙂</p>
         
         <h2>Tensor Parallelism</h2>
+
+        <div class="audio-container">
+            <audio controls>
+                <source src="../assets/audio/Tensor, Sequence, and Context Parallelism for Distributed Training.wav" type="audio/wav">
+                Your browser does not support the audio element.
+              </audio>
+              <div class="figure-legend">
+              <p>To add a podcast feeling to your reading experience, feel free to listen to the NotebookLM hosts discussing the following sections of this book as you're reading along.</p>
+            </div>
+            </div>
+              
+    
 
         <p>So we have sharded the model’s parameters, gradients and optimizers states with ZeRO but we hit a limit once activation memory overtakes our memory budget. Welcome Tensor Parallelism (TP), a method which shards weights, gradients, and optimizers states as well as activations and without the need to gather them all prior to the computation. Seems like a dream! Let’s first have a look at how Tensor Parallel works with simple matrix multiplications.</p>
 
@@ -1380,7 +1413,18 @@
         <p>However, we still know that TP doesn't scale well across nodes, so what can we do if the model weights don't easily fit on 1 node? Here come another degree of parallelism, our forth one, called <strong>Pipeline Parallelism</strong>, to the rescue!</p>
 
         <h2>Pipeline Parallelism</h2>
-        
+
+        <div class="audio-container">
+            <audio controls>
+                <source src="../assets/audio/5D Parallelism_ Scaling Deep Learning Model Training Strategies.wav" type="audio/wav">
+                Your browser does not support the audio element.
+              </audio>
+              <div class="figure-legend">
+              <p>To add a podcast feeling to your reading experience, feel free to listen to the NotebookLM hosts discussing the following sections of this book as you're reading along.</p>
+            </div>
+            </div>
+              
+    
         <p>In the <a target="_self" href="#tensor-parallelism">Tensor Parallelism</a> section we saw that trying to scale Tensor parallelism past the number of GPUs per single node (typically 4 or 8) hit a lower bandwidth network called “inter-node connection” which can quite strongly impair our performances. We can see this clearly on e.g. the all-reduce operation when we benchmark it on our cluster across several nodes (each node has 8 GPUs):</p>
 
         <!-- <iframe class="l-body-outset" id="plotFrame11" src="assets/data/benchmarks/pp_comm_bandwidth.html" width="90%" scrolling="no" frameborder="0"></iframe> -->
@@ -1979,7 +2023,17 @@
         <p>Time to turn the lights off and activate CUDA mode! </p>
         
         <h2>Diving in the GPUs – fusing, threading, mixing</h2>
-        
+
+        <div class="audio-container">
+            <audio controls>
+                <source src="../assets/audio/GPU Deep Dive_ Optimizing Model Performance and Memory Efficiency.wav" type="audio/wav">
+                Your browser does not support the audio element.
+              </audio>
+              <div class="figure-legend">
+              <p>To add a podcast feeling to your reading experience, feel free to listen to the NotebookLM hosts discussing the following sections of this book as you're reading along.</p>
+            </div>
+            </div>
+              
         <p>Up to now our discussion has been focused on the high-level organization of our model operations. We’ve moved around computations on various accelerators, taking into account general memory constraints and high-level scheduling of the compute units.</p>
 
         <p>But this ignored all the optimizations we can do at a much lower level by carefully understanding how our model operations are scheduled and performed on each GPU.</p>
