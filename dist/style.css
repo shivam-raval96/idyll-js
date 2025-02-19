@@ -436,3 +436,19 @@ d-code {
         display: flex;
         justify-content: center; /* This will center your image */
 }
+
+d-article li {
+    margin-bottom: 0.0em;
+}
+
+d-article ul ul {
+    margin-bottom: 0.0em;
+}
+
+d-article ol ol {
+    margin-bottom: 0.0em;
+}
+
+d-article hr {
+    grid-column: text;
+}

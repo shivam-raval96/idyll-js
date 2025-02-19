@@ -1681,7 +1681,7 @@
         <p><strong>Tensor Parallelism</strong> (with Sequence Parallelism) is naturally complementary and can be combined with both Pipeline Parallelism and ZeRO-3 as it relies on the distributive property of matrix multiplications which allows weights and activations to be sharded and computed independently before being combined.</p>
 
         <div class="large-image-background">
-            <img alt="TP & SP diagram" src="/assets/images/5D_nutshell_tp_sp.svg" style="width: 1200px; max-width: none;" />
+            <img alt="TP & SP diagram" src="/assets/images/5d_nutshell_tp_sp.svg" style="width: 1200px; max-width: none;" />
         </div>
 
           
@@ -1828,7 +1828,7 @@
             </tbody>
            </table>
         
-        <p>Clearly, none of these techniques is a silver bullet for magical scaling we'll often have to combine them in one way or another. Can we actually come up with a few rules that help finding a good starting point to select and combine them? This will be the topic of our next section.</p>
+        <p>Clearly, none of these techniques is a silver bullet for magical scaling and we'll often have to combine them in one way or another. Can we actually come up with a few rules that would help us find a good starting point to choose among –and combine– them? This will be the topic of our next section.</p>
     
         <h2>How to Find the Best Training Configuration</h2>
 
@@ -1838,9 +1838,9 @@
         
         <h3>Step 1: Fitting a Training Step in Memory</h3>
         
-        <p>First, we need to figure out how we can fit a full model instance on our GPUs (we focus on a single instance for now - even though we may use DP for ZeRO). There are two general cases.</p>
-
-        <p>GPU-rich case 🤑 - when you have plenty of GPUs available:</p>
+        <p>First, we need to figure out how we can fit a full model instance on our GPUs. There are two general cases.</p>
+        
+        <p><strong>GPU-rich case 🤑</strong> - when you have plenty of GPUs available:
         <ul>
             <li>For models under 10B parameters, you can use a single parallelism technique, e.g. Tensor Parallelism or ZeRO-3/DP with Full Recompute across 8 GPUs</li>
             <li>For models between 10B-100B parameters requiring more than 8 GPUs, you have several options:</li>
@@ -1852,20 +1852,22 @@
             <li>At 512+ GPU scale, pure Data Parallelism/ZeRO-3 will start to becomes inefficient due to communication cost - it can be better to then combine DP with either Tensor or Pipeline Parallelism</li>
             <li>At 1024+ GPU scale, a recommended setup can be Tensor Parallelism TP=8 with Data Parallelism (ZeRO-2) and Pipeline Parallelism</li>
         </ul>
+        <aside>We focus on fitting a single instance for now - even though we may use DP for ZeRO to achieve this goal - we're only interested here in the model-parameters memory savings that it provide when used with ZeRO-3.</aside>
+    </p>
 
-        <p>Special considerations:</p>
+        <p>Special considerations:
         <ul>
             <li>For very long sequences, you will probably want to add Context Parallelism (CP) across nodes.</li>
             <li>For Mixture of Experts architectures, you will advantageously use Expert Parallelism (EP) across nodes.</li>
         </ul>
-
-        <p>GPU-poor case 😭 - when you might be low on GPU resources:</p>
+    </p>
+        <p><strong>GPU-poor case 😭</strong> - when you might be low on GPU resources:
         <ul>
             <li>You can enable full activation recomputation to trade some compute for memory (and train a bit slower).</li>
             <li>You can increase gradient accumulation to process larger batches with limited memory.
             </li>
         </ul>
-
+    </p>
         <p>Now that we have a first model instance training, we need to make sure we have the right batch size.</p>
 
         <h3>Step 2: Achieving Target Global Batch Size </h3>
@@ -1903,7 +1905,17 @@
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
  -->
 
-        <p>This concludes our very deep dive into 5D parallelism. However, besides scaling our model efficiently across GPUs there is another way to improve model throughput and memory management. It involves a better understanding of how GPU operate at a low level and is among the necessary knowledge to be able to take maximal advantage of large GPU clusters.</p>
+        <!-- <p>This concludes our very deep dive into 5D parallelism. However, besides scaling our model efficiently across GPUs there is another way to improve model throughput and memory management. It involves a better understanding of how GPU operate at a low level and is among the necessary knowledge to be able to take maximal advantage of large GPU clusters.</p> -->
+
+
+        <hr>
+
+        <p>This concludes our very deep dive into the distribution methods of 5D parallelism. </p>
+
+
+        <p>Taking a step back, our discussion so far has often relied on a critical assumption - that computation and communication can be efficiently overlapped on GPUs without any impact on the computation throughput. The reality is more nuanced. When using common communication primitives like NCCL send/recv, we face hidden contention between computation and communication resources as communication kernels will usually make use of the same GPU streaming multiprocessors (SMs) that are used for computation, leading to decreased throughput when communication is overlapped with computation. To truly optimize our distributed training, we need to dive deeper into the GPU architecture itself.</p>
+        <aside>Additionally, the synchronization patterns when overlapping computation and communication may not always be optimal for our parallel strategies. You can find an example for instance in <a target="_blank" href="https://discuss.pytorch.org/t/distributed-w-torchtitan-introducing-async-tensor-parallelism-in-pytorch/209487">this blog post</a>  by the Pytorch team.</aside>
+
 
         <p>Time to turn the lights off and activate CUDA mode! </p>
         
@@ -2148,12 +2160,12 @@
         </div>
 
 
-        <p>The reason for this is that in this kernel, two threads in the same block with Thread IDs <code>(0, 0)</code> and <code>(1, 0)</code> (which will end up in the same warp) will both load from the same column of matrix <code>B</code> but different rows of matrix <code>A</code>. Since matrix elements are stored in row-major order (meaning each row's elements are in consecutive memory addresses, as shown in the figure below), in the first iteration with <code>i = 0</code>, thread <code>(0, 0)</code> will load <d-math>A_{0,0}</d-math>, and thread <code>(1, 0)</code> will load <d-math>A_{1,0}</d-math>. These elements are not stored close to each other in memory, and this misalignment repeats across all iterations along the shared dimension, preventing memory accesses from being coalesced.</p>
+        <p>The reason for this is that in this kernel, two threads in the same block with Thread IDs <code>(0, 0)</code> and <code>(1, 0)</code> (which will end up in the same warp) will both load from the same column of matrix <code>B</code> but different rows of matrix <code>A</code>. Since matrix elements are stored in row-major order (meaning row elements are in consecutive memory addresses, as shown in the figure below) thread <code>(0, 0)</code> will load <d-math>A_{0,0}</d-math>, and thread <code>(1, 0)</code> will load <d-math>A_{1,0}</d-math> in the first iteration <code>i = 0</code>. These elements are not stored close to each other in memory, and this misalignment will be present at each iteration, thereby preventing memory accesses from being coalesced.</p>
         
         <p><img alt="image.png" src="/assets/images/memorycoalescing4.png" /></p>
 
         
-        <p>To improve our kernel we can change the way the coordinates x and y are calculated like the following : </p>
+        <p>To improve the performances of our kernel we can change the way coordinates <code></code>x</code> and <code>y</code> are calculated to the following: </p>
         
         <d-code block language="clike">
             const int x = blockIdx.x * BLOCKSIZE + (threadIdx.x / BLOCKSIZE);
@@ -2172,11 +2184,12 @@
 
         <p>When we profile our new kernel, we notice that the warning about uncoalesced memory accesses has disappeared, and <strong>the GPU's memory throughput has increased by approximately 10 times</strong>.</p>
         
-        <p><img alt="image.png" src="/assets/images/memorycoalescing5.png" /></p>
+        <div class="large-image-background">
+            <p><img width="1200px" alt="image.png" src="/assets/images/memorycoalescing5.png" /></p>
+        </div>
 
-
-        <p>We also notice that the execution time of the kernel <strong>decreases by 10x</strong>!</p>
-        <p>Let’s cover another technique you will often see mentioned in the litterature: tiling.</p>
+        <p>We also notice that the execution time of the kernel <strong>decreases by 10x</strong>! Amazing.</p>
+        <p>Now let's cover another technique you will often see mentioned in the litterature: <strong>tiling</strong>.</p>
         
 
         <h4>Tiling</h4>
@@ -2186,12 +2199,14 @@
 
         <p>In matrix multiplication for example, each thread in a block may need elements from two matrices, say A and B. If each thread independently loads the row and column it needs from global memory, we end up with many redundant loads, as multiple threads in a block will access overlapping data. Instead, we can use tiling to load a block (or tile) of A and B into shared memory just once, allowing all threads in that block to reuse the same shared data.</p>
         
-        <p>In the tiling approach, each iteration involves all threads within a block cooperatively loading two tiles—one from matrix A and another from matrix B —into shared memory. Specifically, threads load a tile of matrix A (of size <code>BLOCK_SIZE_M</code> by <code>BLOCK_SIZE_K</code>) and a tile of matrix B (of size <code>BLOCK_SIZE_K</code> by <code>BLOCK_SIZE_N</code>). Once the tiles are in shared memory, the threads perform matrix multiplication on these tiles, enabling efficient computation since all necessary data is quickly accessible. The results of the tile multiplication are stored in an accumulation matrix that holds intermediate results. After each iteration, the results from the current tile multiplication are added to this accumulation matrix, continuing until all tiles from both matrices have been processed.</p>
+        <p>In the tiling approach, each iteration involves all threads within a block to cooperatively load two tiles—one from matrix A and another from matrix B —into shared memory. Specifically, threads load a tile of matrix A (of size <code>BLOCK_SIZE_M</code> by <code>BLOCK_SIZE_K</code>) and a tile of matrix B (of size <code>BLOCK_SIZE_K</code> by <code>BLOCK_SIZE_N</code>). Once the tiles are in shared memory, the threads perform matrix multiplication on these tiles, enabling efficient computation since all necessary data is quickly accessible. The results of the tile multiplication are stored in an accumulation matrix that holds intermediate results. After each iteration, the results from the current tile multiplication are added to this accumulation matrix, continuing until all tiles from both matrices have been processed.</p>
         
         <p><img alt="image.png" src="/assets/images/tiling.png" /></p>
-        <p>From https://cnugteren.github.io/tutorial/pages/page4.html</p>
+        <div class="figure-legend">
+        <p>From <a target="_blank" href="https://cnugteren.github.io/tutorial/pages/page4.html">https://cnugteren.github.io/tutorial/pages/page4.html</a></p>
+    </div>
 
-        <p>The important parts to understand the implementation are below (for simplicity we consider a square shaped tile) : </p>
+        <p>Let's take a look at the important parts you need to understand from the implementation: </p>
         
         <d-code block language="clike">
             // Set pointers to the starting elements
@@ -2221,6 +2236,7 @@
             }
             C[localRow * N + localCol] = sum;
         </d-code>
+        <aside>For simplicity we consider a square shaped tile.</aside>
 
         <p>Each thread begins by loading one element from both <strong>Matrix A</strong> and <strong>Matrix B</strong> into shared memory. In this scenario, achieving coalesced memory access is straightforward, by assigning <code>threadIdx.x</code> as the <strong>local column index (localCol)</strong>, threads within the same warp will access adjacent elements of both matrices. After each thread in the block completes loading its elements into shared memory (ensured by calling <code>__syncthreads()</code>), they proceed to compute the dot product of the two tiles. Once the threads have iterated through all the tiles—horizontally for <strong>Matrix A</strong> and vertically for <strong>Matrix B</strong>—the resulting sum is stored in the corresponding location of <strong>Matrix C</strong>.</p>
         
@@ -2236,17 +2252,21 @@
         <p><img alt="image.png" src="/assets/images/threadcoarsening.png" /></p>
 
 
-        <p>The meaning of the states can be found in the <a href="https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference">Profiling Guide</a>, specifically in the <strong>Warp Stall Reasons</strong> section. There we can read that:</p>
+        <p>The meaning of these cryptic state names can be found in <a href="https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference">NVidia's profiling Guide</a>, in the <strong>Warp Stall Reasons</strong> section. There we can read that:</p>
 
         <p><em><code>"smsp__pcsamp_warps_issue_stalled_mio_throttle</code>: Warp was stalled waiting for the MIO (memory input/output) instruction queue to be not full. This stall reason is high in cases of extreme utilization of the MIO pipelines, which include special math instructions, dynamic branches, as well as shared memory instructions. When caused by shared memory accesses, trying to use fewer but wider loads can reduce pipeline pressure."</em></p>
         
-        <p>So it seems warps are stalling waiting for shared memory accesses to return ! To resolve this issue we can apply the <strong>Thread Coarsening</strong> technique by merging several threads into a single coarsened thread, we can significantly reduce shared memory accesses because each coarsened thread can handle multiple output elements which would increase the arithmetic intensity of the kernel.</p>
+        <p>So it seems warps are stalling waiting for shared memory accesses to return! To solve this issue we can apply a technique called <strong>Thread Coarsening</strong> which involves merging several threads into a single coarsened thread. This will significantly reduce shared memory accesses as each coarsened thread can handle multiple output elements.</p>
+
+        <p>Let's briefly mentionned a last important consideration when writing or improving custom kernels: <strong>Minimizing Control Divergence</strong>.</p>
 
         <h4>Minimizing Control Divergence</h4>
         
         <p>A Streaming Multiprocessor (SM) is built to execute all threads in a warp using the Single Instruction, Multiple Data (SIMD) model. This means that at any given moment, one instruction is fetched and executed simultaneously for all threads within the warp. When a warp is executed, the threads within it operate on different segments of the data but follow the same instruction, hence the name Single Instruction, Multiple Data. The primary advantage of SIMD is its efficiency; the control hardware responsible for instruction fetching and dispatching is shared among multiple execution units. This design minimizes the hardware overhead associated with control functions, allowing a greater portion of the hardware to focus on improving arithmetic throughput.</p>
 
         <p>Control divergence occurs when threads within the same warp take different execution paths. For instance, if a conditional statement (like an <code>if</code> statement) leads to some threads executing one block of code while others execute a different block, the warp must serialize these executions, resulting in idle threads waiting for others to complete.  To minimize control divergence, we need to design kernels to ensure that threads within the same warp follow the same execution path. This can be achieved by restructuring code to reduce branching, using data structures that ensure all threads follow similar execution paths, or employing techniques such as predication.</p>
+
+        <hr>
 
         <p>We have covered some of the main considerations when writing custom kernels and improving the performance and memory footprint of GPU operations. But there’s one more important concept before moving to a real example which is “fusing kernels”.</p>
 
