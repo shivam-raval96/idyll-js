@@ -1168,17 +1168,17 @@
         <p style="margin-bottom: 0;"><strong>First Transition (SP → TP)</strong></p>
         <ul style="margin-top: 0;">
             <li>"g" operation (all-gather) combines Y1<em> and Y2</em> back to full sequence length</li>
-            <li> Restores Y (b,s,h) since column linear layer needs full hidden dimension h</li>
+            <li> Restores Y (b,s,h) since column linear needs full hidden dimension h</li>
         </ul>
-        <p style="margin-bottom: 0;"><strong>First Linear Layer (TP Region)</strong></p>
+        <p style="margin-bottom: 0;"><strong>First Linear (TP Region)</strong></p>
         <ul style="margin-top: 0;">
-            <li>A1 is a column-linear layer, so it splits Y along the hidden dimension</li>
+            <li>A1 is a column-linear, so it splits Y along the hidden dimension</li>
             <li>GeLU is applied independently on each GPU</li>
             <li>Z1* is (b,s,h/2)</li>
         </ul>
-        <p style="margin-bottom: 0;"><strong>Second Linear Layer (TP Region)</strong></p>
+        <p style="margin-bottom: 0;"><strong>Second Linear (TP Region)</strong></p>
         <ul style="margin-top: 0;">
-            <li>B1 is a row-linear layer, so it restores the hidden dimension</li>
+            <li>B1 is a row-linear, so it restores the hidden dimension</li>
             <li>W1 is (b,s,h)</li>
         </ul>
         <p style="margin-bottom: 0;"><strong>Final Transition (TP → SP)</strong></p>
@@ -3491,9 +3491,199 @@
 
         <p>Using this method, you can profile the custom CUDA kernel just as we demonstrated earlier with PyTorch's profiler or NVIDIA tools.</p>
 
-        <h3>A2: Math for Compute/Comms Overlap</h3>
+        <h3>A2: Typical Scales in LLM Training</h3>
+
+        <p>Let's get a feel for the typical sizes of things in LLM training. When we talk about memory or compute, we're often counting "elements" - think of these as numbers in tensors. To get the actual memory in bytes, you'll need to multiply by the size of each number (e.g., 2 bytes for bf16, 4 bytes for fp32).</p>
+
+        <p>Here are some quick ballpark figures:</p>
+
+        <ul>
+            <li><strong>Input tokens:</strong> For each batch, we process <d-math>seq \cdot mbs</d-math> tokens, where mbs is the micro batch size and seq is the sequence length.</li>
+
+            <li><strong>Activations (hidden states):</strong> For a single layer, the hidden state tensor is of size <d-math>seq \cdot mbs \cdot h</d-math> elements.</li>
+
+            <li><strong>Model weights and gradients:</strong> Each weight matrix in your model (like in linears) is about <d-math>h^2</d-math> elements. This is per weight matrix. Gradients have the same size as weights.</li>
+
+            <li><strong>Optimizer states:</strong> For each weight matrix (of elements <d-math>h^2</d-math>), if you're using an optimizer like Adam with mixed precision training, it keeps momentum and variance states in fp32 precision (<d-math>2 \cdot h^2</d-math>), plus master weights in fp32 (<d-math>h^2</d-math>). So total optimizer states will be around (<d-math>6 \cdot h^2</d-math>) per weight matrix.</li>
+
+            <li><strong>Total model parameters:</strong> For each transformer block:
+                <ul>
+                    <li>Attention parameters:
+                        <ul>
+                            <li>QKV projections: <d-math>3h^2</d-math> parameters</li>
+                            <li>Output projection: <d-math>h^2</d-math> parameters</li>
+                        </ul>
+                    </li>
+                    <li>MLP parameters with GLU:
+                        <ul>
+                            <li>Gate and up projections: <d-math>8h^2</d-math> parameters (2 matrices of size <d-math>h \times 4h</d-math>)</li>
+                            <li>Down projection: <d-math>4h^2</d-math> parameters (1 matrix of size <d-math>4h \times h</d-math>)</li>
+                        </ul>
+                    </li>
+                    <li>Total per block: <d-math>16h^2</d-math> with GLU MLPs, or <d-math>12h^2</d-math> without GLU</li>
+                    <li>For full model: <d-math>16h^2 \cdot num\_layers</d-math> (with GLU)</li>
+                    <li>Additional parameters:
+                        <ul>
+                            <li>Input embeddings: <d-math>vocab\_size \cdot h</d-math></li>
+                            <li>LM head: <d-math>vocab\_size \cdot h</d-math> (if not tied with input embeddings)</li>
+                            <li>Positional embeddings (if used): <d-math>max\_seq\_len \cdot h</d-math></li>
+                        </ul>
+                    </li>
+                </ul>
+            </li>
+
+            <li><strong>Forward and backward pass compute (FLOPs):</strong> A very rough estimate for the FLOPs in a forward pass is <d-math>2 \cdot num\_tokens \cdot num\_params</d-math>. And backward pass compute is twice as that: <d-math>4 \cdot num\_tokens \cdot num\_params</d-math>.</li>
+        </ul>
+
+        <h3>A3: Math for Compute/Communication Overlap</h3>
+
+        <p>Using the formulas from the previous section, we can estimate when computation and communication can effectively overlap in distributed training. Let's look at data parallelism (Zero-0) as an example.</p>
+
+        <h4>Data Parallelism Communication Analysis</h4>
+
+        <p>The total gradient size that needs to be communicated is:</p>
+        <ul>
+            <li>Gradients = Parameters ≈ <d-math>num\_layers \cdot 16h^2</d-math></li>
+        </ul>
+
+        <p>During backward pass, these gradients are communicated in buckets (default 25MB). The communication time for each bucket is:</p>
+
+        <d-math block>
+        t_{comm} = t_{comm\_bucket} = \frac{bucket\_size \cdot 2(DP-1)}{DP \cdot peak\_bw}
+        </d-math>
+
+        <p>The computation time for backward pass is:</p>
+
+        <d-math block>
+        t_{compute} = \frac{4 \cdot num\_tokens \cdot num\_params}{peak\_flops}
+        </d-math>
+
+        <p>For effective overlap, we need:</p>
+
+        <d-math block>
+        \frac{t_{comm}}{t_{compute}} = \frac{num\_params}{2 \cdot num\_tokens} \cdot \frac{DP-1}{DP} \cdot \frac{peak\_flops}{peak\_bw} \leq 1
+        </d-math>
+
+        <p>This ratio helps determine if communication will become a bottleneck in training. When the ratio is less than 1, communication can be fully overlapped with computation.</p>
+
+        <h4>ZeRO-3 (FSDP) Communication Analysis</h4>
+
+        <p>For ZeRO-3, parameters and gradients are sharded across GPUs. Let's analyze the communication pattern for a model with transformer blocks of size <d-math>16h^2</d-math> parameters each:</p>
+
+        <ul>
+            <li>For each transformer block in forward pass:
+                <ul>
+                    <li>Allgather parameters: <d-math>16h^2/DP</d-math> bytes per rank</li>
+                </ul>
+            </li>
+            <li>For each transformer block in backward pass:
+                <ul>
+                    <li>Allgather parameters: <d-math>16h^2/DP</d-math> bytes per rank</li>
+                    <li>Reducescatter gradients: <d-math>16h^2/DP</d-math> bytes per rank</li>
+                </ul>
+            </li>
+            <li>Total communication per block: <d-math>3 \cdot 16h^2/DP</d-math> bytes</li>
+            <li>Total communication for full model: <d-math>3 \cdot num\_layers \cdot 16h^2/DP</d-math> bytes</li>
+        </ul>
+
+        <p>The communication time for allgather operations is:</p>
+
+        <d-math block>
+        t_{comm} = 16h^2 \cdot \frac{DP-1}{DP \cdot peak\_bw}
+        </d-math>
+
+        <p>The computation time for forward pass of one decoder layer is:</p>
+        <d-math block>
+        t_{compute} = \frac{32 \cdot seq\_len \cdot mbs \cdot h^2}{peak\_flops}
+        </d-math>
+
+        <p>For effective overlap between computation and communication, we need:</p>
+
+        <d-math block>
+        \frac{t_{comm}}{t_{compute}} = \frac{1}{2 \cdot seq\_len \cdot mbs} \cdot \frac{DP-1}{DP} \cdot \frac{peak\_flops}{peak\_bw} \leq 1
+        </d-math>
+
+        <p>When this ratio is less than 1, the communication of parameters for the next layer can be hidden behind the computation of the current layer.</p>
+`
+        <h4>TP Communication Analysis</h4>
+
+        <p>For Tensor Parallel (TP), activations are sharded across GPUs during linears. Let's analyze the communication pattern:</p>
+
+        <ul>
+            <li>For each column linear in forward pass:
+                <ul>
+                    <li>Allgather activations: <d-math>seq \cdot mbs \cdot h/TP</d-math> bytes per rank</li>
+                </ul>
+            </li>
+            <li>For each column linear in backward pass:
+                <ul>
+                    <li>Reducescatter gradients: <d-math>seq \cdot mbs \cdot h/TP</d-math> bytes per rank</li>
+                </ul>
+            </li>
+            <li>And vice-versa for row linears. Each transformer block has 2 column linears and 2 row linears.</li>
+            <li>Total communication per block: <d-math>8 \cdot seq \cdot mbs \cdot h/TP</d-math> bytes</li>
+            <li>Total communication for full model: <d-math>8 \cdot num\_layers \cdot seq \cdot mbs \cdot h/TP</d-math> bytes</li>
+        </ul>
+        <p>Let's analyze if we can overlap the allgather communication for one layer with the computation of the next linear. The communication time for allgather operations is:</p>
+
+        <d-math block>
+        t_{comm} = \frac{seq \cdot mbs \cdot h \cdot (TP-1)}{TP \cdot peak\_bw}
+        </d-math>
+
+        <p>While the computation time for the next linear (with parameters <d-math>h^2</d-math>) is:</p>
+
+        <d-math block>
+        t_{compute} = \frac{2 \cdot seq \cdot mbs \cdot h^2}{TP \cdot peak\_flops}
+        </d-math>
+
+        <p>For effective overlap, we want the communication time to be less than the compute time:</p>
+        <d-math block>
+        \frac{t_{comm}}{t_{compute}} = \frac{TP-1}{2 \cdot h} \cdot \frac{peak\_flops}{peak\_bw} \leq 1
+        </d-math>
+
+        <p>This ratio tells us whether we can successfully hide the allgather communication behind the computation of the next linear. Interestingly, the ratio only depends on the hidden size h and tensor parallelism degree TP, not on sequence length or batch size.</p>
 
     
+        <h4>PP Communication Analysis</h4>
+
+        <p>For Pipeline Parallel (PP), activations and gradients are communicated between pipeline stages. Let's analyze the communication pattern:</p>
+
+        <ul>
+            <li>For each microbatch in forward pass:
+                <ul>
+                    <li>Receive and send activations: <d-math>2 \cdot seq \cdot mbs \cdot h</d-math> bytes</li>
+                </ul>
+            </li>
+            <li>For each microbatch in backward pass:
+                <ul>
+                    <li>Receive and send gradients: <d-math>2 \cdot seq \cdot mbs \cdot h</d-math> bytes</li>
+                </ul>
+            </li>
+            <li>Total communication per microbatch: <d-math>4 \cdot seq \cdot mbs \cdot h</d-math> bytes</li>
+            <li>For gradient accumulation steps (gas), total communication: <d-math>4 \cdot gas \cdot seq \cdot mbs \cdot h</d-math> bytes</li>
+        </ul>
+
+        <p>Let's analyze if we can overlap the communication of activations/gradients with computation of the next transformer block. The computation time for transformer blocks in the next pipeline stage is:</p>
+
+        <d-math block>
+        t_{compute} = \frac{32 \cdot seq \cdot mbs \cdot h^2 \cdot num\_layers\_in\_next\_pp}{peak\_flops}
+        </d-math>
+
+        <p>While the communication time for P2P transfer is:</p>
+
+        <d-math block>
+        t_{comm} = \frac{seq \cdot mbs \cdot h}{peak\_bw}
+        </d-math>
+
+        <p>For effective overlap, we want:</p>
+
+        <d-math block>
+        \frac{t_{comm}}{t_{compute}} = \frac{peak\_flops}{32 \cdot h \cdot num\_layers\_in\_next\_pp \cdot peak\_bw} \leq 1
+        </d-math>
+
+        <p>Similar to TP, this ratio is independent of sequence length and batch size. It depends on the hidden size h, number of layers in the next pipeline stage, and the ratio of compute to P2P bandwidth capabilities of the hardware.</p>
+
+        
     </d-article>
 
     <d-appendix>
