@@ -1381,7 +1381,7 @@
         
         <ol>
             <li>Send “current keys and values” to the next machine except during the last time step in a non-blocking manner so we can starts the following step before this step is finished</li>
-            <li>Locally compute the attention score on the “current keys and values” it already has, which typically involves performing  <d-math>Softmax(\frac{QK^T}{\sqrt{d}}) * V</d-math>d-math>.</li>
+            <li>Locally compute the attention score on the “current keys and values” it already has, which typically involves performing  <d-math>Softmax(\frac{QK^T}{\sqrt{d}}) * V</d-math>.</li>
             <li>Wait to receive keys and values from the previous GPU and then circle back to step 1. where “current keys and values” are now the key/values just received from the previous GPU.</li>
         </ol>
 

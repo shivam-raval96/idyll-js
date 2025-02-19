@@ -2097,7 +2097,7 @@ d-appendix > distill-appendix {
       </div>
       <div >
           <h3>Affiliation</h3>
-          <div><a href="https://huggingface.co/">HuggingFace</a>
+          <div><a href="https://huggingface.co/">Hugging Face</a>
           </div>
       </div>
       <div >
