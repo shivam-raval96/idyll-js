@@ -8,8 +8,7 @@ pinned: true
 license: apache-2.0
 header: mini
 app_file: dist/index.html
-thumbnail: >-
-  https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1/resolve/main/screenshot.jpeg
+thumbnail: https://huggingface.co/spaces/nanotron/ultrascale-playbook/resolve/main/screenshot.png
 short_description: The ultimate guide to training LLM on large GPU Clusters
 ---
 
