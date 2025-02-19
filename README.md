@@ -1,7 +1,7 @@
 ---
-title: Nanotron Gigablogpost
-emoji: 🐨
-colorFrom: green
+title: The Ultra-Scale Playbook
+emoji: 🌌
+colorFrom: yellow
 colorTo: purple
 sdk: static
 pinned: false
