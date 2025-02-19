@@ -1900,6 +1900,65 @@
             <li>Experiment with several micro batch size (mbs) to aim for an optimal balance between max GBS, model size, compute, and communication.</li>
         </ul>
 
+        <h3>Benchmarking thousands of configurations</h3>
+
+        <p>Now that we've covered the step-by-step, let's implement this search process in real-life.</p>
+        
+        <p>You will find, in the <a href="https://github.com/huggingface/nanotron">nanotron</a> repository, several scripts you can use to run all the experiments we discussed above and be able to benchmark your own model and cluster in real life.</p>
+        
+        <p>We actually ran ourself benchmarks on <strong>several thousands of distributed configurations</strong> covering every model size we've discussed above as well as a very large number of cluster configurations (namely 1-64 nodes of 8xH100s) we could try in order to produce the results we've covered up to now in this book.</p>
+        <aside>We want to take this opportunity to apologize to our co-workers for blocking most of the science cluster and in turn forgive any threats that may have been whispered.</aside>
+
+        <p>Now let's take a step back to gather and analyze the results of all our benchmarks and see if, beyond theory, we can actually discover on real-world data how various configurations fare against each other.</p>
+        
+        <p>All the following benchmarks were conducted with a sequence length of 4096 and a global batch size of 1M tokens. We gathered all the top configurations for each model and cluster size and plotted them in the following heatmaps:</p>
+        </p>
+        
+        <div class="large-image-background">
+        <p><img alt="image.png" src="/assets/images/what_we_learnt_heatmap.svg" /></p>
+    </div>
+    <div class="figure-legend">
+        <p>Heatmap visualization showing the optimal training configurations across different model sizes and compute node counts (we have 8 GPUs per node). For each combination, the configuration details include Data Parallelism (DP), Tensor Parallelism (TP), Pipeline Parallelism (PP), Gradient Accumulation Steps (GAS), Micro Batch Size (MBS), and ZeRO optimization stage. The color intensity indicates the Model FLOPs Utilization (MFU), with brighter colors representing higher efficiency.</p>
+    </div>
+        <p>From this high-level visualization, we can draw several important insights:
+        </p>
+
+        <p>First, as we increase the number of nodes (higher parallelism), we observe a decrease in efficiency. This effect is particularly pronounced for smaller models, which have a lower compute-to-model-size ratio. While we might typically compensate for small model size by increasing the batch size, we're constrained by our global batch size limit of 1M.
+        </p>
+        
+        <p>Second, Larger models present a different challenge. As model size increases, memory requirements grow substantially. This creates two scenarios with fewer nodes: either the model doesn't fit at all, or it barely fits but runs inefficiently due to operating near the GPU memory limits (see for instance the 80B parameter model training on 4 nodes).</p>
+
+
+        <p>Finally, our benchmarks show how performance heavily depends on implementation quality. When we first implemented both parallelism strategies, Tensor Parallelism (TP) outperformed Pipeline Parallelism (PP). After optimizing our PP code, it became the faster option. Now that we're improving the communication overlap in our TP implementation, we expect it to regain the performance lead.</p>
+       
+        <h3>Lessons learned on benchmarking</h3>
+
+        <p>Our goal for this book was not only to discuss theory and implementations but provide actual data points as well. So the plan was simple: lets run every possible distributed configuration for every model and a number of cluster sizes (namely 1-64 nodes of 8xH100s). Even after excluding impossible configuration we still needed to run thousands of experiments. </p>
+
+        <p>   
+            On paper this sounds easy enough: we can easily launch big arrays of jobs on our cluster. However, as soon as we launched the first batches of experiments, troubles began:
+            </p>
+    
+            <ul>
+                <li>PyTorch processes would sometimes fail to clean up properly</li>
+                <li>Slurm job manager would forcefully terminate jobs, leading to node failures </li>
+                <li>Simple benchmarks that should take minutes would stretch into hours</li>
+                <li>Some jobs would hang indefinitely</li>
+            </ul>
+    
+            <p>Running all experiments in a finite amount of time required additional engineering and we ended up spending a significant amount of time on things like:</p>
+    
+            <ul>
+                <li>Minimizing cluster restart times and optimize idle time</li>
+                <li>Analyzing detailed NCCL debug logs</li>
+                <li>Understand memory usage patterns and CUDA memory allocator behaviors</li>
+                <li>Improving pipeline parallelism performance on multi-node</li>
+            </ul>
+            
+            <p>These challenges deserve their own story, but they taught us valuable lessons about the complexities of distributed training infrastructure. What looks simple in theory often requires careful attention to many moving parts in practice.</p>
+    
+            <p>Reproducing theoretical results in practice is challenging, especially given the limited availability of production training code. Through open-source projects like <a target="_blank" href="https://github.com/huggingface/nanotron">nanotron</a> and <a target="_blank" href="https://github.com/huggingface/picotron">picotron</a>, we hope we can help making distributed training techniques more accessible as well as collaborating on simple and efficient codebases that help researchers and practitioners take the most out of their hardware resources.</p>
+
         <!-- <p>We can roughly summarize the journey to the best configuration in the following diagram:</p>
 
         <p><img alt="image.png" src="/assets/images/placeholder.png" /></p>
@@ -2552,76 +2611,21 @@
         <h2>Conclusion</h2>
         
         
-        <p>Congratulations, dear reader, you made it to the end! We've completed quite a journey: we started from understanding how to train a simple model on a single GPU, all the way to mastering all the intricate techniques used to efficiently train massive language models like Llama-405B and DeepSeek-V3 on thousands of GPUs. By now, you can read a diagram, like Llama-3's 4D parallel setup, with ease:</p>
+        <p>Congratulations, dear reader, you made it to the end! We've completed quite a journey: we started from understanding how to train a simple model on a single GPU, all the way to mastering all the intricate techniques used to efficiently train massive language models like Llama-405B and DeepSeek-V3 on thousands of GPUs. By now, you can read a diagram, like Llama-3's 4D parallel setup, with (relative) ease:</p>
         
         <p><img alt="image.png" src="/assets/images/conclusion_llama3_parallelism.png" /></p>
 
         <p>Orchestrating large clusters of GPUs to train LLMs efficiently is no easy feat. We learned how to optimize computations and communications between GPUs such that they run with maximum utilization at all times. It involves choosing the right parallelization strategy for a given model and cluster size, overlapping communication and computation where possible, and writing custom kernels that take into account the hardware layout to perform an operation as fast as possible on the GPU.</p>
 
-        <p>You might still believe that this knowledge is a bit niche and only concerns the small set of people that pretrain LLMs. Historically, that mayb be true, but as models are growing rapidly even people who want to fine-tune models require distributd training setups. So diving deeper into all things distributed might prove very timely.</p>
+        <p>You might still believe that this knowledge is a bit niche and only concerns the small set of people that pretrain LLMs. Historically, that may have been true, but as both the <a target="_blank" href="https://huggingface.co">AI builder community</a> and model sizes are growing rapidly, the community of people using distributed techniques for inference, fine-tuning and training is increasing exponentially as well making distributed training setups more and more common. Diving deeper into all things distributed might thus prove very timely.</p>
 
-        <p>This has been a long learning journey, but not just for you! Running thousands of benchmarks on a GPU cluster was more challenging than we anticipated and we want to share a few highlights of our learning experience.</p>
-
-        <h3>What we learned</h3>
-
-        <p>Our goal for this blogpost was not only to discuss theory and implementations but provide actual data points as well. So the plan was simple: lets run every possible distributed configuration for every model and a number of cluster sizes (namely 1-64 nodes of 8xH100s). Even after excluding impossible configuration we still needed to run thousands of experiments. </p>
-
-        <aside>We want to take this opportunity to apologize to our co-workers for blocking most of the science cluster and in turn forgive any threats that may have been whispered.</aside>
-
-        <p>   
-        On paper this sounds easy enough: we can easily launch big arrays of jobs on our cluster. However, when we launched the first batches is when the troubles began:
-        </p>
-
-        <ul>
-            <li>PyTorch processes would sometimes fail to clean up properly</li>
-            <li>Slurm job manager would forcefully terminate jobs, leading to node failures </li>
-            <li>Simple benchmarks that should take minutes would stretch into hours</li>
-            <li>Some jobs would hang indefinitely</li>
-        </ul>
-
-        <p>So in order to run all experiments in a finite amount of time required some additional engineering. In particular we spent a significant amount of time on the following:</p>
-
-        <ul>
-            <li>Minimizing cluster restart times and optimize idle time</li>
-            <li>Analyzing detailed NCCL debug logs</li>
-            <li>Understand memory usage patterns and CUDA memory allocator behaviors</li>
-            <li>Improving pipeline parallelism performance on multi-node</li>
-        </ul>
-        
-        <p>These challenges deserve their own story, but they taught us valuable lessons about the complexities of distributed training infrastructure. What looks simple in theory often requires careful attention to many moving parts in practice.</p>
-
-        <!--
-        <p>Let's analyze the results of our benchmarks and understand how different configurations affect each other. All benchmarks were run with a sequence length of 4096 and a global batch size of 1M tokens. We'll look at two key visualizations that help illustrate our findings.
-        </p>
-        
-        <p>First, let's examine this heatmap visualization:</p>
-
-        <p><img alt="image.png" src="/assets/images/what_we_learnt_heatmap.svg" /></p>
-        <p>Heatmap visualization showing the optimal training configurations across different model sizes and compute node counts. For each combination, the configuration details include Data Parallelism (DP), Tensor Parallelism (TP), Pipeline Parallelism (PP), Gradient Accumulation Steps (GAS), Micro Batch Size (MBS), and ZeRO optimization stage. The color intensity indicates the Model FLOPs Utilization (MFU), with brighter colors representing higher efficiency.</p>
-
-        <p>To complement this, let's look at the relationships between different parameters:</p>
-        
-        <iframe id="plotFrame" src="/assets/images/what_we_learnt_parallel_coordinates.html" height="540" width="1000" scrolling="no" frameborder="0"></iframe>
-
-        <p>Parallel coordinates plot showing the relationship between different model parallelism configurations (Data Parallel degree, Tensor Parallel degree, Pipeline Parallel degree), training hyperparameters (gradient accumulation steps, micro batch size), ZeRO stage and the resulting Model FLOPs Utilization (MFU). Each line represents a different training configuration, with colors indicating the MFU value - warmer colors show higher efficiency.</p>
-
-        <p>From these visualizations, we can draw several important insights:
-        </p>
-
-        <ol>
-            <li>As we increase the number of nodes (higher parallelism), we observe a decrease in efficiency. This effect is particularly pronounced for smaller models, which have a lower compute-to-model-size ratio. While we might typically compensate for small model size by increasing the batch size, we're constrained by our global batch size limit of 1M.
-            </li>
-            <li>Larger models present a different challenge. As model size increases, memory requirements grow substantially. This creates two scenarios with fewer nodes: either the model doesn't fit at all, or it barely fits but runs inefficiently due to operating near the GPU memory limits.</li>
-            <li>Our benchmarks demonstrate how performance heavily depends on implementation quality. When we first implemented both parallelism strategies, Tensor Parallelism (TP) outperformed Pipeline Parallelism (PP). After optimizing our PP code, it became the faster option. Now that we're improving the communication overlap in our TP implementation, we expect it to regain the performance lead.</li>
-        </ol>
-        -->
-        <p>Reproducing theoretical results in practice is challenging, especially given the limited availability of production training code. Through open-source projects like picotron and nanotron, we hope to make these distributed training techniques more accessible and foster collaboration on simpler, more efficient codebases that help researchers and practitioners make the most of their hardware resources.</p>
+        <p>This has been a long learning journey, but not just for you! Running thousands of benchmarks on a GPU cluster was more challenging than we anticipated and we want to share a few highlights of our own learning experience as well.</p>
 
         <h3>So, what’s next?</h3>
 
-        <p>You now have good overview of the main distributed training concepts but at the same time we just scratched to surface of on some aspects. There are many ways to dive deep into a subject but here are some steps that we recommend:</p>
+        <p>You now have good overview of the main distributed training concepts but at the same time we just scratched to surface of several of these tools and techniques. There are many ways to dive deep into a subject but here are some steps that we recommend:</p>
         <ul>
-            <li>Carefully read some of the landmark or very recent papers. You can find a list of some of the most impactful papers in <a target="_self" href="#references" class="">References</a>.</li>
+            <li>Carefully read some of the landmark or very recent papers. You can find a very extenside list of the most impactful papers, blog posts and books in <a target="_self" href="#references" class="">References</a>.</li>
             <li>Start from scratch and implement an algorithm yourself. Often a method only fully “clicks” if you implemented it yourself.</li>
             <li>Dive into one of the widely used frameworks and start contributing: fix bugs, answer issues, or implement a new feature. That’s the best way to get in any ML field!</li>
         </ul>
