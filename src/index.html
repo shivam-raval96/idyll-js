@@ -3230,6 +3230,171 @@
         
         <h3>A1: Distributed Training Profiling</h3>
 
+        <h4>Kernels</h4>
+
+        <p>Let's begin by assuming for now that the kernels are already integrated into PyTorch. As a simple example, we can look at the Layer Normalization function implemented in PyTorch as <code>torch.nn.functional.layer_norm</code>. There are several methods to profile the kernel that underlies this function. The most straightforward approach might be to use the Python <code>time</code> module. However, since CUDA operations are asynchronous, measuring time with this method will only capture the overhead associated with launching the kernel in Python, rather than the actual execution time of the kernel itself.</p>
+
+        <p>To address this, we can utilize <code>torch.cuda.Event</code> for accurate timing and employ the <code>torch.cuda.synchronize()</code> directive to ensure we wait for the kernel execution to complete. This approach is demonstrated in the following snippet:</p>
+
+        <d-code block language="python">
+            def profile_pytorch(func, input):
+                # Create CUDA events to track time. CUDA operations are asynchronous,
+                start = torch.cuda.Event(enable_timing=True)  # Event to mark the start time
+                end = torch.cuda.Event(enable_timing=True)    # Event to mark the end time
+                # Warmup to eliminate any overhead from the first run, which might not reflect 
+                # the actual performance.
+                for _ in range(10):
+                    func(input)
+                # Record the start time before executing the function
+                start.record()  
+                func(input)  # Call the function we want to profile
+                # Record the end time after the function has completed
+                end.record()  
+                # Synchronize the CUDA operations to ensure all operations are completed
+                # before measuring the elapsed time.
+                torch.cuda.synchronize()  
+                # Calculate and return the elapsed time in milliseconds.
+                return start.elapsed_time(end)
+        </d-code>
+
+        <p>A more effective approach to profiling is to utilize the PyTorch Profiler, as explained previously. For example, consider the following code:</p>
+
+        <d-code block language="python">
+            import torch
+            import torch.nn.functional as F
+
+            def pytorch_layer_norm(input):
+                return F.layer_norm(input, input.size()[1:])
+
+            a = torch.randn(10000, 10000).cuda()
+
+            with torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,  # Profile CPU activities
+                    torch.profiler.ProfilerActivity.CUDA,  # Profile CUDA activities
+                ],
+                # Define a schedule for the profiler
+                schedule=torch.profiler.schedule(
+                    wait=1,      # Wait for 1 iteration before starting to profile
+                    warmup=3,    # Warm up for 3 iterations to stabilize performance
+                    active=2,    # Profile for 2 active iterations
+                    repeat=1,    # Repeat the profiling schedule once
+                ),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler('.'),
+                
+            ) as p:
+                for iter in range(10):
+                    pytorch_layer_norm(a)
+                    p.step()
+
+            # Print a table of the profiling results, sorted by total CUDA time, limited to the top 10 entries
+            print(p.key_averages().table(sort_by="cuda_time_total", row_limit=8))
+        </d-code>
+
+        <p>This would print aggregated profiling results sorted by the total CUDA time, and the output would be:</p>
+
+        <div class="large-image-background">
+            <img alt="image.png" src="/assets/images/a1_kernels.png" style="width: 1200px; max-width: none;" />
+        </div>
+
+        <p>You can also try to inspect the trace as we previously mentioned on <code>chrome://tracing/</code></p>
+
+        <div class="note-box">
+            <p class="note-box-title">💡 Tip</p>
+            <div class="note-box-content">
+                <p>If you're new to this tool, you can navigate the trace by using the right and left arrow keys. Additionally, you can zoom in and out by holding the <strong>Alt</strong> key while scrolling left or right with your mouse.</p>
+            </div>
+        </div>
+
+        <p>After zooming in, you can observe the flow of operations when calling <code>layer_norm</code> in this trace:</p>
+
+        <div class="large-image-background">
+            <img alt="image.png" src="/assets/images/a1_profile_trace.png" style="width: 1200px; max-width: none;" />
+        </div>
+
+        <p>The sequence begins in the CPU (the upper section) with <code>aten::layer_norm</code>, progressing to <code>aten::native_layer_norm</code>, and then transitioning to <code>cudaLaunchKernel</code>. From there, we move on to the GPU, where the <code>vectorized_layer_norm_kernel</code> kernel is called.</p>
+
+        <div class="note-box">
+            <p class="note-box-title">📝 Note</p>
+            <div class="note-box-content">
+                <p>You can enable memory profiling by setting <code>profile_memory</code> to <code>True</code> in the profiler. However, this can lead to more complex traces.</p>
+            </div>
+        </div>
+
+        <p>While the PyTorch Profiler offers a quick performance overview, <strong>NVIDIA Nsight Compute (ncu)</strong> provides deeper insights into GPU performance, including detailed execution times and memory usage for each kernel. To run the profiler it's very simple:</p>
+
+        <d-code block language="bash">
+            ncu --set full python layer_norm.py
+        </d-code>
+
+        <p>Where <code>layer_norm.py</code> is a straightforward file that executes the layer normalization function. This command will generate log outputs, but a more effective way to visualize the results is by setting the output flag:</p>
+
+        <d-code block language="bash">
+            ncu --set full -o output python layer_norm.py
+        </d-code>
+
+        <p>and open the file <code>output.ncu-rep</code> with Nsight Compute, you will have a view that looks like this:</p>
+
+        <div class="large-image-background">
+            <img alt="image.png" src="/assets/images/a1_ncu.png" style="width: 1200px; max-width: none;" />
+        </div>
+
+        <p>With clear warnings about compute and memory utilization, and how to make the kernel better in balancing compute and memory and achieve maximal occupancy.</p>
+
+        <h4>CPP extension</h4>
+
+        <p>If the kernel you want to profile isn't already integrated into PyTorch, you can use PyTorch's <code>cpp_extension</code> module to easily compile and run custom CUDA code. The process is straightforward—just create your CUDA kernel in a <code>.cu</code> file, and use the <code>load</code> function from the <code>cpp_extension</code> module to load it in Python.</p>
+
+        <p>The <code>.cu</code> file would like this for a simple <code>add</code> kernel:</p>
+
+        <d-code block language="clike">
+            #include <torch/extension.h>
+            #include <cuda.h>
+            #include <cuda_runtime.h>
+
+            __global__ void add_kernel(float* x, float* y, float* output, int size) {
+                int index = blockIdx.x * blockDim.x + threadIdx.x;
+                if (index < size) {
+                    output[index] = x[index] + y[index];
+                }
+            }
+
+            void add_cuda(torch::Tensor x, torch::Tensor y, torch::Tensor output) {
+                int threads = 1024;
+                int blocks = (x.size(0) + threads - 1) / threads;
+
+                add_kernel<<<blocks, threads>>>(x.data_ptr<float>(), y.data_ptr<float>(), output.data_ptr<float>(), x.size(0));
+            }
+            PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
+                m.def("add_cuda", &add_cuda, "Vector addition (CUDA)");
+            }
+        </d-code>
+
+        <p>And the python file to load the kernel:</p>
+
+        <d-code block language="python">
+            import torch
+            from torch.utils.cpp_extension import load
+
+            # Load and compile the CUDA extension
+            vector_add = load(
+                name="vector_add",
+                sources=["add_kernel.cu"],
+                verbose=True
+            )
+
+            # Define input tensors
+            size = 10000
+            x = torch.randn(size, device='cuda')
+            y = torch.randn(size, device='cuda')
+            output = torch.empty(size, device='cuda')
+
+            # Run the CUDA kernel
+            vector_add.add_cuda(x, y, output)
+        </d-code>
+
+        <p>Using this method, you can profile the custom CUDA kernel just as we demonstrated earlier with PyTorch's profiler or NVIDIA tools.</p>
+
         <h3>A2: Math for Compute/Comms Overlap</h3>
 
     
