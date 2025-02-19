@@ -18,8 +18,28 @@
     "title": "The Ultra-Scale Playbook: Training LLMs on GPU Clusters",
     "description": "This blog covers everything about scaling LLMs in 2025.",
     "published": "Feb 19, 2025",
-    "affiliation": {"name": "HuggingFace"},
+    "affiliation": {"name": "Hugging Face"},
     "authors": [
+      {
+        "author":"Nouamane Tazi",
+        "authorURL":"https://huggingface.co/nouamanetazi"
+      },
+      {
+        "author":"Ferdinand Mom",
+        "authorURL":"https://huggingface.co/3outeille"
+      },
+      {
+        "author":"Haojun Zhao",
+        "authorURL":"https://huggingface.co/zzhhjjj"
+      },
+      {
+        "author":"Phuc Nguyen",
+        "authorURL":"https://huggingface.co/neuralink"
+      },
+      {
+        "author":"Mohamed Mekkouri",
+        "authorURL":"https://huggingface.co/medmekk"
+      },
       {
         "author":"Leandro Werra",
         "authorURL":"https://huggingface.co/lvwerra"
@@ -201,6 +221,8 @@
             </p>
           </li>
         </ul>
+        
+        <aside>If you want to watch a video on distributed training rather than reading the blog or picotron code checkout <a href="https://www.youtube.com/watch?v=u2VSwDDpaBM&list=PL-_armZiJvAnhcRr6yTJ0__f3Oi-LLi9S">Ferdinand's YouTube channel</a>.</aside>
         
         <!-- <p><img alt="Picotron implements each key concept in a self-contained way, such that the method can be studied separately and in isolation." src="assets/images/placeholder.png" /></p> -->
 
@@ -580,7 +602,7 @@
         </ul>
 
         <p><img alt="profile_trace_annotated.png" src="/assets/images/profile_trace_annotated.png" /></p>
-        <p>Figure: Example trace showing CPU thread launching kernels asynchronously to GPU, with compute kernels and communication happening in parallel across different CUDA streams</p>
+        <div class="figure-legend"><p>Example trace showing CPU thread launching kernels asynchronously to GPU, with compute kernels and communication happening in parallel across different CUDA streams</p></div>
 
         <p>The trace helps identify bottlenecks like:</p>
         <ul>
@@ -1080,11 +1102,9 @@
 
         <p>In practice we’ll go from the left diagram to the right:</p>
 
-        <p><img alt=" in forward: f = no-op ; f* = all-reduce ; g = all-gather ; g* = reduce-scatter
+        <p style="text-align: center"><img alt=" in forward: f = no-op ; f* = all-reduce ; g = all-gather ; g* = reduce-scatter
             in backward: f = all-reduce ; f* = no-op ; g = reduce-scatter ; g* = all-gather
-           SP region needs full hidden_dim" src="/assets/images/tp_sp_diagram.png" /></p>
-        
-        <p>Where the abbreviations are: in forward: f = no-op ; f<em> = all-reduce ; g = all-gather ; g</em> = reduce-scatter in backward: f = all-reduce ; f<em> = no-op ; g = reduce-scatter ; g</em> = all-gather SP region needs full hidden_dim</p>
+           SP region needs full hidden_dim" src="/assets/images/tp_sp_diagram.png"  style="width: 500px" /></p>
 
         <p>The diagram shows how we transition between tensor-parallel and sequence-parallel regions using different collective operations (labeled "f" and "g"). The key challenge is managing these transitions efficiently while keeping memory usage low and maintaining correctness.</p>
 
@@ -1099,7 +1119,7 @@
             <li>"f" is an all-reduce to synchronize gradients</li>
         </ul>
 
-        <p>These operations "f" and "f<em>" are called </em><em>conjugate</em>* pairs because they complement each other - when one is a no-op in forward, the other is an all-reduce in backward, and vice versa.</p>
+        <p>These operations "f" and "f*" are called <strong>conjugate</strong> pairs because they complement each other - when one is a no-op in forward, the other is an all-reduce in backward, and vice versa.</p>
             
         <p>For sequence parallelism (SP), we use different operations labeled "g" and "g*". Specifically, we avoid using all-reduce in the SP region since that would require gathering the full activations and increase our peak memory usage, defeating the purpose of SP.</p>
         
@@ -1900,13 +1920,13 @@
         <p>On the compute side, GPUs consist of an array of compute units called <strong>Streaming Multiprocessors</strong> (SM). Each SM contains and controls a set of streaming processors, also known as cores. For example, an Nvidia H100 GPU has 132 SMs with 128 cores per SM, resulting in a total of 16,896 cores (see <a href="https://resources.nvidia.com/en-us-tensor-core">docs for tensor cores</a> for details), each capable of handling multiple threads simultaneously.</p>
     
         <p><img alt="image.png" src="/assets/images/diving_primergpu.svg" /></p>
-        <p><em>Source: https://blog.codingconfessions.com/p/gpu-computing.</em></p>
+        <div class="figure-legend"><p>Source: https://blog.codingconfessions.com/p/gpu-computing</p></div>
     
         <p>The memory side is also highly hierarchical with several layers of cache and memory: <strong>Registers</strong> are the smallest units and are private to the threads during executions, <strong>Shared Memory</strong> and <strong>L1 cache are</strong> shared between the threads running on a single SM, higher up is the <strong>L2 cache</strong> shared by all SMs, finally there is the <strong>Global Memory</strong> which is the largest memory on the GPU (the advertised 80 GB for a H100 for instance) but also the slowest to access and query.</p>
     
         <p><img alt="image.png" src="/assets/images/diving_primergpu2.svg" /></p>
-        <p><em>Source: https://www.youtube.com/watch?v=ZQKMZIP3Fzg</em></p>
-    
+        <div class="figure-legend"><p>Source: https://www.youtube.com/watch?v=ZQKMZIP3Fzg</p></div>
+
         <p>The goal of GPU will be to run as many workloads as possible, in parallel, on the GPU cores, by taking advantage of this hierarchical organization of compute/memory.</p>
     
         <p>A piece of code running on a core of the GPU is called a <strong>kernel</strong>. It can be written at a high-level in <strong>CUDA</strong> or <strong>Triton</strong> for instance, and is then compiled to Parallel Thread Execution, PTX, the low-level assembly used by NVIDIA GPUs.</p>
@@ -2149,7 +2169,7 @@
         <p><img alt="image.png" src="/assets/images/memorycoalescing5.png" /></p>
 
 
-        <p>We also notice that the execution time of the kernel <strong>decreases by 10x</strong> !</p>
+        <p>We also notice that the execution time of the kernel <strong>decreases by 10x</strong>!</p>
         <p>Let’s cover another technique you will often see mentioned in the litterature: tiling.</p>
         
 
@@ -2255,14 +2275,14 @@
 
         <p>A basic implementation of the attention mechanism involve a lot of transfer between memory and workers. It requires materializing the S and P matrices in HBM which means that the results need to be sent to HBM and then back to SRAM for the next computations:</p>
 
-        <p><img alt="image.png" src="/assets/images/flashattn.png" /></p>
-
+        <p style="text-align: center"><img alt="image.png" src="/assets/images/flashattn.png" style="width: 500px" /></p>
+        
         <p>Since bandwidth is much lower in HBM this introduces a severe bottleneck in the attention computation. Can we do better? Tri Dao says yes!</p>
 
         <p>The key element is to compute the S matrices in small pieces which can fit in the smaller shared memory of the SM. But we can do even better and avoid materializing the very large S matrix all together in favor of keeping only the necessary statistics for computing the normalization factor of the softmax. So we can compute part of <d-math>O</d-math> directly in one computation in SRAM rather than moving intermediate results back and forth. In this case, not even do we make use of the shared memory but we also release the memory bottleneck resulting from materializing one of the largest activation matrices in the model (at long context length), the attention matrix.</p>
 
         <p><img alt="image.png" src="/assets/images/flashattn2.png" /></p>
-        <p>From the FLASH-ATTENTION paper<d-cite bibtex-key="dao2022flashattention"></d-cite></p>
+        <div class="figure-legend"><p>Source: FlashAttention paper<d-cite bibtex-key="dao2022flashattention"></d-cite></p></div>
 
         <p>The idea of flash attention resolves so many bottlenecks in model training that it has quickly become the default way to perform attention in all transformers:</p>
         <ul>
@@ -2561,9 +2581,14 @@
             <li>Start from scratch and implement an algorithm yourself. Often a method only fully “clicks” if you implemented it yourself.</li>
             <li>Dive into one of the widely used frameworks and start contributing: fix bugs, answer issues, or implement a new feature. That’s the best way to get in any ML field!</li>
         </ul>
-        
+
         <p>We hope this book helps you get started in distributed training and that you will train the next generation of awesome models to the hum of your GPU cluster!</p>
         
+        <h3>Acknowledgements</h3>
+
+        <p>We thank <a href="https://huggingface.co/eliebak">Elie</a> for conducting thorough reviews and creating the audio components using NotebookLM. Special thanks to <a href="https://huggingface.co/hynky">Hynek</a> for optimizing the frontend performance. We also thank <a href="https://huggingface.co/sbrandeis">Simon</a> for resolving some issues on the hub.</p>
+
+
         <h2>References</h2>
         
         <h3>Landmark LLM Scaling Papers</h3>
