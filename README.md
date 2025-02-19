@@ -4,7 +4,7 @@ emoji: 🌌
 colorFrom: yellow
 colorTo: purple
 sdk: static
-pinned: false
+pinned: true
 license: apache-2.0
 header: mini
 app_file: dist/index.html
