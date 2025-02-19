@@ -861,7 +861,7 @@
 
         <p>In ZeRO-1, the optimizer states are partitioned into <d-math>N_d</d-math>  equal parts where  <d-math>N_d</d-math> is the DP degree. This means that each model replica distributed on each DP rank only keeps track of <d-math>\frac{1}{N_d}</d-math> of the optimizer states. During the optimization step only <d-math>\frac{1}{N_d}</d-math> of the float32 weights are updated.</p>
 
-        <p>However during the forward pass, each replica@ need all the parameters, we thus need to add an additional <strong><em>all-gather</em></strong> (the second type of collective communication primitive we encounter!) after the optimizer step so that each model replica has the full set of updated weights.</p>
+        <p>However during the forward pass, each replica need all the parameters, we thus need to add an additional <strong><em>all-gather</em></strong> (the second type of collective communication primitive we encounter!) after the optimizer step so that each model replica has the full set of updated weights.</p>
 
         <p>This explains the memory formula of <d-math>2\Psi + 2\Psi + \frac{k\Psi}{N_d}</d-math>  that we saw on the above graph! Here’s a summary of the sequence of operations for a single training step</p>
 
@@ -1000,7 +1000,7 @@
 
         <p>In practice a small example of the operation looks like this:</p>
 
-        <p><img class="l-body" width="500px" alt="TP diagram" src="/assets/images/tp_diagram.svg" /></p>
+        <p style="text-align: center"><img width="300px" alt="TP diagram" src="/assets/images/tp_diagram.svg" /></p>
 
         <p>Let’s see how we can parallelise this operation! In tensor parallelism, tensors will be split into N shards along a particular dimension and distributed across N GPUs. Matrices can be split either on the column part or row part leading to row and column parallelism. One thing we’ll see in the following is that choosing row or column sharding will require different communications primitives.</p>
 
@@ -1377,7 +1377,7 @@
         
         <h3>Zig-Zag Ring Attention – A Balanced Compute Implementation</h3>
 
-        <p>We need a better way to distribute the input sequences. This can be achieved by assigning the tokens not purely sequential to the GPUs but by mixing the ordering a bit such that we have a good mix of early and late tokens on each GPU. This approach is called Zig-Zag attention<d-cite bibtex-key="attention brandon2023fasterring"></d-cite> and in this new arrangement, the attention mask will show an even distribution of computation but if you count the number of colored squares, you’ll see that the computation is now balanced across all GPUs.</p>
+        <p>We need a better way to distribute the input sequences. This can be achieved by assigning the tokens not purely sequential to the GPUs but by mixing the ordering a bit such that we have a good mix of early and late tokens on each GPU. This approach is called Zig-Zag attention<d-cite bibtex-key="brandon2023fasterring"></d-cite> and in this new arrangement, the attention mask will show an even distribution of computation but if you count the number of colored squares, you’ll see that the computation is now balanced across all GPUs.</p>
 
         <p><img alt="cp_zigzagmask.svg" src="/assets/images/cp_zigzagmask.svg" /></p>
 
@@ -2862,8 +2862,9 @@
         </div>
               
         <div>
-            <a href="https://main-horse.github.io/posts/visualizing-6d/"><strong>@main_horse blog</strong></a>
-            <p>Visualizing 6D Mesh Parallelism</p>
+            <a href="https://main-horse.github.io/posts/visualizing-6d/"><strong>Visualizing 6D Mesh Parallelism
+            </strong></a>
+            <p>Explains the collective communication involved in a 6D parallel mesh.</p>
         </div>
 
         <h3>Hardware</h3>
