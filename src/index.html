@@ -75,7 +75,7 @@
         <p>
           Thousands of GPUs humming in perfect harmony. That's what it takes to train today's most powerful AI models – a symphony of computing power that until recently was the exclusive domain of elite research labs. Open source has transformed this landscape, but not completely. Yes, you can download the latest <a href="https://huggingface.co/meta-llama">Llama</a> or <a href="https://huggingface.co/deepseek-ai">DeepSeek</a> models. Yes, you can read their <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> and <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">experiment</a> reports. But the most challenging part – the training code, the knowledge and technics necessary to coordinate GPUs to train these massive systems – remains shrouded in complexity and spread around a series of disconnected papers and often private codebases.
           </p>
-          <aside>Reading time: 2-4 days. For the best reading experience, we recommend not using a mobile phone.</aside>
+          <aside>Reading time: 2-4 days. <br>For the best reading experience, we recommend not using a mobile phone.</aside>
           <p>
             This open-source book is here to changes that. Starting from the basics, we'll walk you through the knowledge necessary to scale the training of large language models from one GPU to tens, hundreds and even thousands of GPUs, illustrating theory with practical code examples and reproducible benchmarks.
         </p>
@@ -3829,7 +3829,8 @@
                 }
                 if (level === 0)
                     ToC += '<div>' + link + '</div>';
-                else if (level === 1)
+                else
+                // else if (level === 1)
                     ToC += '<li>' + link + '</li>';
             }
 
