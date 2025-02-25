@@ -361,7 +361,7 @@
 
         <h3>Memory usage in Transformers</h3>
 
-        <p>When training a neural network model, one store several items in memory:</p>
+        <p>When training a neural network model, one stores several items in memory:</p>
 
         <ul>
             <li>Model weights</li>
@@ -374,7 +374,7 @@
             <p class="note-box-title">📝 Note</p>
             <div class="note-box-content">
             <p>
-                You would think for a model you could compute the memory requirements exactly but there are a few additional memory occupants that makes it hard to be exact:
+                You would think for a model you could compute the memory requirements exactly but there are a few additional memory occupants that make it hard to be exact:
         <ul>
             <li>CUDA Kernels typically require 1-2 GB of GPU memory, which you can quickly verify by running <code>import torch; torch.ones((1, 1)).to("cuda")</code> and then checking the GPU memory with <code>nvidia-smi</code>.</li>
             <li>Some rest memory usage from buffers, intermediate results and some memory that can’t be used due to fragmentation</li>
@@ -389,7 +389,7 @@
 
         <h4>Profiling the memory usage</h4>
 
-        <p>Using the Pytorch profiler we can understand how memory is allocated througho    ut training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
+        <p>Using the Pytorch profiler we can understand how memory is allocated throughout training. We can see that memory utilization is not a static thing but varies a lot during training and during a training step:</p>
 
         <aside>Check out <a target="_self" href="#a1%3A_distributed_training_profiling" class="">A1: Distributed Training Profiling</a> for a walkthrough how to profile your model.</aside>
 
@@ -403,7 +403,7 @@
 
         <p>Clearly the first step looks very different from the subsequent ones, but let’s first have a look at the general anatomy of a step: first the activations increase quickly as we do the forward pass, then during the backward pass the gradients build up and as the backward pass propagates, the stored activations used to compute the gradients are progressively cleared. Finally, we perform the optimization step during which we need all the gradients and then update the optimizer states before we start the next forward pass. </p>
 
-        <p>Why does the first step looks different: the activations increase quickly and then plateau for a while. In this first step the torch cache allocator does a lot of preparation preparing memory allocations to speed up the subsequent steps so that they don’t require searching for free memory blocks afterwards (see <a href="https://zdevito.github.io/2022/08/04/cuda-caching-allocator.html">Zach’s blog</a>). After the first step we also see the optimizer states appearing which generally offset the memory usage for further training steps.</p>
+        <p>Why does the first step look different: the activations increase quickly and then plateau for a while. In this first step the torch cache allocator does a lot of preparation preparing memory allocations to speed up the subsequent steps so that they don’t require searching for free memory blocks afterwards (see <a href="https://zdevito.github.io/2022/08/04/cuda-caching-allocator.html">Zach’s blog</a>). After the first step we also see the optimizer states appearing which generally offset the memory usage for further training steps.</p>
 
         <aside>Ever noticed how sometimes the training succeeds in the first step but then OOMs during the following training steps? This can be explained by the build-up of the optimizer state after the first step.
         </aside>
@@ -611,7 +611,7 @@
 
         <p>But if you’ve carefully followed, you probably noticed that the forward/backward passes for each micro-batch can actually be run in parallel. Forward/backward passes are independent from each other, with independent input samples being the only difference. Seems like it’s time to start extending our training to more than one GPU! </p>
 
-        <p>Before that, let's quickly see how we can vizualise computation and communication with a short tour of one of the most usefull tool in the distributed training toolbox: the <strong>profiler</strong>. This tool will be extremely usefull to understand and validate how communications between GPUs and compute are happening and where bottlenecks are.</p>
+        <p>Before that, let's quickly see how we can vizualise computation and communication with a short tour of one of the most useful tool in the distributed training toolbox: the <strong>profiler</strong>. This tool will be extremely useful to understand and validate how communications between GPUs and compute are happening and where bottlenecks are.</p>
 
         <h4>Profiling GPU compute and communication</h4>
 
@@ -1320,7 +1320,6 @@
         <ul>
             <li>for both methods we notice the biggest performance drop when we move from TP=8 to TP=16, because that’s when we move from only communicating within a single node (NVLink), to communicating inter-nodes (EFA)</li>
             <li>the memory savings in activations when using TP with SP helps us fit far bigger batches than TP alone</li>
-            <li>the memory savings in activations when using TP with SP helps us fit far bigger batches than TP alone</li>
         </ul>
 
         <p><strong>We have seen how TP helps us shard activations across several GPUs by splitting the attention and feedforward operations along the hidden dimension and how SP is a natural complement for the remaining operations by splitting along the sequence dimension.</strong></p>
@@ -1364,7 +1363,7 @@
         
         <p>There is one important exception though as we we need to pay particular attention to the <strong>Attention blocks</strong> (haha.. pun intended :D). In the attention module each token needs to access key/value pairs from <strong>all</strong> other sequence tokens or in the case of causal attention at least attends to each previous token.</p>
         
-        <p>Because Context Parallelism splits the inputs along the sequence dimension across GPUs, the attention module will requires full communication between GPUs to exchange the necessary key/value data.</p>
+        <p>Because Context Parallelism splits the inputs along the sequence dimension across GPUs, the attention module will require full communication between GPUs to exchange the necessary key/value data.</p>
         
         <p>That sounds very expensive if we do it naively. Is there a way to do this rather efficiently and fast! Thankfully there is: a core technique to handle this communication of key/value pairs efficiently is called <em>Ring Attention</em>.</p>
         
@@ -1746,7 +1745,7 @@
            </table>
           </div>
 
-        <p>As you can see, ZeRO-3 and PP sove the same challenge but involve different approaches and the choice between both will depend whether you decide to focus communication either on weights or on activations. While they can be combined, it's not often done in practice as doing so requires increasing the global batch size significantly to amortize the communication costs, creating a tradeoff between global batch size, model size, network bandwidth, and training efficiency. If you decide to combine them, ZeRO-3 should be configured to keep the weights in memory during the series of PP micro-batches to minimize as much as possible un-necessary communication overhead.</p>
+        <p>As you can see, ZeRO-3 and PP solve the same challenge but involve different approaches and the choice between both will depend whether you decide to focus communication either on weights or on activations. While they can be combined, it's not often done in practice as doing so requires increasing the global batch size significantly to amortize the communication costs, creating a tradeoff between global batch size, model size, network bandwidth, and training efficiency. If you decide to combine them, ZeRO-3 should be configured to keep the weights in memory during the series of PP micro-batches to minimize as much as possible un-necessary communication overhead.</p>
         
         <p>On the other hand, ZeRO-1 and ZeRO-2, which focus on optimizer states and gradients, can be easily combined with Pipeline Parallelism and are complementary to it. Combining them don't raise any particular new challenge. For instance, the training of DeepSeek-v3 used PP combined with ZeRO-1 (sic).</p>
 
@@ -1794,7 +1793,7 @@
             <li>Tensor Parallelism (and Sequence Parallelism) affects computation throughout the entire model by sharding both weights and activations.</li>
             <li>Context Parallelism primarily impacts attention layers since that's where cross-sequence communication is required, with other layers operating independently on sharded sequences.</li>
             <li>Expert Parallelism primarly affects the MoE layers (which replace standard MLP blocks), leaving attention and other components unchanged</li>
-            <li>Pipeline Parallelism and ZeRO are not especially specific to any sub-module or component with the exception that modules and layers need to be balanced in Pipaline Parallelism, the first and last layers are thus often treated differently due to the additional embedding layers.</li>
+            <li>Pipeline Parallelism and ZeRO are not especially specific to any sub-module or component with the exception that modules and layers need to be balanced in Pipeline Parallelism, the first and last layers are thus often treated differently due to the additional embedding layers.</li>
         </ul>
  
         <table>
@@ -1913,7 +1912,7 @@
     
         <h2>Finding the Best Training Configuration</h2>
 
-        <p>We’ve now covered all the parallelism techniques that are actually used to distribute and training larger models as well as how and why they can be combined together. There remain a general question: which ones should we choose in the end and how to decide on a specific combination?</p>
+        <p>We’ve now covered all the parallelism techniques that are actually used to distribute and train larger models as well as how and why they can be combined together. There remain a general question: which ones should we choose in the end and how to decide on a specific combination?</p>
 
         <p>We touched this a little bit in the previous section but let's now walk in details through a possible decision process, step by step, keeping in mind that you'll always have to run a few experiments to find the definitive optimal setup for your compute cluster given its various physical properties, network bandwidth, GPUs per node, memory per GPU, etc.</p>
         
@@ -2273,7 +2272,7 @@
 
         </ol>
 
-        <p>Let’s talk about one of the most frequent technique we can use in CUDA: optimizing memory access. The global memory in GPUs (the largest memory in our above graph) has a long latency and low bandwidth in comparison to the cache which often creates a major bottleneck for most applications. Efficiently accessing data from global memory can improve a lot the performance.</p>
+        <p>Let’s talk about one of the most frequent technique we can use in CUDA: optimizing memory access. The global memory in GPUs (the largest memory in our above graph) has a long latency and low bandwidth in comparison to the cache which often creates a major bottleneck for most applications. Efficiently accessing data from global memory can improve performance by a lot.</p>
 
         <h4>Memory Coalescing</h4>
         
@@ -2411,7 +2410,7 @@
         
         <p>So it seems warps are stalling waiting for shared memory accesses to return! To solve this issue we can apply a technique called <strong>Thread Coarsening</strong> which involves merging several threads into a single coarsened thread. This will significantly reduce shared memory accesses as each coarsened thread can handle multiple output elements.</p>
 
-        <p>Let's briefly mentionned a last important consideration when writing or improving custom kernels: <strong>Minimizing Control Divergence</strong>.</p>
+        <p>Let's briefly go through a last important consideration when writing or improving custom kernels: <strong>Minimizing Control Divergence</strong>.</p>
 
         <h4>Minimizing Control Divergence</h4>
         
@@ -2572,7 +2571,7 @@
 
         <p>We can see here that bfloat16 maintained the range of float32 over float16 but did this with the cost of sacrificing more precision. In case of float8 the situation is even more dire as e4m3 can represent 7 and e5m2 only 3 number on the interval 1-2.</p>
 
-        <p>A common metric to measure a formats resolution is epsilon: the first representable number after <d-math>1.00</d-math>. We can see that for the float32 format <d-math>10^{-4}</d-math> is an upper bound (it’s actually <d-math>1.19^{-7}</d-math>). For float16 it is <d-math>\tilde 10^{-3}</d-math> and for bfloat 10x higher still.</p>
+        <p>A common metric to measure a formats resolution is epsilon: the first representable number after <d-math>1.00</d-math>. We can see that for the float32 format <d-math>10^{-4}</d-math> is an upper bound (it’s actually <d-math>1.19^{-7}</d-math>). For float16 it is ~ <d-math>10^{-3}</d-math> and for bfloat 10x higher still.</p>
 
         <p>The idea of mixed precision training is to use some of these lower precisions formats while maintaining the performance of full precision training. </p>
 
@@ -3380,7 +3379,7 @@
 
         <p>There are a few finer points in the decision tree that we leave to the reader to explore in the PyTorch guide referenced above.</p>
 
-        <p>Now that we covered the fundamental operations for distributed training and when you should should be ready to follow the blog post easily.</p>
+        <p>Now that we covered the fundamental operations for distributed training and you should now be ready to follow the blog post easily.</p>
         
         <h3>A1: Distributed Training Profiling</h3>
 
