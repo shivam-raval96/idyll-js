@@ -5544,14 +5544,133 @@ function _loadFragments() {
   return _loadFragments.apply(this, arguments);
 }
 
+;// ./src/syncHFSpacesURLHash.js
+var queryArg = "section";
+function syncHFSpacesURLHash() {
+  // Handle explicit section requests (don't update hash automatically on load)
+  var hasExplicitRequest = handleExplicitSectionRequest();
+
+  // Set up hash change monitoring
+  updateHashBasedOnHashChange();
+
+  // Always set up scroll monitoring to update hash during scrolling
+  setupScrollMonitoring();
+
+  // If no explicit request, we don't update the hash on initial load
+  // The hash will only start updating when the user scrolls
+}
+function handleExplicitSectionRequest() {
+  // Check for section parameter in URL
+  var urlParams = new URLSearchParams(window.location.search);
+  var sectionId = urlParams.get(queryArg);
+
+  // If we have an explicit section request
+  if (sectionId) {
+    var targetElement = document.getElementById(sectionId);
+    if (targetElement) {
+      // Slight delay to ensure the browser doesn't try to do its own scrolling first
+      setTimeout(function () {
+        targetElement.scrollIntoView();
+        history.replaceState(null, null, "#".concat(sectionId));
+      }, 100);
+    }
+    return true;
+  }
+
+  // No explicit section parameter found
+  return false;
+}
+function setupScrollMonitoring() {
+  // Variables to manage throttling
+  var isScrolling = false;
+  var lastKnownScrollPosition = 0;
+  var initialScroll = true;
+
+  // Add the scroll event listener
+  window.addEventListener('scroll', function () {
+    lastKnownScrollPosition = window.scrollY;
+    if (!isScrolling) {
+      window.requestAnimationFrame(function () {
+        // Skip the first scroll event which might be browser's automatic scroll
+        // to a hash on page load
+        if (initialScroll) {
+          initialScroll = false;
+        } else {
+          updateHashBasedOnScroll(lastKnownScrollPosition);
+        }
+        isScrolling = false;
+      });
+    }
+    isScrolling = true;
+  });
+}
+
+// Function to update the URL hash based on scroll position
+function updateHashBasedOnScroll(scrollPosition) {
+  var closestHeading = findClosestHeading(scrollPosition);
+
+  // Update the URL hash if we found a closest element
+  if (closestHeading && closestHeading.id) {
+    // Only update if the hash is different to avoid unnecessary operations
+    if (window.location.hash !== "#".concat(closestHeading.id)) {
+      silentlyUpdateHash(closestHeading.id);
+      postMessageToHFSpaces(closestHeading.id);
+    }
+  }
+}
+
+// Find the closest heading to the current scroll position
+function findClosestHeading(scrollPosition) {
+  // Get only heading elements with IDs that we want to track
+  var headingsWithIds = Array.from(document.querySelectorAll('h1[id], h2[id], h3[id], h4[id], h5[id], h6[id]'));
+
+  // Skip if there are no headings with IDs
+  if (headingsWithIds.length === 0) return null;
+
+  // Find the element closest to the middle of the viewport
+  var closestHeading = null;
+  var closestDistance = Infinity;
+  var viewportMiddle = scrollPosition + window.innerHeight / 2;
+
+  // Iterate through all headings to find the closest one
+  headingsWithIds.forEach(function (heading) {
+    var headingTop = heading.getBoundingClientRect().top + scrollPosition;
+    var distance = Math.abs(headingTop - viewportMiddle);
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestHeading = heading;
+    }
+  });
+  return closestHeading;
+}
+
+// Update hash without triggering scroll or other side effects
+function silentlyUpdateHash(id) {
+  history.replaceState(null, null, "#".concat(id));
+}
+function updateHashBasedOnHashChange() {
+  window.addEventListener('hashchange', function () {
+    var elementId = window.location.hash.slice(1);
+    postMessageToHFSpaces(elementId);
+  });
+}
+function postMessageToHFSpaces(elementId) {
+  var parentOrigin = "https://huggingface.co";
+  window.parent.postMessage({
+    queryString: "".concat(queryArg, "=").concat(elementId)
+  }, parentOrigin);
+}
+
 ;// ./src/index.js
 // import { plotClusters } from './clusters'
+
 
 
 document.addEventListener("DOMContentLoaded", function () {
   console.log("DOMContentLoaded");
   loadFragments();
   init_memory_plot();
+  syncHFSpacesURLHash();
 }, {
   once: true
 });
