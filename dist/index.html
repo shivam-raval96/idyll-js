@@ -518,7 +518,7 @@
 
         <p>For the exact derivation of the numbers, you can follow this original NVIDIA paper on recomputation <d-cite bibtex-key="korthikanti2022recomputation"></d-cite>, it essentially requires you to do some accounting of all the sizes of intermediate activations between each operation in a transformer layer.</p>
 
-        <p>An interesting observation here is how the memory is not static for a given model but it scales linearly with both the sequence length and batch size. This means the activation memory is the part which will blow up when we increase our batch size or train with longer sequences. We can use this equation to look at how memory usage changes for various sequence lengths for example for Llama models (<code>bs=1</code>):</p>
+        <p>An interesting observation here is that memory usage is not static for a given model; rather, it scales linearly with the batch size and quadratically with the sequence length. This means the activation memory is the part which will blow up when we increase our batch size or train with longer sequences. We can use this equation to look at how memory usage changes for various sequence lengths for example for Llama models (<code>bs=1</code>):</p>
 
         <div class="l-body-outset" id="fragment-memusage_activations"></div>
         <!-- <script>
