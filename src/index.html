@@ -73,25 +73,25 @@
         </d-contents>
         
         <p>
-          Thousands of GPUs humming in perfect harmony. That's what it takes to train today's most powerful AI models – a symphony of computing power that until recently was the exclusive domain of elite research labs. Open source has transformed this landscape, but not completely. Yes, you can download the latest <a href="https://huggingface.co/meta-llama">Llama</a> or <a href="https://huggingface.co/deepseek-ai">DeepSeek</a> models. Yes, you can read their <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> and <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">experiment</a> reports. But the most challenging part – the training code, the knowledge and technics necessary to coordinate GPUs to train these massive systems – remains shrouded in complexity and spread around a series of disconnected papers and often private codebases.
+          Thousands of GPUs humming in perfect harmony. That's what it takes to train today's most powerful AI models – a symphony of computing power that until recently was the exclusive domain of elite research labs. Open source has transformed this landscape, but not completely. Yes, you can download the latest <a href="https://huggingface.co/meta-llama">Llama</a> or <a href="https://huggingface.co/deepseek-ai">DeepSeek</a> models. Yes, you can read their <a href="https://ai.meta.com/research/publications/the-llama-3-herd-of-models/">technical</a> and <a href="https://github.com/deepseek-ai/DeepSeek-R1/blob/main/DeepSeek_R1.pdf">experiment</a> reports. But the most challenging part – the training code, the knowledge and techniques necessary to coordinate GPUs to train these massive systems – remains shrouded in complexity and spread around a series of disconnected papers and often private codebases.
           </p>
           <aside>Reading time: 2-4 days. <br>For the best reading experience, we recommend not using a mobile phone.</aside>
           <p>
-            This open-source book is here to changes that. Starting from the basics, we'll walk you through the knowledge necessary to scale the training of large language models from one GPU to tens, hundreds and even thousands of GPUs, illustrating theory with practical code examples and reproducible benchmarks.
+            This open-source book is here to change that. Starting from the basics, we'll walk you through the knowledge necessary to scale the training of large language models from one GPU to tens, hundreds and even thousands of GPUs, illustrating theory with practical code examples and reproducible benchmarks.
         </p>
 
-        <p>As the size of the clusters used to train these models grew, various techniques such as data parallelism, tensor parallelism, pipeline parallelism or context parallelism as well as ZeRO or kernel fusion have been invented to makes sure that GPUs are highly utilized at all times. This significantly reduces training time and makes the best use of this expensive hardware. Even more, as the challenge of scaling up AI training goes beyond just building the initial models and teams have found that fine-tuning large models on specialized data often produces the best results, generally involving the same distributed training techniques. In this book we'll progressively go over all of these techniques –from the simplest to the most raffined one– while keeping a single story-line to understand where each method comes from.</p>
+        <p>As the size of the clusters used to train these models grew, various techniques such as data parallelism, tensor parallelism, pipeline parallelism or context parallelism as well as ZeRO or kernel fusion have been invented to makes sure that GPUs are highly utilized at all times. This significantly reduces training time and makes the best use of this expensive hardware. Even more, as the challenge of scaling up AI training goes beyond just building the initial models and teams have found that fine-tuning large models on specialized data often produces the best results, generally involving the same distributed training techniques. In this book we'll progressively go over all of these techniques –from the simplest to the most refined ones– while keeping a single story-line to understand where each method comes from.</p>
 
         <aside>If you have questions or remarks open a discussion on the <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook/discussions?status=open&type=discussion">Community tab</a>!</aside>
 
-        <p>We'll assumes you have some simple basic knowledge about current LLM architecture and are roughtly familiar with how deep learning model are trained, but you can be generally new to distributed training. If needed, the basics of model training can be found in great courses found at <a href="https://www.deeplearning.ai">DeepLearning.ai</a> or on the <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">PyTorch tutorial sections</a>. This book can be seen as the second part of a trilogy following our first blog on processing data for pre-training, the so-called “<a href="https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1">FineWeb blog post</a>”. Having read both blog posts, you should have almost all the core knowledge needed to fully understand how how performing LLMs are being built nowadays, just missing some final spices regarding data mixing and architecture choices to complete the recipe (stay tuned for part three…).</p>
+        <p>We'll assume you have some simple basic knowledge about current LLM architecture and are roughtly familiar with how deep learning model are trained, but you can be generally new to distributed training. If needed, the basics of model training can be found in great courses found at <a href="https://www.deeplearning.ai">DeepLearning.ai</a> or on the <a href="https://pytorch.org/tutorials/beginner/basics/intro.html">PyTorch tutorial sections</a>. This book can be seen as the second part of a trilogy following our first blog on processing data for pre-training, the so-called “<a href="https://huggingface.co/spaces/HuggingFaceFW/blogpost-fineweb-v1">FineWeb blog post</a>”. Having read both blog posts, you should have almost all the core knowledge needed to fully understand how how performing LLMs are being built nowadays, just missing some final spices regarding data mixing and architecture choices to complete the recipe (stay tuned for part three…).</p>
 
         <aside>We are extremely thankful to the whole <a href="https://distill.pub/">distill.pub</a> team for creating
             the template on which we based this blog post.</aside>
         
         <p>The book is built on the following <strong>three general foundations</strong>:</p>
 
-        <p><strong>Quick intros on theory and concepts:</strong> before diving into code and experiments, we want to understand how each method works at a high level and what it’s advantages and limits are. You’ll learn about which parts of a language model eat away your memory and when during training it happens. You’ll learn how we can solve memory constraints by parallelizing the models and increase the throughput by scaling up GPUs. As a result you'll understand how the following widget to compute the memory breakdown of a transformer model works: </p>
+        <p><strong>Quick intros on theory and concepts:</strong> before diving into code and experiments, we want to understand how each method works at a high level and what its advantages and limits are. You’ll learn about which parts of a language model eat away your memory and when during training it happens. You’ll learn how we can solve memory constraints by parallelizing the models and increase the throughput by scaling up GPUs. As a result you'll understand how the following widget to compute the memory breakdown of a transformer model works: </p>
         <aside>Note that we're still missing Pipeline Parallelism in this widget. To be added as an exercise for the reader.</aside>
 
         <div class="large-image-background-transparent">
@@ -268,7 +268,7 @@
         <ol>
           <li><strong>Memory Usage</strong>: it's a hard limitation - if a training step doesn't fit in memory, training cannot proceed</li>
           <li><strong>Compute Efficiency</strong>: we want our hardware to spend most time computing, so we need to reduce time spent on data transfers or waiting for other GPUs to perform work.</li>
-          <li><strong>Communication overhead</strong>: we want to minimize communication overhead as it keeps GPUs idle. To archieve this we will try to make best use of intra-node (fast) and inter-node (slower) bandwidths as well as overlap communication with compute as much as possible.</li>
+          <li><strong>Communication overhead</strong>: we want to minimize communication overhead as it keeps GPUs idle. To achieve this we will try to make best use of intra-node (fast) and inter-node (slower) bandwidths as well as overlap communication with compute as much as possible.</li>
           </ol>
         <p>In many places we'll see that we can trade one of these (computation, communication, memory) for another (e.g. recomputation or Tensor Parallelism). Finding the right balance is key to scaling training.</p>
         <p>
@@ -341,7 +341,7 @@
 
         <aside>For instance, during DeepSeek-V3/R1 training “the batch size is gradually increased from 3072 input sequences to 15360 in the training of the first 469B tokens, and then keeps at 15360 input samples in the remaining training”.</aside>
 
-        <p>Batch size also affects the time it takes to train on a given text dataset: a small batch size will require more optimizer steps to train on the same amount of samples. Optimizer steps are costly (in compute time) and the total time to train will thus increase compared to using a larger batch size. This being said, note that the batch size can often be adjusted quite largely around the optimal batch size without major impact to the performance of the model, i.e. the sensitivity of final model performances to the exact batch size value is usually rather low around the optimal batch size.</p>
+        <p>Batch size also affects the time it takes to train on a given text dataset: a small batch size will require more optimizer steps to train on the same amount of samples. Optimizer steps are costly (in compute time) and the total time to train will thus increase compared to using a larger batch size. This being said, note that the batch size can often be adjusted quite largely around the optimal batch size without major impact on the performance of the model, i.e. the sensitivity of final model performances to the exact batch size value is usually rather low around the optimal batch size.</p>
 
         <p>In the LLM pretraining community, batch sizes are commonly reported in terms of tokens rather than in number of samples (<d-math>bst</d-math> = Batch Size Tokens), this makes training numbers generally independent of the exact input sequence length used during the training.</p>
 
@@ -353,7 +353,7 @@
 
         <p>From here onward we’ll show the formulas for the batch size in terms of samples but you can always get its token-unit counterpart by multiplying it with the sequence length.</p>
 
-        <p>A sweet spot for recent LLM training is typically on the order of 4-60 million tokens per batch. The batch size as well as the training corpus have been steadily increasing over the years: Llama 1 was trained with a batch size of ~4M tokens for 1.4 trillions tokens while DeepSeek was trained with a batch size of ~60M tokens for 14 trillion tokens.</p>
+        <p>A sweet spot for recent LLM training is typically on the order of 4-60 million tokens per batch. The batch size as well as the training corpus have been steadily increasing over the years: Llama 1 was trained with a batch size of ~4M tokens for 1.4 trillion tokens while DeepSeek was trained with a batch size of ~60M tokens for 14 trillion tokens.</p>
 
         <p><strong>And our first challenge is already coming ahead when scaling the training of our model to these large batch sizes: out-of-memory issues. What should we do when our GPU doesn’t have enough memory to hold a full batch of our target batch size?</strong></p>
 
@@ -385,7 +385,7 @@
 
         <p>These items are stored as tensors which come in different <em>shapes</em> and <em>precisions</em>. The <em>shapes</em> are determined by hyper-parameters such as batch size, sequence length, model hidden dimensions, attention heads, vocabulary size, and potential model sharding as we’ll see later. <em>Precision</em> refers to formats like FP32, BF16, or FP8, which respectively require 4, 2, or 1 byte to store each single value in the tensor. We will have a full discussion of the different precisions and their trade-offs in the <a target="_self" href="#mixed_precision_training">Mixed Precision Training</a> section, for now let's just keep in mind that the memory requirements for these various format will be different and that will impact the memory usage of the items we need to store.</p>
 
-        <p>So how can I quickly determine memory usage from these variable? One simple way is to do this empirically and just measure it.</p>
+        <p>So how can I quickly determine memory usage from these variables? One simple way is to do this empirically and just measure it.</p>
 
         <h4>Profiling the memory usage</h4>
 
@@ -403,7 +403,7 @@
 
         <p>Clearly the first step looks very different from the subsequent ones, but let’s first have a look at the general anatomy of a step: first the activations increase quickly as we do the forward pass, then during the backward pass the gradients build up and as the backward pass propagates, the stored activations used to compute the gradients are progressively cleared. Finally, we perform the optimization step during which we need all the gradients and then update the optimizer states before we start the next forward pass. </p>
 
-        <p>Why does the first step look different: the activations increase quickly and then plateau for a while. In this first step the torch cache allocator does a lot of preparation preparing memory allocations to speed up the subsequent steps so that they don’t require searching for free memory blocks afterwards (see <a href="https://zdevito.github.io/2022/08/04/cuda-caching-allocator.html">Zach’s blog</a>). After the first step we also see the optimizer states appearing which generally offset the memory usage for further training steps.</p>
+        <p>Why does the first step looks different: the activations increase quickly and then plateau for a while. In this first step the torch cache allocator does a lot of preparation preparing memory allocations to speed up the subsequent steps so that they don’t require searching for free memory blocks afterwards (see <a href="https://zdevito.github.io/2022/08/04/cuda-caching-allocator.html">Zach’s blog</a>). After the first step we also see the optimizer states appearing which generally offset the memory usage for further training steps.</p>
 
         <aside>Ever noticed how sometimes the training succeeds in the first step but then OOMs during the following training steps? This can be explained by the build-up of the optimizer state after the first step.
         </aside>
@@ -504,7 +504,7 @@
 
         <p>As we can see, as soon as we reach <strong>7B</strong> (!), weights and optimizer requirements already starts to add up significantly and exceed the size of a typical GPU memory, e.g. 80GB for a H100 GPU.</p>
         
-        <p>But for now, let’s start with models which still fits in a single GPU, take a look at the last big contributor to our memory budget: the activation memory.</p>
+        <p>But for now, let’s start with models which still fit in a single GPU, take a look at the last big contributor to our memory budget: the activation memory.</p>
 
         <h4>Activations memory</h4>
         
@@ -802,7 +802,7 @@
 
         <p>While data parallelism nicely overlaps the all-reduce gradient synchronization with backward computation to save time, this benefit starts to break down at large scales. Why? Because as we add more and more GPUs (hundreds or thousands), the overhead of coordinating between them grows significantly and the network requirements are becoming too large for the benefits. As a result, our setup will become less and less efficient which each additional GPU we add to the system.</p>
 
-        <p>Lets see this happening in practice with some benchmark:</p>
+        <p>Let's see this happening in practice with some benchmark:</p>
 
         <!-- <p><img alt="image.png" src="/assets/images/dp_scaling.svg"/></p> -->
         <div class="l-body-outset" id="fragment-dp_scaling"></div>
@@ -864,7 +864,7 @@
 
         <h4>Memory usage revisited</h4>
         
-        <p>You likely remember from <a target="_self" href="#memory_usage_in_transformers"> our previous section</a> the memory usage of optimizer states, gradients, and parameters during a standard training. Lets call our model's parameters count <d-math>\Psi</d-math> (previously N but here we use the original ZeRO paper notation). In <a target="_self" href="#mixed_precision_training">Mixed Precision Training</a> (more details in a later section) with the Adam optimizer, the memory usage for each item we need to store is:</p>
+        <p>You likely remember from <a target="_self" href="#memory_usage_in_transformers"> our previous section</a> the memory usage of optimizer states, gradients, and parameters during a standard training. Let's call our model's parameters count <d-math>\Psi</d-math> (previously N but here we use the original ZeRO paper notation). In <a target="_self" href="#mixed_precision_training">Mixed Precision Training</a> (more details in a later section) with the Adam optimizer, the memory usage for each item we need to store is:</p>
 
         <ul>
             <li>Model’s parameters (half precision i.e. bf16/fp16): <d-math>2\Psi</d-math></li>
@@ -902,7 +902,7 @@
         </ul>
         <aside>Note: reduce-scatter is 2 times faster than all reduce! <em>Yay, a third communication primitive!</em></aside>
 
-        <p>You may be wondering what is this "reduce-scatter" operation and how this all look so lets try to make this more graphical with the figure below. We'll go over all the steps of a forward/backward pass cycle:</p>
+        <p>You may be wondering what is this "reduce-scatter" operation and how this all look so let's try to make this more graphical with the figure below. We'll go over all the steps of a forward/backward pass cycle:</p>
 
         <p><img alt="dp_zero1.gif" src="/assets/images/dp_zero1.gif" /></p>
 
@@ -1353,9 +1353,9 @@
 
         <!-- <p><img alt="image.png" src="/assets/images/cp_memoryusage.svg" /></p> -->
 
-        <p>The core idea of Context Parrallelism is to apply a similar idea to the Sequence Parallelism approach (aka to split along the sequence length) but to the modules where we already apply Tensor Parallelism. We will thus split these modules along two dimensions, thereby also reducing the effect of sequence length. You will find this approach quite intuitive after all we’ve already convered but... there is a trick to it so stay awake!</p>
+        <p>The core idea of Context Parallelism is to apply a similar idea to the Sequence Parallelism approach (aka to split along the sequence length) but to the modules where we already apply Tensor Parallelism. We will thus split these modules along two dimensions, thereby also reducing the effect of sequence length. You will find this approach quite intuitive after all we’ve already convered but... there is a trick to it so stay awake!</p>
                 
-        <p>For Context Parallelism; just like Sequence Parallelism, we’ll split the input along the sequence dimension but we now apply this splitting along the full model, instead of only the sequence parallel regions of the model as we’ve done previous with Tensor + Sequence Parallelism.</p>
+        <p>For Context Parallelism; just like Sequence Parallelism, we’ll split the input along the sequence dimension but we now apply this splitting along the full model, instead of only the sequence parallel regions of the model as we’ve done previously with Tensor + Sequence Parallelism.</p>
         
         <!-- <p><img alt="cp_8Bmemoryusage.svg" src="/assets/images/cp_8Bmemoryusage.svg" /></p>
  -->
@@ -1503,7 +1503,7 @@
         </div>
         <p>The remaining idle time is indicated in grey and usually called the “bubble” and the sight of this probably break your heart after we spent so much time optimizing throughput.</p>
         
-        <p>We can quantify how efficient a pipeline setup is by looking at how much time we loose because of the bubble. Let’s say <d-math>t_f</d-math> and <d-math>t_b</d-math> are the times for the forward and backward pass, respectively, as measured for one microbatch and one stage of the pipeline (a simple assumption is often to have   <d-math>t_b \approx 2 \times t_f</d-math> which you can see on the above graph). If we could perfectly parallelize the ideal total time would be <d-math>t_{id}=t_f + t_b</d-math>. However, we can count on the graph that due to the pipeline bubble there is additional time of <d-math>t_{pb}=(p-1)*(t_f+t_b)</d-math> (where <d-math>p</d-math> is the degree of pipeline parallelism, i.e the number of GPU on the above graph) ie. the time each GPU is waiting while other GPUs are computing.</p>
+        <p>We can quantify how efficient a pipeline setup is by looking at how much time we lose because of the bubble. Let’s say <d-math>t_f</d-math> and <d-math>t_b</d-math> are the times for the forward and backward pass, respectively, as measured for one microbatch and one stage of the pipeline (a simple assumption is often to have   <d-math>t_b \approx 2 \times t_f</d-math> which you can see on the above graph). If we could perfectly parallelize the ideal total time would be <d-math>t_{id}=t_f + t_b</d-math>. However, we can count on the graph that due to the pipeline bubble there is additional time of <d-math>t_{pb}=(p-1)*(t_f+t_b)</d-math> (where <d-math>p</d-math> is the degree of pipeline parallelism, i.e the number of GPU on the above graph) ie. the time each GPU is waiting while other GPUs are computing.</p>
         
         <p>We can compute the ratio of the additional bubble time over the ideal time:
         </p>
@@ -1591,7 +1591,7 @@
         
         <p><img alt="pp_1f1b_interleaved.svg" src="/assets/images/pp_1f1b_interleaved.svg" /></p>
 
-        <div class="figure-legend"><p>An example of interleaved pipeline parallelism for a model with layers distributed across 4 GPUs. Numbers still correspond to the microbatches IDs but for clarity we've colored differently the first and the last layers of the model to illustrate how layers are spread accross GPUs.</p>
+        <div class="figure-legend"><p>An example of interleaved pipeline parallelism for a model with layers distributed across 4 GPUs. Numbers still correspond to the microbatches IDs but for clarity we've colored differently the first and the last layers of the model to illustrate how layers are spread across GPUs.</p>
           </div>
 
         <p>As a consequence we see additional communications happening as the model goes several times through each GPU for the same computation that previously just took one pass. However, each forward and backward pass is divided by a factor of <d-math>v</d-math>, where <d-math>v</d-math> is the number of stages or model chunks per GPUs as we are able to better interleave forward and backward passes. </p>
@@ -2015,7 +2015,7 @@
        
         <h3>Lessons learned on benchmarking</h3>
 
-        <p>Our goal for this book was not only to discuss theory and implementations but provide actual data points as well. So the plan was simple: lets run every possible distributed configuration for every model and a number of cluster sizes (namely 1-64 nodes of 8xH100s). Even after excluding impossible configuration we still needed to run thousands of experiments. </p>
+        <p>Our goal for this book was not only to discuss theory and implementations but provide actual data points as well. So the plan was simple: let's run every possible distributed configuration for every model and a number of cluster sizes (namely 1-64 nodes of 8xH100s). Even after excluding impossible configuration we still needed to run thousands of experiments. </p>
 
         <p>   
             On paper this sounds easy enough: we can easily launch big arrays of jobs on our cluster. However, as soon as we launched the first batches of experiments, troubles began:
@@ -2565,7 +2565,7 @@
 
         <p>We can see that float32 spans 80 orders of magnitude and float16 sacrifices a lot of range while bfloat16 maintains the full range. The two float8 formats reduce the range even further where e5e2 can maintain float16 range and e4m3 has an even smaller ranger.</p>
 
-        <p>How come some format are able to maintain the range and other not? Let’s investigate the resolution by plotting 10,000 points between 1 and 2. Each point will be rounded to the nearest representable number in each format:</p>
+        <p>How come some formats are able to maintain the range and others not? Let’s investigate the resolution by plotting 10,000 points between 1 and 2. Each point will be rounded to the nearest representable number in each format:</p>
 
         <p><img alt="image.png" src="/assets/images/mixedprecision_2.png" /></p>
 
