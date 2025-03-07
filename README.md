@@ -1,5 +1,5 @@
 ---
-title: The Distill Blog Template
+title: The Distill Template
 emoji: 🌌
 colorFrom: yellow
 colorTo: purple
@@ -8,8 +8,8 @@ pinned: true
 license: apache-2.0
 header: mini
 app_file: dist/index.html
-thumbnail: https://huggingface.co/spaces/nanotron/ultrascale-playbook/resolve/main/screenshot.png
-short_description: The ultimate guide to training LLM on large GPU Clusters
+thumbnail: https://huggingface.co/spaces/nanotron/distill-blog-template/resolve/main/thumbnail.png
+short_description: Craft Beautiful Blogs
 ---
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
