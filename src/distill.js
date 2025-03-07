@@ -2097,7 +2097,7 @@ d-appendix > distill-appendix {
       </div>
       <div >
           <h3>Affiliation</h3>
-          <div><a href="https://huggingface.co/">Hugging Face</a>
+          <div><a href="hf.co">Your Affiliation</a>
           </div>
       </div>
       <div >
@@ -2106,10 +2106,9 @@ d-appendix > distill-appendix {
       </div>
     </div>
     <div class="side pdf-download">
-      <a href="https://huggingface.co/spaces/nanotron/ultrascale-playbook/resolve/main/The_Ultra-Scale_Playbook_Training_LLMs_on_GPU_Clusters.pdf">Download PDF
-      <br>
+      <h3>Download</h3>
+      <a href="hf.co">
       <img style="width: 32px;" src="../assets/images/256px-PDF.png" alt="PDF"></a>
-      
     </div>
 `;
   }

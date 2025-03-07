@@ -1,5 +1,5 @@
 ---
-title: The Ultra-Scale Playbook
+title: The Distill Blog Template
 emoji: 🌌
 colorFrom: yellow
 colorTo: purple
