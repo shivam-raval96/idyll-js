@@ -14,7 +14,6 @@ short_description: Craft Beautiful Blogs
 
 Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
 
-
 Instruction to install and run locally
 
 ```bash
@@ -29,20 +28,20 @@ npm run build
 // And commit the dist folder
 ```
 
-## Loading HTML fragments:
-There are two way to load HTML fragments:
-1. Compile them into html during build time
-2. Fetch them and insert them during run-time
+## Adding Interactive Content
 
-## When to use what
-- Use compile time fragments only on parts which you want to ensure are seen by every user right after page load (e.g logo)
-- Use run-time fragments for everything else so that the final HTML is of reasonable size (<1MB idealy)
+You can add interactive content directly to your blog by including HTML, CSS, and JavaScript inline in your `src/index.html` file. For complex visualizations, you can:
 
-## How to add a new fragment
-- Add it to the `src/fragments` folder (e.g. `src/fragments/banner.html`)
-- For run-time fragments, add {{{fragment-name}}} to appropriate place in `src/index.html` (e.g. {{{fragment-banner}}})
-- For compile-time fragments, add <div id="fragment-name"></div> to `src/index.html` where you want to insert the fragment (e.g. <div id="fragment-banner"></div>)
+- Include external libraries via CDN (like Plotly, D3, etc.)
+- Add custom JavaScript in the `<script>` tags
+- Use CSS for styling your interactive components
 
+### Example:
 
-## How to know which fragments are available
-- Run `npm run dev` and look at the console for available fragments
+```html
+<script src="https://cdn.plot.ly/plotly-3.0.0.min.js"></script>
+<div id="myVisualization"></div>
+<script>
+  // Your interactive code here
+</script>
+```

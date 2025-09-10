@@ -15,14 +15,15 @@
 <body>
     <d-front-matter>
         <script id='distill-front-matter' type="text/json">{
-    "title": "The Distill Blog Template",
-    "description": "Building beautiful blog posts.",
+    "title": "Why do curves matter for LLM interpretability?",
+    "description": "Exploring the importance of curves in understanding large language model behavior and interpretability.",
     "published": "Feb 19, 2025",
-    "affiliation": {"name": "YourCompany"},
     "authors": [
       {
-        "author":"The Author (you!)",
-        "authorURL":"https://huggingface.co/"
+        "author":"Shivam Raval",
+        "authorURL":"https://shivam-raval96.github.io/",
+        "affiliation": "Harvard, Thoughtworks",
+        "affiliationURL": "https://"
       }
     ],
     "katex": {
@@ -34,13 +35,11 @@
     </script>
     </d-front-matter>
     <d-title>
-        <h1 class="l-page" style="text-align: center;">The Distill Template:<br>Craft Beautiful Blogs</h1>
+        <h1 class="l-page" style="text-align: center;">Why do curves matter for LLM interpretability?</h1>
         <div id="title-plot" class="main-plot-container l-screen" style="overflow-x: hidden; width: 100%; text-align: center;">
             <div style="display: flex; justify-content: center; position: relative;">
-                {{{fragment-banner}}}
+                <div id="banner-container" style="width: 1000px; height: 200px;"></div>
             </div>
-            <p style="text-align: cekter; font-style: italic; margin-top: 10px; max-width: 900px; margin-left: auto; margin-right: auto;">It's nice to have a cute interactive banner!</p>
-  
         </div>
     </d-title>
     <d-byline></d-byline>
@@ -48,285 +47,222 @@
         <d-contents>
         </d-contents>
         
-        <p>Welcome to the Distill Blog Template! This framework is based on the <a href="https://distill.pub/">distill.pub</a> design and has been adapted to make it easy for you to create beautiful, interactive technical blogs. Whether you're writing about machine learning, data science, physics, or any technical topic, this template provides the structure and components you need.</p>
+        <p>
+            Manifolds are fundamental mathematical objects that have become increasingly important 
+            in machine learning and artificial intelligence. A manifold is a topological space 
+            that locally resembles Euclidean space near each point <d-cite bibtex-key="spivak2018comprehensive"></d-cite>. 
+            This local Euclidean structure makes manifolds particularly useful for understanding 
+            high-dimensional data and the internal representations of neural networks.
+        </p>
+        
+        <p>
+            The study of manifolds in machine learning has revealed that many high-dimensional 
+            datasets actually lie on or near low-dimensional manifolds embedded in the ambient space 
+            <d-cite bibtex-key="tenenbaum2000global"></d-cite>. This observation has led to the development 
+            of manifold learning algorithms such as Locally Linear Embedding <d-cite bibtex-key="roweis2000nonlinear"></d-cite> 
+            and Laplacian Eigenmaps <d-cite bibtex-key="belkin2003laplacian"></d-cite>, which aim to 
+            discover the underlying manifold structure of data.
+        </p>
+        
+        <p>
+            More recently, researchers have begun to understand that the internal representations 
+            of deep neural networks also exhibit manifold-like structures <d-cite bibtex-key="raghunathan2019understanding"></d-cite>. 
+            This has opened up new avenues for interpretability and understanding of how these 
+            models process information. The interactive visualization above demonstrates how 
+            neural network activations can be thought of as points on curved surfaces in 
+            high-dimensional space.
+        </p>
     
         <aside>Reading time: 10-15 minutes.</aside>
     
-        <p>This template includes support for mathematics, interactive visualizations, citations, footnotes, and more. In this guide, we'll walk you through the structure of the template and how to customize it for your own blog.</p>
-        
-        <aside>If you have questions or remarks open a discussion on the <a href="https://huggingface.co/spaces/lvwerra/distill-blog-template/discussions?status=open&type=discussion">Community tab</a>!</aside>
-        
-        <p>The template is built with the following features in mind:</p>
-
-        <p><strong>1. Beautiful typography and layout</strong>: The template follows Distill's clean, readable design principles with responsive layouts that work well on desktop and mobile.</p>
-
-        <p><strong>2. Support for interactive components</strong>: You can include interactive visualizations, like the memory widget shown below:</p>
-
-        <h2>Getting Started with the Template</h2>
-
-        <p>Let's walk through how to use this template to create your own blog:</p>
-
-        <h3>Installation and Setup</h3>
-
-        <p>First, duplicate the repository and clone it to your local machine and install the dependencies:</p>
-
-
-        <d-code block language="bash">
-            git clone https://huggingface.co/spaces/lvwerra/distill-blog-template
-            cd distill-blog-template
-            npm install
-        </d-code>
-
-        <p>To run the development server:</p>
-
-        <d-code block language="bash">
-            npm run dev
-        </d-code>
-
-        <p>This will start a local server at <code> http://localhost:8080 </code> where you can preview your blog as you edit it.</p>
-
-        <h3>Editing the Front Matter</h3>
-
-        <p>The front matter contains metadata about your blog post, such as the title, description, and author information. Edit the <code>&lt;d-front-matter&gt;</code> section at the top of <code>src/index.html</code>:</p>
-
-        <d-code block language="html">&lt;d-front-matter&gt;
-    &lt;script id='distill-front-matter' type="text/json"&gt;{
-    "title": "Your Blog Title",
-    "description": "A brief description of your blog",
-    "published": "Month Day, Year",
-    "affiliation": {"name": "Your Organization"},
-    "authors": [
-      {
-        "author":"Your Name",
-        "authorURL":"https://your-website.com"
-      }
-    ],
-    "katex": {
-      "delimiters": [
-        {"left": "$$", "right": "$$", "display": false}
-      ]
-    }
-  }
-    &lt;/script&gt;
-&lt;/d-front-matter&gt;</d-code>
-
-        <p>An the corresponding entries in <code>src/distill.js</code> in the <code>bylineTemplate</code>.</p>
-
-        <h3>Writing Your Content</h3>
-
-        <p>Your main content goes within the <code>&lt;d-article&gt;</code> tags. You can use standard HTML tags with some special Distill components:</p>
-
-        <h4>Mathematical Equations</h4>
-
-        <p>You can include inline math using <code>&lt;d-math&gt;x^2 + y^2 = z^2&lt;/d-math&gt;</code> which renders as <d-math>x^2 + y^2 = z^2</d-math>.</p>
-
-        <p>For block equations, use <code>&lt;d-math block&gt;E = mc^2&lt;/d-math&gt;</code>:</p>
-
-        <d-math block>E = mc^2</d-math>
-
-        <h4>Code</h4>
-
-        <p>It's great to include code samples in your blog post. In-line you can do it via the <code>&lt;code&gt;</code> tags. For code blocks you can use the <code>&lt;d-code block language="clike"&gt;</d-code></code> tags. Take the for example the following block:</p>
-
-        <d-code block language="html">
-            &lt;d-code block language="python"&gt;
-                def print_hello_world():
-                    print("hello world")
-            &lt;/d-code&gt;
-        </d-code>
-
-        <p>It will render as:</p>
-        
-        <d-code block language="python">
-            def print_hello_world():
-                print("hello world")
-        </d-code>
-
-        <p>Finally, if you want to include code from GitHub you can use <a href="www.emgithub.com">emgithub.com</a> and for example create a collapsable widget like this:</p>
-
-        <d-code block language="html">
-            &lt;details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;"&gt;
-                &lt;summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;"&gt;
-                    👉 Naive DP implementation with overlap in Picotron (Click to expand)
-                &lt;/summary&gt;
-                    &lt;div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"&gt;&lt;/div&gt;
-                        &lt;script 
-                            src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fdata_parallel%2Fdata_parallel.py%23L10-L60&style=github&type=code&showBorder=off&showLineNumbers=on&showFileMeta=on&showCopy=on&showFullPath=on"&gt;
-                        &lt;/script&gt;
-                    &lt;/div&gt;
-            &lt;/details&gt;
-        </d-code>
-
-        <p>Which will display as follows:</p>
-
-        <details style="background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; margin: 1em 0;">
-            <summary style="padding: 12px; cursor: pointer; user-select: none; background: #f3f4f6; border-bottom: 1px solid #d0d7de;">
-                👉 Naive DP implementation with overlap in Picotron (Click to expand)
-            </summary>
-                <div class="code-embed-container" style="margin: 0; border-radius: 0; overflow-x: scroll; width: max-content; min-width: 100%; font-size: 8px;"></div>
-                    <script 
-                        src="https://emgithub.com/embed-v2.js?target=https%3A%2F%2Fgithub.com%2Fhuggingface%2Fpicotron%2Fblob%2F0035cce0e04afd6192763b11efe50010d8ad0f71%2Fpicotron%2Fdata_parallel%2Fdata_parallel.py%23L10-L60&style=github&type=code&showBorder=off&showLineNumbers=on&showFileMeta=on&showCopy=on&showFullPath=on">
-                    </script>
-                </div>
-        </details>
-
-
-        <h4>Asides</h4>
-
-        <p>You can include side notes using the <code>&lt;aside&gt;...&lt;/aside&gt;</code> tag:</p>
-
-        <aside>This is a side note that will appear in the margin.</aside>
-
-        <h4>Figures and Images</h4>
-
-        <p>Include figures with captions:</p>
-
-        <d-code block language="html">
-            &lt;figure&gt;
-                &lt;img src="/assets/images/placeholder.png" alt="A placeholder image"&gt;
-                &lt;figcaption&gt;Caption for your figure&lt;/figcaption&gt;
-            &lt;/figure&gt;
-        </d-code>
-
-        <p>This will show the following:</p>
-
-        <figure>
-            <img src="/assets/images/placeholder.png" alt="A placeholder image">
-            <figcaption>Caption for your figure</figcaption>
-        </figure>
-
-        <h4>Tables</h4>
-        
-        <p>You can easily add tables with the default HTML formatting:</p>
-
-        <d-code block language="html">
-            &lt;table&gt;
-                &lt;thead&gt;
-                    &lt;tr&gt;
-                        &lt;th&gt;&lt;strong&gt;Model&lt;/strong&gt;&lt;/th&gt;
-                        &lt;th&gt;&lt;strong&gt;Accuracy&lt;/strong&gt;&lt;/th&gt;
-                        &lt;th&gt;&lt;strong&gt;Speed&lt;/strong&gt;&lt;/th&gt;
-                    &lt;/tr&gt;
-                &lt;/thead&gt;
-                &lt;tbody&gt;
-                    &lt;tr&gt;
-                        &lt;td&gt;Model A&lt;/td&gt;
-                        &lt;td&gt;95%&lt;/td&gt;
-                        &lt;td&gt;Fast&lt;/td&gt;
-                    &lt;/tr&gt;
-                    &lt;tr&gt;
-                        &lt;td&gt;Model B&lt;/td&gt;
-                        &lt;td&gt;98%&lt;/td&gt;
-                        &lt;td&gt;Medium&lt;/td&gt;
-                    &lt;/tr&gt;
-                    &lt;tr&gt;
-                        &lt;td&gt;Model C&lt;/td&gt;
-                        &lt;td&gt;99%&lt;/td&gt;
-                        &lt;td&gt;Slow&lt;/td&gt;
-                    &lt;/tr&gt;
-                &lt;/tbody&gt;
-            &lt;/table&gt;
-        </d-code>
-        
-        <p>This will render as a table as expected:</p>
-
-        <table>
-            <thead>
-                <tr>
-                    <th><strong>Model</strong></th>
-                    <th><strong>Accuracy</strong></th>
-                    <th><strong>Speed</strong></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Model A</td>
-                    <td>95%</td>
-                    <td>Fast</td>
-                </tr>
-                <tr>
-                    <td>Model B</td>
-                    <td>98%</td>
-                    <td>Medium</td>
-                </tr>
-                <tr>
-                    <td>Model C</td>
-                    <td>99%</td>
-                    <td>Slow</td>
-                </tr>
-            </tbody>
-        </table>
-
-        <h4>Citations</h4>
-
-        <p>Citations can be included using <code>&lt;d-cite bibtex-key="example2023"&gt;&lt;/d-cite&gt;</code> tags and a separate bibliography file:</p>
-
-        <p>As shown in the paper<d-cite bibtex-key="example2023"></d-cite>, this approach has several advantages.</p>
-
-        <h3>Building and Deploying</h3>
-
-        <p>When you're ready to build your blog for production:</p>
-
-        <pre><code>npm run build</code></pre>
-
-        <p>This will create optimized files in the <code>dist/</code> directory. You can then commit and push the changes back to the space and see the result.</p>
-
-        <h2>Interactive Components</h2>
-
-        <p>You can for example include interactive Plotly visualizations in your blog by creating HTML fragments:</p>
-
-        <p>To generate these charts, run the included Python script:</p>
-        
-        <d-code block language="bash">
-            pip install numpy plotly pandas
-            python plotly_example.py
-        </d-code>
-        
-        <p>This creates HTML fragments in the <code>src/fragments/</code> directory that you can include in your blog using the <code>id</code> attribute matching the fragment name.</p>
-
-        <h3>Using HTML Fragments</h3>
-
-        <p>This template supports HTML fragments, which are useful for including complex visualizations or interactive components:</p>
-
-        <ol>
-            <li>Create a new HTML file in the <code>src/fragments/</code> directory, e.g., <code>src/fragments/my-visualization.html</code></li>
-            <li>Include it in your main document using <code>\{{{fragment-my-visualization}}}</code></li>
-        </ol>
-
-        <p>Fragments can contain HTML, CSS, and JavaScript. They're loaded asynchronously, which helps keep your main document lightweight.</p>
-
-
-        <h2>Advanced Customization</h2>
-
-        <h3>Styling</h3>
-
-        <p>You can customize the appearance of your blog by editing <code>src/style.css</code>. The template uses CSS variables for colors, fonts, and spacing, making it easy to adjust the overall look and feel.</p>
-
-        <h3>Adding JavaScript</h3>
-
-        <p>For interactive components, add your JavaScript code to <code>src/index.js</code> or create new modules and import them. The template uses webpack to bundle JavaScript files.</p>
-
-        <h3>Bibliography</h3>
-
-        <p>Edit <code>src/bibliography.bib</code> to include your citations in BibTeX format.</p>
-
-        <h2>Best Practices</h2>
-
-        <ul>
-            <li>Keep your content focused and concise</li>
-            <li>Use visualizations to explain complex concepts</li>
-            <li>Break down long articles into clear sections with descriptive headings</li>
-            <li>Use mathematics sparingly and always explain the notation</li>
-            <li>Optimize images and interactive components for fast loading</li>
+        <h2>Related Work</h2>
+    
+        <p>
+            The study of geometry in learning systems has roots in classical differential geometry texts
+            <d-cite bibtex-key="spivak2018comprehensive"></d-cite>, and has influenced modern perspectives on representation learning from early manifold learning frameworks such as ISOMAP
+            <d-cite bibtex-key="tenenbaum2000global"></d-cite>, LLE <d-cite bibtex-key="roweis2000nonlinear"></d-cite>, and Laplacian Eigenmaps <d-cite bibtex-key="belkin2003laplacian"></d-cite>.
+        </p>
+        <p>
+            In deep learning and interpretability, the idea that neural networks learn structured manifolds and sometimes nearly linear features has been explored in overviews and blog essays
+            <d-cite bibtex-key="olah2014neural"></d-cite><d-cite bibtex-key="olah2024linear"></d-cite>, as well as in empirical studies on linear representations in large language models (LLMs)
+            <d-cite bibtex-key="tigges2023linear"></d-cite><d-cite bibtex-key="jiang2024origins"></d-cite>.
+        </p>
+        <p>
+            Recent work evaluates the extent to which features are linear
+            <d-cite bibtex-key="engels2024not"></d-cite>, proposes the Linear Representation Hypothesis
+            <d-cite bibtex-key="park2024linear"></d-cite> and its broader geometric context
+            <d-cite bibtex-key="park2024geometry"></d-cite>, and investigates counterpoints where token embeddings may violate manifold assumptions
+            <d-cite bibtex-key="robinson2024token"></d-cite>.
+        </p>
+        <p>
+            Broader empirical phenomena like grokking <d-cite bibtex-key="power2022grokking"></d-cite> and mechanistic case studies using activation patching
+            <d-cite bibtex-key="heimersheim2024activation"></d-cite>, subspace methods and cautions
+            <d-cite bibtex-key="makelov2023subspace"></d-cite>, and nullspace-projection techniques for controlling protected attributes
+            <d-cite bibtex-key="ravfogel2020null"></d-cite> relate to the geometry and linearity of learned features.
+        </p>
+        <p>
+            Interpretability illusions and generalization challenges have been noted
+            <d-cite bibtex-key="friedman2024interpretability"></d-cite><d-cite bibtex-key="hase2023localization"></d-cite>, while complementary analyses of weight matrices via SVD
+            <d-cite bibtex-key="millidge2022singular"></d-cite> and discussions of near-orthogonality in high dimensions connect theory and intuition
+            <d-cite bibtex-key="johnson1984extensions"></d-cite><d-cite bibtex-key="3blue1brown2024high"></d-cite><d-cite bibtex-key="yoder2025johnson"></d-cite>.
+        </p>
+        <p>
+            Finally, several works highlight non-linear structure and stratification in learned representations
+            <d-cite bibtex-key="li2025unraveling"></d-cite>, as well as emerging directions in numerical reasoning geometry
+            <d-cite bibtex-key="numerical2024geometry"></d-cite> and non-linear probing
+            <d-cite bibtex-key="white2023nonlinear"></d-cite>, complementing trend reports and community syntheses
+            <d-cite bibtex-key="lesswrong2024intricacies"></d-cite><d-cite bibtex-key="lampinen2024learned"></d-cite>.
+        </p>
+
+
+        <h2>Toy Examples: Understanding Manifolds and Subspaces</h2>
+	
+	<p>
+		To build intuition about manifolds and subspaces in the context of neural networks, let's work through some concrete examples that illustrate these geometric concepts.
+	</p>
+
+	<h3>Example 1: The Circle as a 1-Manifold</h3>
+	
+	<p>
+		The simplest non-trivial manifold is the circle, denoted <d-math>S^1</d-math>. While embedded in 2D space, the circle is intrinsically 1-dimensional—you only need one parameter (an angle) to specify any point on it.
+	</p>
+	
+	<p>
+		Mathematically, we can parameterize the unit circle as:
+	</p>
+	
+	<d-math block>
+		\gamma(\theta) = (\cos \theta, \sin \theta), \quad \theta \in [0, 2\pi)
+	</d-math>
+	
+	<p>
+		<strong>Neural Network Connection:</strong> Imagine a simple neural network that learns to represent cyclic data, like hours of the day or days of the week. The network's internal representations might naturally organize themselves along a circular manifold, where similar times are close together and the representation "wraps around" smoothly.
+	</p>
+
+	<h3>Example 2: The Sphere and High-Dimensional Embeddings</h3>
+	
+	<p>
+		Consider the 2-sphere <d-math>S^2</d-math> embedded in 3D space. Points on the sphere satisfy the constraint:
+	</p>
+	
+	<d-math block>
+		x^2 + y^2 + z^2 = 1
+	</d-math>
+	
+	<p>
+		Despite living in 3D space, the sphere is intrinsically 2-dimensional. Any point can be specified by just two coordinates (like latitude and longitude).
+	</p>
+	
+	<p>
+		<strong>AI Interpretability Insight:</strong> In language models, word embeddings often lie approximately on high-dimensional spheres. When we normalize embeddings to unit length, we're projecting them onto a sphere. The cosine similarity between words then corresponds to the geodesic distance on this spherical manifold.
+	</p>
+
+	<h3>Example 3: The Manifold Hypothesis in Action</h3>
+	
+	<p>
+		Consider a dataset of handwritten digits. Each 28×28 pixel image lives in a 784-dimensional space, but the actual "digit manifold" is much lower-dimensional. A handwritten "3" can vary in:
+	</p>
+	
+	<ul>
+		<li>Rotation (1 degree of freedom)</li>
+		<li>Scale (1 degree of freedom)</li>
+		<li>Stroke thickness (1 degree of freedom)</li>
+		<li>Writing style variations (perhaps 2-3 degrees of freedom)</li>
+	</ul>
+	
+	<p>
+		So the manifold of "3"s might be approximately 5-6 dimensional, embedded in the 784-dimensional pixel space.
+	</p>
+
+	<h3>Example 4: Linear Subspaces vs. Curved Manifolds</h3>
+	
+	<p>
+		Not all low-dimensional structures are manifolds. Consider two cases:
+	</p>
+	
+	<p>
+		<strong>Linear Subspace:</strong> The set of all vectors of the form <d-math>(a, 2a, 3a)</d-math> for real <d-math>a</d-math> forms a 1-dimensional linear subspace (a line through the origin) in <d-math>R^3</d-math>.
+	</p>
+	
+	
+	<p>
+		The key difference: linear subspaces have constant curvature (zero), while general manifolds can have varying curvature. In neural networks, early layers might learn approximately linear representations, while deeper layers often capture curved, non-linear manifolds.
+	</p>
+
+	<h3>Example 5: Local Charts and Coordinate Systems</h3>
+	
+	<p>
+		One of the key properties of manifolds is that they look "locally Euclidean." Consider the Earth's surface—while globally curved, any small region can be mapped to a flat coordinate system (like a local map).
+	</p>
+	
+	<p>
+		Mathematically, we define local charts <d-math>\phi: U \subset M \to R^n</d-math> that map open sets of the manifold <d-math>M</d-math> to Euclidean space.
+	</p>
+	
+	<d-math block>
+		\phi: U \to R^n  \text{ is a homeomorphism}
+	</d-math>
+	
+	<p>
+		<strong>Deep Learning Application:</strong> When we use techniques like t-SNE or UMAP to visualize high-dimensional neural network activations in 2D, we're essentially finding local charts that map pieces of the high-dimensional representation manifold to the 2D plane.
+	</p>
+
+	<h3>Example 6: The Curse of Dimensionality and Manifold Structure</h3>
+	
+	<p>
+		Consider random points in high-dimensional space. In a <d-math>d</d-math>-dimensional unit hypersphere, most of the volume is concentrated near the surface when <d-math>d</d-math> is large. Specifically, the ratio of volumes is:
+	</p>
+	
+	<d-math block>
+		\frac{V_{surface}}{V_{ball}} = 1 - (1-\epsilon)^d
+	</d-math>
+	
+	<p>
+		For <d-math>d = 1000</d-math> and <d-math>\epsilon = 0.01</d-math>, this ratio is approximately <d-math>1 - e^{-10} \approx 0.99995</d-math>.
+	</p>
+	
+	<p>
+		<strong>Implication for AI:</strong> This suggests that high-dimensional data naturally tends to lie on or near lower-dimensional manifolds. Neural networks exploit this structure—they don't need to represent every possible point in the high-dimensional space, just the manifold where real data lives.
+	</p>
+
+	<h3>Example 7: Tangent Spaces and Local Linearization</h3>
+	
+	<p>
+		At any point <d-math>p</d-math> on a smooth manifold <d-math>M</d-math>, we can define the tangent space <d-math>T_p M</d-math>—the best linear approximation to the manifold at that point.
+	</p>
+	
+	<p>
+		For the sphere <d-math>S^2</d-math> at point <d-math>p = (0, 0, 1)</d-math> (north pole), the tangent space is:
+	</p>
+	
+	<d-math block>
+		T_p S^2 = R^2
+	</d-math>
+	
+	<p>
+		This is just the <d-math>xy</d-math>-plane—the horizontal plane tangent to the sphere at the north pole.
+	</p>
+	
+	<p>
+		<strong>Neural Network Interpretation:</strong> When we compute gradients during backpropagation, we're essentially working in tangent spaces. The gradient at a point in the loss landscape tells us the direction of steepest increase in the tangent space to the loss manifold at that point.
+	</p>
+
+	<h3>Connecting to AI Interpretability</h3>
+	
+	<p>
+		These toy examples illustrate fundamental concepts that appear throughout AI systems:
+	</p>
+	
+	<ul>
+		<li><strong>Representation Learning:</strong> Neural networks learn to map inputs to points on meaningful manifolds</li>
+		<li><strong>Dimensionality Reduction:</strong> Techniques like autoencoders learn to encode high-dimensional data on lower-dimensional manifolds</li>
+		<li><strong>Feature Disentanglement:</strong> Good representations separate different factors of variation along different directions in the manifold</li>
+		<li><strong>Interpolation and Extrapolation:</strong> Moving along manifolds corresponds to meaningful transformations of the data</li>
         </ul>
 
-        <h2>Conclusion</h2>
-
-        <p>This template gives you everything you need to create beautiful, interactive technical blogs. By combining clear writing with interactive visualizations and mathematical notation, you can effectively communicate complex ideas to your audience.</p>
-
-        <p>For more examples and inspiration, visit <a href="https://distill.pub/">distill.pub</a>.</p>
-
-
+	<p>
+		Understanding these geometric structures helps us interpret what neural networks learn and how they generalize to new data.
+	</p>
         
     </d-article>
 
@@ -361,91 +297,6 @@
       year={2025},
 }</pre>
     </d-appendix>
-    <script>
-      function toggleTOC() {
-          const content = document.querySelector('.toc-content');
-          const icon = document.querySelector('.toggle-icon');
-          
-          content.classList.toggle('collapsed');
-          icon.classList.toggle('collapsed');
-      }
-    </script>
-
-    <script>
-        const article = document.querySelector('d-article');
-        const toc = document.querySelector('d-contents');
-        if (toc) {
-            const headings = article.querySelectorAll('h2, h3, h4');
-            // let ToC = `<nav role="navigation" class="l-text figcaption"><h3>Table of contents</h3>`;
-            let ToC = `<nav role="navigation" class="l-text figcaption"><div class="toc-header" onclick="toggleTOC()">
-            <span class="toc-title">Table of Contents</span>
-            <span class="toggle-icon">▼</span>
-            </div><div class="toc-content">`;
-            let prevLevel = 0;
-
-            for (const el of headings) {
-                // should element be included in TOC?
-                const isInTitle = el.parentElement.tagName == 'D-TITLE';
-                const isException = el.getAttribute('no-toc');
-                if (isInTitle || isException) continue;
-                el.setAttribute('id', el.textContent.toLowerCase().replaceAll(" ", "_"))
-                const link = '<a target="_self" href="' + '#' + el.getAttribute('id') + '">' + el.textContent + '</a>';
-
-                const level = el.tagName === 'H2' ? 0 : (el.tagName === 'H3' ? 1 : 2);
-                while (prevLevel < level) {
-                    ToC += '<ul>'
-                    prevLevel++;
-                }
-                while (prevLevel > level) {
-                    ToC += '</ul>'
-                    prevLevel--;
-                }
-                if (level === 0)
-                    ToC += '<div>' + link + '</div>';
-                else
-                // else if (level === 1)
-                    ToC += '<li>' + link + '</li>';
-            }
-
-            while (prevLevel > 0) {
-                ToC += '</ul>'
-                prevLevel--;
-            }
-            ToC += '</div></nav>';
-            toc.innerHTML = ToC;
-            toc.setAttribute('prerendered', 'true');
-            const toc_links = document.querySelectorAll('d-contents > nav div a');
-
-            window.addEventListener('scroll', (_event) => {
-                if (typeof (headings) != 'undefined' && headings != null && typeof (toc_links) != 'undefined' && toc_links != null) {
-                    find_active: {
-                        for (let i = headings.length - 1; i >= 0; i--) {
-                            const heading = headings[i];
-                            // Skip headings that shouldn't be in TOC
-                            if (heading.parentElement.tagName == 'D-TITLE' || heading.getAttribute('no-toc')) {
-                                continue;
-                            }
-                            
-                            if (heading.getBoundingClientRect().top - 50 <= 0) {
-                                // Find matching TOC link by href
-                                const headingId = heading.getAttribute('id');
-                                const activeLink = Array.from(toc_links).find(link => 
-                                    link.getAttribute('href') === '#' + headingId
-                                );
-                                
-                                if (activeLink && !activeLink.classList.contains("active")) {
-                                    toc_links.forEach(link => link.classList.remove("active"));
-                                    activeLink.classList.add('active');
-                                }
-                                break find_active;
-                            }
-                        }
-                        toc_links.forEach(link => link.classList.remove("active"));
-                    }
-                }
-            });
-        }
-    </script>
 
 </body>
 

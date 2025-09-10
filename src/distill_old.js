@@ -55,7 +55,8 @@
 
   const objectFromMap = function (map) {
     const object = Array.from(map).reduce(
-      (object, [key, value]) => Object.assign(object, { [key]: value }), // Be careful! Maps can have non-String keys; object literals can't.
+      (object, [key, value]) =>
+        Object.assign(object, { [key]: value }), // Be careful! Maps can have non-String keys; object literals can't.
       {}
     );
     return object;
@@ -760,22 +761,22 @@
   const T = Template(
     "d-math",
     `
-  ${katexCSSTag}
-  <style>
-  
-  :host {
-    display: inline-block;
-    contain: style;
-  }
-  
-  :host([block]) {
-    display: block;
-  }
-  
-  ${math}
-  </style>
-  <span id='katex-container'></span>
-  `
+${katexCSSTag}
+<style>
+
+:host {
+  display: inline-block;
+  contain: style;
+}
+
+:host([block]) {
+  display: block;
+}
+
+${math}
+</style>
+<span id='katex-container'></span>
+`
   );
 
   // DMath, not Math, because that would conflict with the JS built-in
@@ -950,8 +951,8 @@
       }
       return ` &ensp;<a href="${url}">[${label || "link"}]</a>`;
     } /* else if ("doi" in ent){
-        return ` &ensp;<a href="https://doi.org/${ent.doi}" >[DOI]</a>`;
-      }*/ else {
+      return ` &ensp;<a href="https://doi.org/${ent.doi}" >[DOI]</a>`;
+    }*/ else {
       return "";
     }
   }
@@ -988,16 +989,16 @@
       cite += doi_string(ent);
       return cite;
       /*var cite =  author_string(ent, "${L}, ${I}", ", ", " and ");
-        if (ent.year || ent.date){
-          cite += ", " + (ent.year || ent.date) + ". "
-        } else {
-          cite += ". "
-        }
-        cite += "<b>" + ent.title + "</b>. ";
-        cite += venue_string(ent);
-        cite += doi_string(ent);
-        cite += link_string(ent);
-        return cite*/
+      if (ent.year || ent.date){
+        cite += ", " + (ent.year || ent.date) + ". "
+      } else {
+        cite += ". "
+      }
+      cite += "<b>" + ent.title + "</b>. ";
+      cite += venue_string(ent);
+      cite += doi_string(ent);
+      cite += link_string(ent);
+      return cite*/
     } else {
       return "?";
     }
@@ -1423,7 +1424,7 @@
     '/*\n * Copyright 2018 The Distill Template Authors\n *\n * Licensed under the Apache License, Version 2.0 (the "License");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *      http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an "AS IS" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n\nd-byline {\n  contain: style;\n  overflow: hidden;\n  border-top: 1px solid rgba(0, 0, 0, 0.1);\n  font-size: 0.8rem;\n  line-height: 1.8em;\n  padding: 1.5rem 0;\n  min-height: 1.8em;\n}\n\n\nd-byline .byline {\n  grid-template-columns: 1fr 1fr;\n  grid-column: text;\n}\n\n@media(min-width: 768px) {\n  d-byline .byline {\n    grid-template-columns: 1fr 1fr 1fr 1fr;\n  }\n}\n\nd-byline .authors-affiliations {\n  grid-column-end: span 2;\n  grid-template-columns: 1fr 1fr;\n  margin-bottom: 1em;\n}\n\n@media(min-width: 768px) {\n  d-byline .authors-affiliations {\n    margin-bottom: 0;\n  }\n}\n\nd-byline h3 {\n  font-size: 0.6rem;\n  font-weight: 400;\n  color: rgba(0, 0, 0, 0.5);\n  margin: 0;\n  text-transform: uppercase;\n}\n\nd-byline p {\n  margin: 0;\n}\n\nd-byline a,\nd-article d-byline a {\n  color: rgba(0, 0, 0, 0.8);\n  text-decoration: none;\n  border-bottom: none;\n}\n\nd-article d-byline a:hover {\n  text-decoration: underline;\n  border-bottom: none;\n}\n\nd-byline p.author {\n  font-weight: 500;\n}\n\nd-byline .affiliations {\n\n}\n';
 
   var article =
-    '/*\n * Copyright 2018 The Distill Template Authors\n *\n * Licensed under the Apache License, Version 2.0 (the "License");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *      http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an "AS IS" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n\nd-article {\n  contain: layout style;\n  overflow-x: hidden;\n  border-top: 1px solid rgba(0, 0, 0, 0.1);\n  padding-top: 2rem;\n  color: rgba(0, 0, 0, 0.8);\n}\n\nd-article > * {\n  grid-column: text;\n}\n\n@media(min-width: 768px) {\n  d-article {\n    font-size: 16px;\n  }\n}\n\n@media(min-width: 1024px) {\n  d-article {\n    font-size: 1.06rem;\n    line-height: 1.7em;\n  }\n}\n\n\n/* H2 */\n\n\nd-article .marker {\n  text-decoration: none;\n  border: none;\n  counter-reset: section;\n  grid-column: kicker;\n  line-height: 1.7em;\n}\n\nd-article .marker:hover {\n  border: none;\n}\n\nd-article .marker span {\n  padding: 0 3px 4px;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n  position: relative;\n  top: 4px;\n}\n\nd-article .marker:hover span {\n  color: rgba(0, 0, 0, 0.7);\n  border-bottom: 1px solid rgba(0, 0, 0, 0.7);\n}\n\nd-article h2 {\n  font-weight: 600;\n  font-size: 24px;\n  line-height: 1.25em;\n  margin: 2rem 0 1.5rem 0;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.1);\n  padding-bottom: 1rem;\n}\n\n@media(min-width: 1024px) {\n  d-article h2 {\n    font-size: 36px;\n  }\n}\n\n/* H3 */\n\nd-article h3 {\n  font-weight: 700;\n  font-size: 18px;\n  line-height: 1.4em;\n  margin-bottom: 1em;\n  margin-top: 2em;\n}\n\n@media(min-width: 1024px) {\n  d-article h3 {\n    font-size: 20px;\n  }\n}\n\n/* H4 */\n\nd-article h4 {\n  font-weight: 600;\n  text-transform: uppercase;\n  font-size: 14px;\n  line-height: 1.4em;\n}\n\nd-article a {\n  color: inherit;\n}\n\nd-article p,\nd-article ul,\nd-article ol,\nd-article blockquote {\n  margin-top: 0;\n  margin-bottom: 1em;\n  margin-left: 0;\n  margin-right: 0;\n}\n\nd-article blockquote {\n  border-left: 2px solid rgba(0, 0, 0, 0.2);\n  padding-left: 2em;\n  font-style: italic;\n  color: rgba(0, 0, 0, 0.6);\n}\n\nd-article a {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.4);\n  text-decoration: none;\n}\n\nd-article a:hover {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.8);\n}\n\nd-article .link {\n  text-decoration: underline;\n  cursor: pointer;\n}\n\nd-article ul,\nd-article ol {\n  padding-left: 24px;\n}\n\nd-article li {\n  margin-bottom: 1em;\n  margin-left: 0;\n  padding-left: 0;\n}\n\nd-article li:last-child {\n  margin-bottom: 0;\n}\n\nd-article pre {\n  font-size: 14px;\n  margin-bottom: 20px;\n}\n\nd-article hr {\n  grid-column: screen;\n  width: 100%;\n  border: none;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.1);\n  margin-top: 60px;\n  margin-bottom: 60px;\n}\n\nd-article section {\n  margin-top: 60px;\n  margin-bottom: 60px;\n}\n\nd-article span.equation-mimic {\n  font-family: georgia;\n  font-size: 115%;\n  font-style: italic;\n}\n\nd-article > d-code,\nd-article section > d-code  {\n  display: block;\n}\n\nd-article > d-math[block],\nd-article section > d-math[block]  {\n  display: block;\n}\n\n@media (max-width: 768px) {\n  d-article > d-code,\n  d-article section > d-code,\n  d-article > d-math[block],\n  d-article section > d-math[block] {\n      overflow-x: scroll;\n      -ms-overflow-style: none;  // IE 10+\n      overflow: -moz-scrollbars-none;  // Firefox\n  }\n\n  d-article > d-code::-webkit-scrollbar,\n  d-article section > d-code::-webkit-scrollbar,\n  d-article > d-math[block]::-webkit-scrollbar,\n  d-article section > d-math[block]::-webkit-scrollbar {\n    display: none;  // Safari and Chrome\n  }\n}\n\nd-article .citation {\n  color: #668;\n  cursor: pointer;\n}\n\nd-include {\n  width: auto;\n  display: block;\n}\n\nd-figure {\n  contain: layout style;\n}\n\n/* KaTeX */\n\n.katex, .katex-prerendered {\n  contain: style;\n  display: inline-block;\n}\n\n/* Tables */\n\nd-article table {\n  border-collapse: collapse;\n  margin-bottom: 1.5rem;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n}\n\nd-article table th {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n}\n\nd-article table td {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.05);\n}\n\nd-article table tr:last-of-type td {\n  border-bottom: none;\n}\n\nd-article table th,\nd-article table td {\n  font-size: 15px;\n  padding: 2px 8px;\n}\n\nd-article table tbody :first-child td {\n  padding-top: 2px;\n}\n';
+    '/*\n * Copyright 2018 The Distill Template Authors\n *\n * Licensed under the Apache License, Version 2.0 (the "License");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *      http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an "AS IS" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n\nd-article {\n  contain: layout style;\n  overflow-x: hidden;\n  border-top: 1px solid rgba(0, 0, 0, 0.1);\n  padding-top: 2rem;\n  color: rgba(0, 0, 0, 0.8);\n}\n\nd-article > * {\n  grid-column: text;\n}\n\n@media(min-width: 768px) {\n  d-article {\n    font-size: 16px;\n  }\n}\n\n@media(min-width: 1024px) {\n  d-article {\n    font-size: 1.06rem;\n    line-height: 1.7em;\n  }\n}\n\n\n/* H2 */\n\n\nd-article .marker {\n  text-decoration: none;\n  border: none;\n  counter-reset: section;\n  grid-column: kicker;\n  line-height: 1.7em;\n}\n\nd-article .marker:hover {\n  border: none;\n}\n\nd-article .marker span {\n  padding: 0 3px 4px;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n  position: relative;\n  top: 4px;\n}\n\nd-article .marker:hover span {\n  color: rgba(0, 0, 0, 0.7);\n  border-bottom: 1px solid rgba(0, 0, 0, 0.7);\n}\n\nd-article h2 {\n  font-weight: 600;\n  font-size: 24px;\n  line-height: 1.25em;\n  margin: 2rem 0 1.5rem 0;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.1);\n  padding-bottom: 1rem;\n}\n\n@media(min-width: 1024px) {\n  d-article h2 {\n    font-size: 36px;\n  }\n}\n\n/* H3 */\n\nd-article h3 {\n  font-weight: 700;\n  font-size: 18px;\n  line-height: 1.4em;\n  margin-bottom: 1em;\n  margin-top: 2em;\n}\n\n@media(min-width: 1024px) {\n  d-article h3 {\n    font-size: 20px;\n  }\n}\n\n/* H4 */\n\nd-article h4 {\n  font-weight: 600;\n  text-transform: uppercase;\n  font-size: 14px;\n  line-height: 1.4em;\n}\n\nd-article a {\n  color: inherit;\n}\n\nd-article p,\nd-article ul,\nd-article ol,\nd-article blockquote {\n  margin-top: 0;\n  margin-bottom: 1em;\n  margin-left: 0;\n  margin-right: 0;\n}\n\nd-article blockquote {\n  border-left: 2px solid rgba(0, 0, 0, 0.2);\n  padding-left: 2em;\n  font-style: italic;\n  color: rgba(0, 0, 0, 0.6);\n}\n\nd-article a {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.4);\n  text-decoration: none;\n}\n\nd-article a:hover {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.8);\n}\n\nd-article .link {\n  text-decoration: underline;\n  cursor: pointer;\n}\n\nd-article ul,\nd-article ol {\n  padding-left: 24px;\n}\n\nd-article li {\n  margin-bottom: 0.2em;\n  margin-left: 0;\n  padding-left: 0;\n}\n\nd-article li:last-child {\n  margin-bottom: 0;\n}\n\nd-article pre {\n  font-size: 14px;\n  margin-bottom: 20px;\n}\n\nd-article hr {\n  grid-column: screen;\n  width: 100%;\n  border: none;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.1);\n  margin-top: 60px;\n  margin-bottom: 60px;\n}\n\nd-article section {\n  margin-top: 60px;\n  margin-bottom: 60px;\n}\n\nd-article span.equation-mimic {\n  font-family: georgia;\n  font-size: 115%;\n  font-style: italic;\n}\n\nd-article > d-code,\nd-article section > d-code  {\n  display: block;\n}\n\nd-article > d-math[block],\nd-article section > d-math[block]  {\n  display: block;\n}\n\n@media (max-width: 768px) {\n  d-article > d-code,\n  d-article section > d-code,\n  d-article > d-math[block],\n  d-article section > d-math[block] {\n      overflow-x: scroll;\n      -ms-overflow-style: none;  // IE 10+\n      overflow: -moz-scrollbars-none;  // Firefox\n  }\n\n  d-article > d-code::-webkit-scrollbar,\n  d-article section > d-code::-webkit-scrollbar,\n  d-article > d-math[block]::-webkit-scrollbar,\n  d-article section > d-math[block]::-webkit-scrollbar {\n    display: none;  // Safari and Chrome\n  }\n}\n\nd-article .citation {\n  color: #668;\n  cursor: pointer;\n}\n\nd-include {\n  width: auto;\n  display: block;\n}\n\nd-figure {\n  contain: layout style;\n}\n\n/* KaTeX */\n\n.katex, .katex-prerendered {\n  contain: style;\n  display: inline-block;\n}\n\n/* Tables */\n\nd-article table {\n  border-collapse: collapse;\n  margin-bottom: 1.5rem;\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n}\n\nd-article table th {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.2);\n}\n\nd-article table td {\n  border-bottom: 1px solid rgba(0, 0, 0, 0.05);\n}\n\nd-article table tr:last-of-type td {\n  border-bottom: none;\n}\n\nd-article table th,\nd-article table td {\n  font-size: 15px;\n  padding: 2px 8px;\n}\n\nd-article table tbody :first-child td {\n  padding-top: 2px;\n}\n';
 
   var title =
     '/*\n * Copyright 2018 The Distill Template Authors\n *\n * Licensed under the Apache License, Version 2.0 (the "License");\n * you may not use this file except in compliance with the License.\n * You may obtain a copy of the License at\n *\n *      http://www.apache.org/licenses/LICENSE-2.0\n *\n * Unless required by applicable law or agreed to in writing, software\n * distributed under the License is distributed on an "AS IS" BASIS,\n * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n * See the License for the specific language governing permissions and\n * limitations under the License.\n */\n\nd-title {\n  padding: 2rem 0 1.5rem;\n  contain: layout style;\n  overflow-x: hidden;\n}\n\n@media(min-width: 768px) {\n  d-title {\n    padding: 4rem 0 1.5rem;\n  }\n}\n\nd-title h1 {\n  grid-column: text;\n  font-size: 40px;\n  font-weight: 700;\n  line-height: 1.1em;\n  margin: 0 0 0.5rem;\n}\n\n@media(min-width: 768px) {\n  d-title h1 {\n    font-size: 50px;\n  }\n}\n\nd-title p {\n  font-weight: 300;\n  font-size: 1.2rem;\n  line-height: 1.55em;\n  grid-column: text;\n}\n\nd-title .status {\n  margin-top: 0px;\n  font-size: 12px;\n  color: #009688;\n  opacity: 0.8;\n  grid-column: kicker;\n}\n\nd-title .status span {\n  line-height: 1;\n  display: inline-block;\n  padding: 6px 0;\n  border-bottom: 1px solid #80cbc4;\n  font-size: 11px;\n  text-transform: uppercase;\n}\n';
@@ -1570,9 +1571,9 @@
 
   function body(selector) {
     return `${selector} {
-        grid-column: left / text;
-      }
-    `;
+      grid-column: left / text;
+    }
+  `;
   }
 
   // Copyright 2018 The Distill Template Authors
@@ -1580,24 +1581,24 @@
   const T$1 = Template(
     "d-abstract",
     `
-  <style>
-    :host {
-      font-size: 1.25rem;
-      line-height: 1.6em;
-      color: rgba(0, 0, 0, 0.7);
-      -webkit-font-smoothing: antialiased;
-    }
-  
-    ::slotted(p) {
-      margin-top: 0;
-      margin-bottom: 1em;
-      grid-column: text-start / middle-end;
-    }
-    ${body("d-abstract")}
-  </style>
-  
-  <slot></slot>
-  `
+<style>
+  :host {
+    font-size: 1.25rem;
+    line-height: 1.6em;
+    color: rgba(0, 0, 0, 0.7);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::slotted(p) {
+    margin-top: 0;
+    margin-bottom: 1em;
+    grid-column: text-start / middle-end;
+  }
+  ${body("d-abstract")}
+</style>
+
+<slot></slot>
+`
   );
 
   class Abstract extends T$1(HTMLElement) {}
@@ -1607,65 +1608,65 @@
   const T$2 = Template(
     "d-appendix",
     `
-  <style>
-  
-  d-appendix {
-    contain: layout style;
-    font-size: 0.8em;
-    line-height: 1.7em;
-    margin-top: 60px;
-    margin-bottom: 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    color: rgba(0,0,0,0.5);
-    padding-top: 60px;
-    padding-bottom: 48px;
-  }
-  
-  d-appendix h3 {
-    grid-column: page-start / text-start;
-    font-size: 15px;
-    font-weight: 500;
-    margin-top: 1em;
-    margin-bottom: 0;
-    color: rgba(0,0,0,0.65);
-  }
-  
-  d-appendix h3 + * {
-    margin-top: 1em;
-  }
-  
+<style>
+
+d-appendix {
+  contain: layout style;
+  font-size: 0.8em;
+  line-height: 1.7em;
+  margin-top: 60px;
+  margin-bottom: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  color: rgba(0,0,0,0.5);
+  padding-top: 60px;
+  padding-bottom: 48px;
+}
+
+d-appendix h3 {
+  grid-column: page-start / text-start;
+  font-size: 15px;
+  font-weight: 500;
+  margin-top: 1em;
+  margin-bottom: 0;
+  color: rgba(0,0,0,0.65);
+}
+
+d-appendix h3 + * {
+  margin-top: 1em;
+}
+
+d-appendix ol {
+  padding: 0 0 0 15px;
+}
+
+@media (min-width: 768px) {
   d-appendix ol {
-    padding: 0 0 0 15px;
+    padding: 0 0 0 30px;
+    margin-left: -30px;
   }
-  
-  @media (min-width: 768px) {
-    d-appendix ol {
-      padding: 0 0 0 30px;
-      margin-left: -30px;
-    }
-  }
-  
-  d-appendix li {
-    margin-bottom: 1em;
-  }
-  
-  d-appendix a {
-    color: rgba(0, 0, 0, 0.6);
-  }
-  
-  d-appendix > * {
-    grid-column: text;
-  }
-  
-  d-appendix > d-footnote-list,
-  d-appendix > d-citation-list,
-  d-appendix > distill-appendix {
-    grid-column: screen;
-  }
-  
-  </style>
-  
-  `,
+}
+
+d-appendix li {
+  margin-bottom: 1em;
+}
+
+d-appendix a {
+  color: rgba(0, 0, 0, 0.6);
+}
+
+d-appendix > * {
+  grid-column: text;
+}
+
+d-appendix > d-footnote-list,
+d-appendix > d-citation-list,
+d-appendix > distill-appendix {
+  grid-column: screen;
+}
+
+</style>
+
+`,
     false
   );
 
@@ -2098,13 +2099,13 @@
 
   function serializeFrontmatterToBibtex(frontMatter) {
     return `@article{${frontMatter.slug},
-    author = {${frontMatter.bibtexAuthors}},
-    title = {${frontMatter.title}},
-    journal = {${frontMatter.journal.title}},
-    year = {${frontMatter.publishedYear}},
-    note = {${frontMatter.url}},
-    doi = {${frontMatter.doi}}
-  }`;
+  author = {${frontMatter.bibtexAuthors}},
+  title = {${frontMatter.title}},
+  journal = {${frontMatter.journal.title}},
+  year = {${frontMatter.publishedYear}},
+  note = {${frontMatter.url}},
+  doi = {${frontMatter.doi}}
+}`;
   }
 
   // Copyright 2018 The Distill Template Authors
@@ -2205,46 +2206,46 @@
   function bylineTemplate(frontMatter) {
     return `
     <div class="byline grid">
-      <div class="authors-affiliations grid">
-        <h3>Authors</h3>
-        <h3>Affiliations</h3>
-        ${frontMatter.authors
-          .map(
-            (author) => `
-          <p class="author">
-            ${
-              author.personalURL
-                ? `
-              <a class="name" href="${author.personalURL}">${author.name}</a>`
-                : `
-              <span class="name">${author.name}</span>`
-            }
-          </p>
-          <p class="affiliation">
-          ${author.affiliations
-            .map((affiliation) =>
-              affiliation.url
-                ? `<a class="affiliation" href="${affiliation.url}">${affiliation.name}</a>`
-                : `<span class="affiliation">${affiliation.name}</span>`
-            )
-            .join(", ")}
-          </p>
-        `
-          )
-          .join("")}
-      </div>
       <div>
-        <h3>Published</h3>
+          <h3>Authors</h3>
+          <div>
+              ${frontMatter.authors
+                .map(
+                  (author, i) => `
+              <span class="author">
         ${
-          frontMatter.publishedDate
+          author.personalURL
             ? `
-          <p>${frontMatter.publishedMonth} ${frontMatter.publishedDay}, ${frontMatter.publishedYear}</p> `
+          <a class="name" href="${author.personalURL}">${author.name}` +
+              (i + 1 < frontMatter.authors.length ? `,` : ``) +
+              `</a>`
             : `
-          <p><em>Not published yet.</em></p>`
+          <span class="name">${author.name}` +
+              (i + 1 < frontMatter.authors.length ? `,` : ``) +
+              `</span>`
         }
+      </span>
+              `
+                )
+                .join("")}
+          </div>
+      </div>
+      <div >
+          <h3>Affiliation</h3>
+          <div><a href="hf.co">Harvard, Thoughtworks</a>
+          </div>
+      </div>
+      <div >
+          <h3>Published</h3>
+          <div>Feb 19, 2025</div>
       </div>
     </div>
-  `;
+    <div class="side pdf-download">
+      <h3>Download</h3>
+      <a href="hf.co">
+      <img style="width: 32px;" src="../assets/images/256px-PDF.png" alt="PDF"></a>
+    </div>
+`;
   }
 
   class Byline extends HTMLElement {
@@ -2262,60 +2263,60 @@
   const T$3 = Template(
     "d-cite",
     `
-  <style>
-  
-  :host {
-    display: inline-block;
-  }
-  
-  .citation {
-    color: hsla(206, 90%, 20%, 0.7);
-  }
-  
-  .citation-number {
-    cursor: default;
-    white-space: nowrap;
-    font-family: -apple-system, BlinkMacSystemFont, "Roboto", Helvetica, sans-serif;
-    font-size: 75%;
-    color: hsla(206, 90%, 20%, 0.7);
-    display: inline-block;
-    line-height: 1.1em;
-    text-align: center;
-    position: relative;
-    top: -2px;
-    margin: 0 2px;
-  }
-  
-  figcaption .citation-number {
-    font-size: 11px;
-    font-weight: normal;
-    top: -2px;
-    line-height: 1em;
-  }
-  
-  ul {
-    margin: 0;
-    padding: 0;
-    list-style-type: none;
-  }
-  
-  ul li {
-    padding: 15px 10px 15px 10px;
-    border-bottom: 1px solid rgba(0,0,0,0.1)
-  }
-  
-  ul li:last-of-type {
-    border-bottom: none;
-  }
-  
-  </style>
-  
-  <d-hover-box id="hover-box"></d-hover-box>
-  
-  <div id="citation-" class="citation">
-    <span class="citation-number"></span>
-  </div>
-  `
+<style>
+
+:host {
+  display: inline-block;
+}
+
+.citation {
+  color: hsla(206, 90%, 20%, 0.7);
+}
+
+.citation-number {
+  cursor: default;
+  white-space: nowrap;
+  font-family: -apple-system, BlinkMacSystemFont, "Roboto", Helvetica, sans-serif;
+  font-size: 75%;
+  color: hsla(206, 90%, 20%, 0.7);
+  display: inline-block;
+  line-height: 1.1em;
+  text-align: center;
+  position: relative;
+  top: -2px;
+  margin: 0 2px;
+}
+
+figcaption .citation-number {
+  font-size: 11px;
+  font-weight: normal;
+  top: -2px;
+  line-height: 1em;
+}
+
+ul {
+  margin: 0;
+  padding: 0;
+  list-style-type: none;
+}
+
+ul li {
+  padding: 15px 10px 15px 10px;
+  border-bottom: 1px solid rgba(0,0,0,0.1)
+}
+
+ul li:last-of-type {
+  border-bottom: none;
+}
+
+</style>
+
+<d-hover-box id="hover-box"></d-hover-box>
+
+<div id="citation-" class="citation">
+  <span class="citation-number"></span>
+</div>
+`
   );
 
   class Cite extends T$3(HTMLElement) {
@@ -2410,29 +2411,29 @@
     displayEntries(entries) {
       if (!this.hoverBox) return;
       this.hoverBox.innerHTML = `<ul>
-        ${entries
-          .map(hover_cite)
-          .map((html) => `<li>${html}</li>`)
-          .join("\n")}
-      </ul>`;
+      ${entries
+        .map(hover_cite)
+        .map((html) => `<li>${html}</li>`)
+        .join("\n")}
+    </ul>`;
     }
   }
 
   // Copyright 2018 The Distill Template Authors
 
   const styles$1 = `
-  d-citation-list {
-    contain: style;
-  }
-  
-  d-citation-list .references {
-    grid-column: text;
-  }
-  
-  d-citation-list .references .title {
-    font-weight: 500;
-  }
-  `;
+d-citation-list {
+  contain: style;
+}
+
+d-citation-list .references {
+  grid-column: text;
+}
+
+d-citation-list .references .title {
+  font-weight: 500;
+}
+`;
 
   function renderCitationList(element, entries, dom = document) {
     if (entries.size > 0) {
@@ -2485,8 +2486,8 @@
 
   var prism = createCommonjsModule(function (module) {
     /* **********************************************
-         Begin prism-core.js
-    ********************************************** */
+       Begin prism-core.js
+  ********************************************** */
 
     var _self =
       typeof window !== "undefined"
@@ -3288,8 +3289,8 @@
     }
 
     /* **********************************************
-         Begin prism-markup.js
-    ********************************************** */
+       Begin prism-markup.js
+  ********************************************** */
 
     Prism.languages.markup = {
       comment: /<!--[\s\S]*?-->/,
@@ -3404,8 +3405,8 @@
     Prism.languages.svg = Prism.languages.markup;
 
     /* **********************************************
-         Begin prism-css.js
-    ********************************************** */
+       Begin prism-css.js
+  ********************************************** */
 
     (function (Prism) {
       var string = /("|')(?:\\(?:\r\n|[\s\S])|(?!\1)[^\\\r\n])*\1/;
@@ -3478,8 +3479,8 @@
     })(Prism);
 
     /* **********************************************
-         Begin prism-clike.js
-    ********************************************** */
+       Begin prism-clike.js
+  ********************************************** */
 
     Prism.languages.clike = {
       comment: [
@@ -3515,8 +3516,8 @@
     };
 
     /* **********************************************
-         Begin prism-javascript.js
-    ********************************************** */
+       Begin prism-javascript.js
+  ********************************************** */
 
     Prism.languages.javascript = Prism.languages.extend("clike", {
       "class-name": [
@@ -3623,8 +3624,8 @@
     Prism.languages.js = Prism.languages.javascript;
 
     /* **********************************************
-         Begin prism-file-highlight.js
-    ********************************************** */
+       Begin prism-file-highlight.js
+  ********************************************** */
 
     (function () {
       if (
@@ -4486,29 +4487,29 @@
   const T$4 = Template(
     "d-code",
     `
-  <style>
-  
-  code {
-    white-space: nowrap;
-    background: rgba(0, 0, 0, 0.04);
-    border-radius: 2px;
-    padding: 4px 7px;
-    font-size: 15px;
-    color: rgba(0, 0, 0, 0.6);
-  }
-  
-  pre code {
-    display: block;
-    border-left: 2px solid rgba(0, 0, 0, .1);
-    padding: 0 0 0 36px;
-  }
-  
-  ${css}
-  </style>
-  
-  <code id="code-container"></code>
-  
-  `
+<style>
+
+code {
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.04);
+  border-radius: 2px;
+  padding: 4px 7px;
+  font-size: 15px;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+pre code {
+  display: block;
+  border-left: 2px solid rgba(0, 0, 0, .1);
+  padding: 0 0 0 36px;
+}
+
+${css}
+</style>
+
+<code id="code-container"></code>
+
+`
   );
 
   class Code extends Mutating(T$4(HTMLElement)) {
@@ -4557,46 +4558,46 @@
   const T$5 = Template(
     "d-footnote",
     `
-  <style>
-  
-  d-math[block] {
-    display: block;
-  }
-  
-  :host {
-  
-  }
-  
-  sup {
-    line-height: 1em;
-    font-size: 0.75em;
-    position: relative;
-    top: -.5em;
-    vertical-align: baseline;
-  }
-  
-  span {
-    color: hsla(206, 90%, 20%, 0.7);
-    cursor: default;
-  }
-  
-  .footnote-container {
-    padding: 10px;
-  }
-  
-  </style>
-  
-  <d-hover-box>
-    <div class="footnote-container">
-      <slot id="slot"></slot>
-    </div>
-  </d-hover-box>
-  
-  <sup>
-    <span id="fn-" data-hover-ref=""></span>
-  </sup>
-  
-  `
+<style>
+
+d-math[block] {
+  display: block;
+}
+
+:host {
+
+}
+
+sup {
+  line-height: 1em;
+  font-size: 0.75em;
+  position: relative;
+  top: -.5em;
+  vertical-align: baseline;
+}
+
+span {
+  color: hsla(206, 90%, 20%, 0.7);
+  cursor: default;
+}
+
+.footnote-container {
+  padding: 10px;
+}
+
+</style>
+
+<d-hover-box>
+  <div class="footnote-container">
+    <slot id="slot"></slot>
+  </div>
+</d-hover-box>
+
+<sup>
+  <span id="fn-" data-hover-ref=""></span>
+</sup>
+
+`
   );
 
   class Footnote extends T$5(HTMLElement) {
@@ -4647,26 +4648,26 @@
   const T$6 = Template(
     "d-footnote-list",
     `
-  <style>
-  
-  d-footnote-list {
-    contain: layout style;
-  }
-  
-  d-footnote-list > * {
-    grid-column: text;
-  }
-  
-  d-footnote-list a.footnote-backlink {
-    color: rgba(0,0,0,0.3);
-    padding-left: 0.5em;
-  }
-  
-  </style>
-  
-  <h3>Footnotes</h3>
-  <ol></ol>
-  `,
+<style>
+
+d-footnote-list {
+  contain: layout style;
+}
+
+d-footnote-list > * {
+  grid-column: text;
+}
+
+d-footnote-list a.footnote-backlink {
+  color: rgba(0,0,0,0.3);
+  padding-left: 0.5em;
+}
+
+</style>
+
+<h3>Footnotes</h3>
+<ol></ol>
+`,
     false
   );
 
@@ -4698,6 +4699,7 @@
 
           const backlink = document.createElement("a");
           backlink.setAttribute("class", "footnote-backlink");
+          backlink.setAttribute("target", "_self");
           backlink.textContent = "[↩]";
           backlink.href = "#" + footnote.id;
 
@@ -4716,49 +4718,49 @@
   const T$7 = Template(
     "d-hover-box",
     `
-  <style>
-  
-  :host {
-    position: absolute;
-    width: 100%;
-    left: 0px;
-    z-index: 10000;
-    display: none;
-    white-space: normal
-  }
-  
-  .container {
-    position: relative;
-    width: 704px;
-    max-width: 100vw;
-    margin: 0 auto;
-  }
-  
-  .panel {
-    position: absolute;
-    font-size: 1rem;
-    line-height: 1.5em;
-    top: 0;
-    left: 0;
-    width: 100%;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    background-color: rgba(250, 250, 250, 0.95);
-    box-shadow: 0 0 7px rgba(0, 0, 0, 0.1);
-    border-radius: 4px;
-    box-sizing: border-box;
-  
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-  }
-  
-  </style>
-  
-  <div class="container">
-    <div class="panel">
-      <slot></slot>
-    </div>
+<style>
+
+:host {
+  position: absolute;
+  width: 100%;
+  left: 0px;
+  z-index: 10000;
+  display: none;
+  white-space: normal
+}
+
+.container {
+  position: relative;
+  width: 704px;
+  max-width: 100vw;
+  margin: 0 auto;
+}
+
+.panel {
+  position: absolute;
+  font-size: 1rem;
+  line-height: 1.5em;
+  top: 0;
+  left: 0;
+  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: rgba(250, 250, 250, 0.95);
+  box-shadow: 0 0 7px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  box-sizing: border-box;
+
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+</style>
+
+<div class="container">
+  <div class="panel">
+    <slot></slot>
   </div>
-  `
+</div>
+`
   );
 
   class HoverBox extends T$7(HTMLElement) {
@@ -4887,12 +4889,12 @@
   const T$8 = Template(
     "d-references",
     `
-  <style>
-  d-references {
-    display: block;
-  }
-  </style>
-  `,
+<style>
+d-references {
+  display: block;
+}
+</style>
+`,
     false
   );
 
@@ -4930,30 +4932,30 @@
 
   function renderTOC(element, headings) {
     let ToC = `
-    <style>
-  
-    d-toc {
-      contain: layout style;
-      display: block;
-    }
-  
-    d-toc ul {
-      padding-left: 0;
-    }
-  
-    d-toc ul > ul {
-      padding-left: 24px;
-    }
-  
-    d-toc a {
-      border-bottom: none;
-      text-decoration: none;
-    }
-  
-    </style>
-    <nav role="navigation" class="table-of-contents"></nav>
-    <h2>Table of contents</h2>
-    <ul>`;
+  <style>
+
+  d-toc {
+    contain: layout style;
+    display: block;
+  }
+
+  d-toc ul {
+    padding-left: 0;
+  }
+
+  d-toc ul > ul {
+    padding-left: 24px;
+  }
+
+  d-toc a {
+    border-bottom: none;
+    text-decoration: none;
+  }
+
+  </style>
+  <nav role="navigation" class="table-of-contents"></nav>
+  <h2>Table of contents</h2>
+  <ul>`;
 
     for (const el of headings) {
       // should element be included in TOC?
@@ -5185,107 +5187,107 @@
   const T$9 = Template(
     "d-interstitial",
     `
-  <style>
-  
-  .overlay {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background: white;
-  
-    opacity: 1;
-    visibility: visible;
-  
-    display: flex;
-    flex-flow: column;
-    justify-content: center;
-    z-index: 2147483647 /* MaxInt32 */
-  
-  }
-  
-  .container {
-    position: relative;
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 420px;
-    padding: 2em;
-  }
-  
-  h1 {
-    text-decoration: underline;
-    text-decoration-color: hsl(0,100%,40%);
-    -webkit-text-decoration-color: hsl(0,100%,40%);
-    margin-bottom: 1em;
-    line-height: 1.5em;
-  }
-  
-  input[type="password"] {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    -webkit-box-shadow: none;
-    -moz-box-shadow: none;
-    box-shadow: none;
-    -webkit-border-radius: none;
-    -moz-border-radius: none;
-    -ms-border-radius: none;
-    -o-border-radius: none;
-    border-radius: none;
-    outline: none;
-  
-    font-size: 18px;
-    background: none;
-    width: 25%;
-    padding: 10px;
-    border: none;
-    border-bottom: solid 2px #999;
-    transition: border .3s;
-  }
-  
-  input[type="password"]:focus {
-    border-bottom: solid 2px #333;
-  }
-  
-  input[type="password"].wrong {
-    border-bottom: solid 2px hsl(0,100%,40%);
-  }
-  
-  p small {
-    color: #888;
-  }
-  
-  .logo {
-    position: relative;
-    font-size: 1.5em;
-    margin-bottom: 3em;
-  }
-  
-  .logo svg {
-    width: 36px;
-    position: relative;
-    top: 6px;
-    margin-right: 2px;
-  }
-  
-  .logo svg path {
-    fill: none;
-    stroke: black;
-    stroke-width: 2px;
-  }
-  
-  </style>
-  
-  <div class="overlay">
-    <div class="container">
-      <h1>This article is in review.</h1>
-      <p>Do not share this URL or the contents of this article. Thank you!</p>
-      <input id="interstitial-password-input" type="password" name="password" autofocus/>
-      <p><small>Enter the password we shared with you as part of the review process to view the article.</small></p>
-    </div>
+<style>
+
+.overlay {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  background: white;
+
+  opacity: 1;
+  visibility: visible;
+
+  display: flex;
+  flex-flow: column;
+  justify-content: center;
+  z-index: 2147483647 /* MaxInt32 */
+
+}
+
+.container {
+  position: relative;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: 420px;
+  padding: 2em;
+}
+
+h1 {
+  text-decoration: underline;
+  text-decoration-color: hsl(0,100%,40%);
+  -webkit-text-decoration-color: hsl(0,100%,40%);
+  margin-bottom: 1em;
+  line-height: 1.5em;
+}
+
+input[type="password"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-box-shadow: none;
+  -moz-box-shadow: none;
+  box-shadow: none;
+  -webkit-border-radius: none;
+  -moz-border-radius: none;
+  -ms-border-radius: none;
+  -o-border-radius: none;
+  border-radius: none;
+  outline: none;
+
+  font-size: 18px;
+  background: none;
+  width: 25%;
+  padding: 10px;
+  border: none;
+  border-bottom: solid 2px #999;
+  transition: border .3s;
+}
+
+input[type="password"]:focus {
+  border-bottom: solid 2px #333;
+}
+
+input[type="password"].wrong {
+  border-bottom: solid 2px hsl(0,100%,40%);
+}
+
+p small {
+  color: #888;
+}
+
+.logo {
+  position: relative;
+  font-size: 1.5em;
+  margin-bottom: 3em;
+}
+
+.logo svg {
+  width: 36px;
+  position: relative;
+  top: 6px;
+  margin-right: 2px;
+}
+
+.logo svg path {
+  fill: none;
+  stroke: black;
+  stroke-width: 2px;
+}
+
+</style>
+
+<div class="overlay">
+  <div class="container">
+    <h1>This article is in review.</h1>
+    <p>Do not share this URL or the contents of this article. Thank you!</p>
+    <input id="interstitial-password-input" type="password" name="password" autofocus/>
+    <p><small>Enter the password we shared with you as part of the review process to view the article.</small></p>
   </div>
-  `
+</div>
+`
   );
 
   class Interstitial extends T$9(HTMLElement) {
@@ -9830,101 +9832,101 @@
   const T$a = Template(
     "d-slider",
     `
-  <style>
-    :host {
-      position: relative;
-      display: inline-block;
-    }
-  
-    :host(:focus) {
-      outline: none;
-    }
-  
-    .background {
-      padding: 9px 0;
-      color: white;
-      position: relative;
-    }
-  
-    .track {
-      height: 3px;
-      width: 100%;
-      border-radius: 2px;
-      background-color: hsla(0, 0%, 0%, 0.2);
-    }
-  
-    .track-fill {
-      position: absolute;
-      top: 9px;
-      height: 3px;
-      border-radius: 4px;
-      background-color: hsl(24, 100%, 50%);
-    }
-  
-    .knob-container {
-      position: absolute;
-      top: 10px;
-    }
-  
-    .knob {
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      width: 13px;
-      height: 13px;
-      background-color: hsl(24, 100%, 50%);
-      border-radius: 50%;
-      transition-property: transform;
-      transition-duration: 0.18s;
-      transition-timing-function: ease;
-    }
-    .mousedown .knob {
-      transform: scale(1.5);
-    }
-  
-    .knob-highlight {
-      position: absolute;
-      top: -6px;
-      left: -6px;
-      width: 13px;
-      height: 13px;
-      background-color: hsla(0, 0%, 0%, 0.1);
-      border-radius: 50%;
-      transition-property: transform;
-      transition-duration: 0.18s;
-      transition-timing-function: ease;
-    }
-  
-    .focus .knob-highlight {
-      transform: scale(2);
-    }
-  
-    .ticks {
-      position: absolute;
-      top: 16px;
-      height: 4px;
-      width: 100%;
-      z-index: -1;
-    }
-  
-    .ticks .tick {
-      position: absolute;
-      height: 100%;
-      border-left: 1px solid hsla(0, 0%, 0%, 0.2);
-    }
-  
-  </style>
-  
-    <div class='background'>
-      <div class='track'></div>
-      <div class='track-fill'></div>
-      <div class='knob-container'>
-        <div class='knob-highlight'></div>
-        <div class='knob'></div>
-      </div>
-      <div class='ticks'></div>
+<style>
+  :host {
+    position: relative;
+    display: inline-block;
+  }
+
+  :host(:focus) {
+    outline: none;
+  }
+
+  .background {
+    padding: 9px 0;
+    color: white;
+    position: relative;
+  }
+
+  .track {
+    height: 3px;
+    width: 100%;
+    border-radius: 2px;
+    background-color: hsla(0, 0%, 0%, 0.2);
+  }
+
+  .track-fill {
+    position: absolute;
+    top: 9px;
+    height: 3px;
+    border-radius: 4px;
+    background-color: hsl(24, 100%, 50%);
+  }
+
+  .knob-container {
+    position: absolute;
+    top: 10px;
+  }
+
+  .knob {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    width: 13px;
+    height: 13px;
+    background-color: hsl(24, 100%, 50%);
+    border-radius: 50%;
+    transition-property: transform;
+    transition-duration: 0.18s;
+    transition-timing-function: ease;
+  }
+  .mousedown .knob {
+    transform: scale(1.5);
+  }
+
+  .knob-highlight {
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    width: 13px;
+    height: 13px;
+    background-color: hsla(0, 0%, 0%, 0.1);
+    border-radius: 50%;
+    transition-property: transform;
+    transition-duration: 0.18s;
+    transition-timing-function: ease;
+  }
+
+  .focus .knob-highlight {
+    transform: scale(2);
+  }
+
+  .ticks {
+    position: absolute;
+    top: 16px;
+    height: 4px;
+    width: 100%;
+    z-index: -1;
+  }
+
+  .ticks .tick {
+    position: absolute;
+    height: 100%;
+    border-left: 1px solid hsla(0, 0%, 0%, 0.2);
+  }
+
+</style>
+
+  <div class='background'>
+    <div class='track'></div>
+    <div class='track-fill'></div>
+    <div class='knob-container'>
+      <div class='knob-highlight'></div>
+      <div class='knob'></div>
     </div>
-  `
+    <div class='ticks'></div>
+  </div>
+`
   );
 
   // ARIA
@@ -10161,82 +10163,82 @@
     '<svg viewBox="-607 419 64 64">\n  <path d="M-573.4,478.9c-8,0-14.6-6.4-14.6-14.5s14.6-25.9,14.6-40.8c0,14.9,14.6,32.8,14.6,40.8S-565.4,478.9-573.4,478.9z"/>\n</svg>\n';
 
   const headerTemplate = `
-  <style>
+<style>
+distill-header {
+  position: relative;
+  height: 60px;
+  background-color: hsl(200, 60%, 15%);
+  width: 100%;
+  box-sizing: border-box;
+  z-index: 2;
+  color: rgba(0, 0, 0, 0.8);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+}
+distill-header .content {
+  height: 70px;
+  grid-column: page;
+}
+distill-header a {
+  font-size: 16px;
+  height: 60px;
+  line-height: 60px;
+  text-decoration: none;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 22px 0;
+}
+distill-header a:hover {
+  color: rgba(255, 255, 255, 1);
+}
+distill-header svg {
+  width: 24px;
+  position: relative;
+  top: 4px;
+  margin-right: 2px;
+}
+@media(min-width: 1080px) {
   distill-header {
-    position: relative;
-    height: 60px;
-    background-color: hsl(200, 60%, 15%);
-    width: 100%;
-    box-sizing: border-box;
-    z-index: 2;
-    color: rgba(0, 0, 0, 0.8);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-    box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
-  }
-  distill-header .content {
     height: 70px;
-    grid-column: page;
   }
   distill-header a {
-    font-size: 16px;
-    height: 60px;
-    line-height: 60px;
-    text-decoration: none;
-    color: rgba(255, 255, 255, 0.8);
-    padding: 22px 0;
-  }
-  distill-header a:hover {
-    color: rgba(255, 255, 255, 1);
-  }
-  distill-header svg {
-    width: 24px;
-    position: relative;
-    top: 4px;
-    margin-right: 2px;
-  }
-  @media(min-width: 1080px) {
-    distill-header {
-      height: 70px;
-    }
-    distill-header a {
-      height: 70px;
-      line-height: 70px;
-      padding: 28px 0;
-    }
-    distill-header .logo {
-    }
-  }
-  distill-header svg path {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.8);
-    stroke-width: 3px;
+    height: 70px;
+    line-height: 70px;
+    padding: 28px 0;
   }
   distill-header .logo {
-    font-size: 17px;
-    font-weight: 200;
   }
-  distill-header .nav {
-    float: right;
-    font-weight: 300;
-  }
-  distill-header .nav a {
-    font-size: 12px;
-    margin-left: 24px;
-    text-transform: uppercase;
-  }
-  </style>
-  <div class="content">
-    <a href="/" class="logo">
-      ${logo}
-      Distill
-    </a>
-    <nav class="nav">
-      <a href="/about/">About</a>
-      <a href="/prize/">Prize</a>
-      <a href="/journal/">Submit</a>
-    </nav>
-  </div>
-  `;
+}
+distill-header svg path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 3px;
+}
+distill-header .logo {
+  font-size: 17px;
+  font-weight: 200;
+}
+distill-header .nav {
+  float: right;
+  font-weight: 300;
+}
+distill-header .nav a {
+  font-size: 12px;
+  margin-left: 24px;
+  text-transform: uppercase;
+}
+</style>
+<div class="content">
+  <a href="/" class="logo">
+    ${logo}
+    Distill
+  </a>
+  <nav class="nav">
+    <a href="/about/">About</a>
+    <a href="/prize/">Prize</a>
+    <a href="/journal/">Submit</a>
+  </nav>
+</div>
+`;
 
   // Copyright 2018 The Distill Template Authors
 
@@ -10247,70 +10249,70 @@
   // Copyright 2018 The Distill Template Authors
 
   const styles$2 = `
-  <style>
-    distill-appendix {
-      contain: layout style;
-    }
-  
-    distill-appendix .citation {
-      font-size: 11px;
-      line-height: 15px;
-      border-left: 1px solid rgba(0, 0, 0, 0.1);
-      padding-left: 18px;
-      border: 1px solid rgba(0,0,0,0.1);
-      background: rgba(0, 0, 0, 0.02);
-      padding: 10px 18px;
-      border-radius: 3px;
-      color: rgba(150, 150, 150, 1);
-      overflow: hidden;
-      margin-top: -12px;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-  
-    distill-appendix > * {
-      grid-column: text;
-    }
-  </style>
-  `;
+<style>
+  distill-appendix {
+    contain: layout style;
+  }
+
+  distill-appendix .citation {
+    font-size: 11px;
+    line-height: 15px;
+    border-left: 1px solid rgba(0, 0, 0, 0.1);
+    padding-left: 18px;
+    border: 1px solid rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.02);
+    padding: 10px 18px;
+    border-radius: 3px;
+    color: rgba(150, 150, 150, 1);
+    overflow: hidden;
+    margin-top: -12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+
+  distill-appendix > * {
+    grid-column: text;
+  }
+</style>
+`;
 
   function appendixTemplate(frontMatter) {
     let html = styles$2;
 
     if (typeof frontMatter.githubUrl !== "undefined") {
       html += `
-      <h3 id="updates-and-corrections">Updates and Corrections</h3>
-      <p>`;
+    <h3 id="updates-and-corrections">Updates and Corrections</h3>
+    <p>`;
       if (frontMatter.githubCompareUpdatesUrl) {
         html += `<a href="${frontMatter.githubCompareUpdatesUrl}">View all changes</a> to this article since it was first published.`;
       }
       html += `
-      If you see mistakes or want to suggest changes, please <a href="${
-        frontMatter.githubUrl + "/issues/new"
-      }">create an issue on GitHub</a>. </p>
-      `;
+    If you see mistakes or want to suggest changes, please <a href="${
+      frontMatter.githubUrl + "/issues/new"
+    }">create an issue on GitHub</a>. </p>
+    `;
     }
 
     const journal = frontMatter.journal;
     if (typeof journal !== "undefined" && journal.title === "Distill") {
       html += `
-      <h3 id="reuse">Reuse</h3>
-      <p>Diagrams and text are licensed under Creative Commons Attribution <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY 4.0</a> with the <a class="github" href="${frontMatter.githubUrl}">source available on GitHub</a>, unless noted otherwise. The figures that have been reused from other sources don’t fall under this license and can be recognized by a note in their caption: “Figure from …”.</p>
-      `;
+    <h3 id="reuse">Reuse</h3>
+    <p>Diagrams and text are licensed under Creative Commons Attribution <a href="https://creativecommons.org/licenses/by/4.0/">CC-BY 4.0</a> with the <a class="github" href="${frontMatter.githubUrl}">source available on GitHub</a>, unless noted otherwise. The figures that have been reused from other sources don’t fall under this license and can be recognized by a note in their caption: “Figure from …”.</p>
+    `;
     }
 
     if (typeof frontMatter.publishedDate !== "undefined") {
       html += `
-      <h3 id="citation">Citation</h3>
-      <p>For attribution in academic contexts, please cite this work as</p>
-      <pre class="citation short">${frontMatter.concatenatedAuthors}, "${
+    <h3 id="citation">Citation</h3>
+    <p>For attribution in academic contexts, please cite this work as</p>
+    <pre class="citation short">${frontMatter.concatenatedAuthors}, "${
         frontMatter.title
       }", Distill, ${frontMatter.publishedYear}.</pre>
-      <p>BibTeX citation</p>
-      <pre class="citation long">${serializeFrontmatterToBibtex(
-        frontMatter
-      )}</pre>
-      `;
+    <p>BibTeX citation</p>
+    <pre class="citation long">${serializeFrontmatterToBibtex(
+      frontMatter
+    )}</pre>
+    `;
     }
 
     return html;
@@ -10327,77 +10329,77 @@
   }
 
   const footerTemplate = `
-  <style>
-  
-  :host {
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 300;
-    padding: 2rem 0;
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    background-color: hsl(180, 5%, 15%); /*hsl(200, 60%, 15%);*/
-    text-align: left;
-    contain: content;
-  }
-  
-  .footer-container .logo svg {
-    width: 24px;
-    position: relative;
-    top: 4px;
-    margin-right: 2px;
-  }
-  
-  .footer-container .logo svg path {
-    fill: none;
-    stroke: rgba(255, 255, 255, 0.8);
-    stroke-width: 3px;
-  }
-  
-  .footer-container .logo {
-    font-size: 17px;
-    font-weight: 200;
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    margin-right: 6px;
-  }
-  
-  .footer-container {
-    grid-column: text;
-  }
-  
-  .footer-container .nav {
-    font-size: 0.9em;
-    margin-top: 1.5em;
-  }
-  
-  .footer-container .nav a {
-    color: rgba(255, 255, 255, 0.8);
-    margin-right: 6px;
-    text-decoration: none;
-  }
-  
-  </style>
-  
-  <div class='footer-container'>
-  
-    <a href="/" class="logo">
-      ${logo}
-      Distill
-    </a> is dedicated to clear explanations of machine learning
-  
-    <div class="nav">
-      <a href="https://distill.pub/about/">About</a>
-      <a href="https://distill.pub/journal/">Submit</a>
-      <a href="https://distill.pub/prize/">Prize</a>
-      <a href="https://distill.pub/archive/">Archive</a>
-      <a href="https://distill.pub/rss.xml">RSS</a>
-      <a href="https://github.com/distillpub">GitHub</a>
-      <a href="https://twitter.com/distillpub">Twitter</a>
-      &nbsp;&nbsp;&nbsp;&nbsp; ISSN 2476-0757
-    </div>
-  
+<style>
+
+:host {
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 300;
+  padding: 2rem 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  background-color: hsl(180, 5%, 15%); /*hsl(200, 60%, 15%);*/
+  text-align: left;
+  contain: content;
+}
+
+.footer-container .logo svg {
+  width: 24px;
+  position: relative;
+  top: 4px;
+  margin-right: 2px;
+}
+
+.footer-container .logo svg path {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.8);
+  stroke-width: 3px;
+}
+
+.footer-container .logo {
+  font-size: 17px;
+  font-weight: 200;
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  margin-right: 6px;
+}
+
+.footer-container {
+  grid-column: text;
+}
+
+.footer-container .nav {
+  font-size: 0.9em;
+  margin-top: 1.5em;
+}
+
+.footer-container .nav a {
+  color: rgba(255, 255, 255, 0.8);
+  margin-right: 6px;
+  text-decoration: none;
+}
+
+</style>
+
+<div class='footer-container'>
+
+  <a href="/" class="logo">
+    ${logo}
+    Distill
+  </a> is dedicated to clear explanations of machine learning
+
+  <div class="nav">
+    <a href="https://distill.pub/about/">About</a>
+    <a href="https://distill.pub/journal/">Submit</a>
+    <a href="https://distill.pub/prize/">Prize</a>
+    <a href="https://distill.pub/archive/">Archive</a>
+    <a href="https://distill.pub/rss.xml">RSS</a>
+    <a href="https://github.com/distillpub">GitHub</a>
+    <a href="https://twitter.com/distillpub">Twitter</a>
+    &nbsp;&nbsp;&nbsp;&nbsp; ISSN 2476-0757
   </div>
-  
-  `;
+
+</div>
+
+`;
 
   // Copyright 2018 The Distill Template Authors
 

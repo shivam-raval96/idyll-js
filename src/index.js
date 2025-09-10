@@ -1,10 +1,21 @@
-// import { plotClusters } from './clusters'
-import { loadFragments } from './fragmentLoader'
-import { syncHFSpacesURLHash } from './syncHFSpacesURLHash'
+import { generateTableOfContents } from "./scripts/tocGenerator.js";
+import { toggleTOC } from "./scripts/tocToggle.js";
+import { setupScrollMonitoring } from "./scripts/scrollMonitor.js";
+import { createManifoldVisualization } from "./scripts/heroVisual.js";
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
     console.log("DOMContentLoaded");
-    loadFragments();
-    init_memory_plot();
-    syncHFSpacesURLHash();
-}, { once: true });
+
+    // Initialize table of contents
+    generateTableOfContents();
+
+    // Setup scroll monitoring for active link highlighting
+    setupScrollMonitoring();
+
+    // Create the D3 floating grid banner
+    createManifoldVisualization("banner-container");
+  },
+  { once: true }
+);

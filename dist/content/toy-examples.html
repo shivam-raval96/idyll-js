@@ -1,0 +1,147 @@
+<h2>Toy Examples: Understanding Manifolds and Subspaces</h2>
+
+<p>
+    To build intuition about manifolds and subspaces in the context of neural networks, let's work through some concrete examples that illustrate these geometric concepts.
+</p>
+
+<h3>Example 1: The Circle as a 1-Manifold</h3>
+
+<p>
+    The simplest non-trivial manifold is the circle, denoted <d-math>S^1</d-math>. While embedded in 2D space, the circle is intrinsically 1-dimensional—you only need one parameter (an angle) to specify any point on it.
+</p>
+
+<p>
+    Mathematically, we can parameterize the unit circle as:
+</p>
+
+<d-math block>
+    \gamma(\theta) = (\cos \theta, \sin \theta), \quad \theta \in [0, 2\pi)
+</d-math>
+
+<p>
+    <strong>Neural Network Connection:</strong> Imagine a simple neural network that learns to represent cyclic data, like hours of the day or days of the week. The network's internal representations might naturally organize themselves along a circular manifold, where similar times are close together and the representation "wraps around" smoothly.
+</p>
+
+<h3>Example 2: The Sphere and High-Dimensional Embeddings</h3>
+
+<p>
+    Consider the 2-sphere <d-math>S^2</d-math> embedded in 3D space. Points on the sphere satisfy the constraint:
+</p>
+
+<d-math block>
+    x^2 + y^2 + z^2 = 1
+</d-math>
+
+<p>
+    Despite living in 3D space, the sphere is intrinsically 2-dimensional. Any point can be specified by just two coordinates (like latitude and longitude).
+</p>
+
+<p>
+    <strong>AI Interpretability Insight:</strong> In language models, word embeddings often lie approximately on high-dimensional spheres. When we normalize embeddings to unit length, we're projecting them onto a sphere. The cosine similarity between words then corresponds to the geodesic distance on this spherical manifold.
+</p>
+
+<h3>Example 3: The Manifold Hypothesis in Action</h3>
+
+<p>
+    Consider a dataset of handwritten digits. Each 28×28 pixel image lives in a 784-dimensional space, but the actual "digit manifold" is much lower-dimensional. A handwritten "3" can vary in:
+</p>
+
+<ul>
+    <li>Rotation (1 degree of freedom)</li>
+    <li>Scale (1 degree of freedom)</li>
+    <li>Stroke thickness (1 degree of freedom)</li>
+    <li>Writing style variations (perhaps 2-3 degrees of freedom)</li>
+</ul>
+
+<p>
+    So the manifold of "3"s might be approximately 5-6 dimensional, embedded in the 784-dimensional pixel space.
+</p>
+
+<h3>Example 4: Linear Subspaces vs. Curved Manifolds</h3>
+
+<p>
+    Not all low-dimensional structures are manifolds. Consider two cases:
+</p>
+
+<p>
+    <strong>Linear Subspace:</strong> The set of all vectors of the form <d-math>(a, 2a, 3a)</d-math> for real <d-math>a</d-math> forms a 1-dimensional linear subspace (a line through the origin) in <d-math>R^3</d-math>.
+</p>
+
+<p>
+    The key difference: linear subspaces have constant curvature (zero), while general manifolds can have varying curvature. In neural networks, early layers might learn approximately linear representations, while deeper layers often capture curved, non-linear manifolds.
+</p>
+
+<h3>Example 5: Local Charts and Coordinate Systems</h3>
+
+<p>
+    One of the key properties of manifolds is that they look "locally Euclidean." Consider the Earth's surface—while globally curved, any small region can be mapped to a flat coordinate system (like a local map).
+</p>
+
+<p>
+    Mathematically, we define local charts <d-math>\phi: U \subset M \to R^n</d-math> that map open sets of the manifold <d-math>M</d-math> to Euclidean space.
+</p>
+
+<d-math block>
+    \phi: U \to R^n  is a homeomorphism
+</d-math>
+
+<p>
+    <strong>Deep Learning Application:</strong> When we use techniques like t-SNE or UMAP to visualize high-dimensional neural network activations in 2D, we're essentially finding local charts that map pieces of the high-dimensional representation manifold to the 2D plane.
+</p>
+
+<h3>Example 6: The Curse of Dimensionality and Manifold Structure</h3>
+
+<p>
+    Consider random points in high-dimensional space. In a <d-math>d</d-math>-dimensional unit hypersphere, most of the volume is concentrated near the surface when <d-math>d</d-math> is large. Specifically, the ratio of volumes is:
+</p>
+
+<d-math block>
+    V_s / V_b = 1 - (1-\epsilon)^d
+</d-math>
+
+<p>
+    For <d-math>d = 1000</d-math> and <d-math>\epsilon = 0.01</d-math>, this ratio is approximately <d-math>1 - e^{-10} \approx 0.99995</d-math>.
+</p>
+
+<p>
+    <strong>Implication for AI:</strong> This suggests that high-dimensional data naturally tends to lie on or near lower-dimensional manifolds. Neural networks exploit this structure—they don't need to represent every possible point in the high-dimensional space, just the manifold where real data lives.
+</p>
+
+<h3>Example 7: Tangent Spaces and Local Linearization</h3>
+
+<p>
+    At any point <d-math>p</d-math> on a smooth manifold <d-math>M</d-math>, we can define the tangent space <d-math>T_p M</d-math>—the best linear approximation to the manifold at that point.
+</p>
+
+<p>
+    For the sphere <d-math>S^2</d-math> at point <d-math>p = (0, 0, 1)</d-math> (north pole), the tangent space is:
+</p>
+
+<d-math block>
+    T_p S^2 = R^2
+</d-math>
+
+<p>
+    This is just the <d-math>xy</d-math>-plane—the horizontal plane tangent to the sphere at the north pole.
+</p>
+
+<p>
+    <strong>Neural Network Interpretation:</strong> When we compute gradients during backpropagation, we're essentially working in tangent spaces. The gradient at a point in the loss landscape tells us the direction of steepest increase in the tangent space to the loss manifold at that point.
+</p>
+
+<h3>Connecting to AI Interpretability</h3>
+
+<p>
+    These toy examples illustrate fundamental concepts that appear throughout AI systems:
+</p>
+
+<ul>
+    <li><strong>Representation Learning:</strong> Neural networks learn to map inputs to points on meaningful manifolds</li>
+    <li><strong>Dimensionality Reduction:</strong> Techniques like autoencoders learn to encode high-dimensional data on lower-dimensional manifolds</li>
+    <li><strong>Feature Disentanglement:</strong> Good representations separate different factors of variation along different directions in the manifold</li>
+    <li><strong>Interpolation and Extrapolation:</strong> Moving along manifolds corresponds to meaningful transformations of the data</li>
+</ul>
+
+<p>
+    Understanding these geometric structures helps us interpret what neural networks learn and how they generalize to new data.
+</p>

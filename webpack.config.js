@@ -3,64 +3,9 @@ const { CleanWebpackPlugin } = require("clean-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const BundleAnalyzerPlugin =
   require("webpack-bundle-analyzer").BundleAnalyzerPlugin;
-const Handlebars = require("handlebars");
 const fs = require("fs");
 const ImageMinimizerPlugin = require("image-minimizer-webpack-plugin");
 const HtmlMinimizerPlugin = require("html-minimizer-webpack-plugin");
-
-const FRAGMENTS_PATH = "src/fragments";
-
-// Load the fragments from the fragments directory and caches it
-const loadFragmentsMap = (() => {
-  let cachedFragments = null;
-  return async () => {
-    if (cachedFragments === null) {
-      cachedFragments = {};
-      const walkDir = async (dir, basePath = "") => {
-        const files = fs.readdirSync(dir);
-        await Promise.all(
-          files.map(async (file) => {
-            const filePath = path.join(dir, file);
-            const relativePath = path.join(basePath, file);
-            if (fs.statSync(filePath).isDirectory()) {
-              await walkDir(filePath, relativePath);
-            } else {
-              // Remove the .html extension before creating the dotted path
-              const nameWithoutExt = relativePath.replace(/\.html$/, "");
-              const dottedPath =
-                "fragment-" +
-                nameWithoutExt
-                  .replace(/\\/g, "-")
-                  .replace(/\//g, "-")
-                  .replace(/\./g, "-");
-              const content = fs.readFileSync(filePath, "utf8");
-              // Minify the HTML content using swcMinifyFragment
-              const minifiedRes = await HtmlMinimizerPlugin.swcMinifyFragment({
-                "tmp.html": content,
-              });
-              if (minifiedRes.errors) {
-                console.error(minifiedRes.errors);
-              }
-              const minifiedContent = minifiedRes.code;
-              cachedFragments[dottedPath] = minifiedContent;
-            }
-          })
-        );
-      };
-      await walkDir(FRAGMENTS_PATH);
-    }
-    return cachedFragments;
-  };
-})();
-
-const transformHandlebars = async (data, path) => {
-  const fragments = await loadFragmentsMap();
-  console.log(`Available fragments: ${Object.keys(fragments).join(", ")}`);
-  // Load the template file
-  const template = Handlebars.compile(data.toString("utf8"));
-  const html = template(fragments);
-  return html;
-};
 
 module.exports = {
   entry: {
@@ -95,13 +40,12 @@ module.exports = {
           from: "assets",
           to: "assets",
         },
-        { from: "src/fragments/*", to: "fragments/[name].html" },
+
         { from: "src/style.css", to: "style.css" },
         { from: "src/bibliography.bib", to: "bibliography.bib" },
         {
           from: "src/index.html",
           to: "index.html",
-          transform: transformHandlebars,
         },
       ],
     }),
@@ -152,10 +96,6 @@ module.exports = {
       // ]
       // }),
       //Hynek: Ideally we don't run this twice but we
-      new HtmlMinimizerPlugin({
-        test: /fragments\/.*\.html$/i,
-        minify: HtmlMinimizerPlugin.swcMinifyFragment,
-      }),
     ],
   },
 };
