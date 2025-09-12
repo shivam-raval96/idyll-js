@@ -159,7 +159,7 @@ export function createSphereManifoldVisual(containerId) {
 
     rotateIconGroup
       .append("img")
-      .attr("src", "/assets/images/rotate-me.png")
+      .attr("src", "assets/images/rotate-me.png")
       .style("width", "24px")
       .style("height", "24px")
       .style("opacity", "0.7");
@@ -236,7 +236,7 @@ export function createSphereManifoldVisual(containerId) {
     // Mouse cursor icon (positioned inside the point)
     const mouseIcon = mouseIconGroup
       .append("image")
-      .attr("href", "/assets/images/click-me.png")
+      .attr("href", "assets/images/click-me.png")
       .attr("x", gridStartX - 8)
       .attr("y", gridStartY - 8)
       .attr("width", 16)

@@ -200,7 +200,7 @@ export function createCircleManifoldVisual(containerId) {
   // Mouse cursor icon (positioned inside the point)
   const mouseIcon = mouseIconGroup
     .append("image")
-    .attr("href", "/assets/images/click-me.png")
+    .attr("href", "assets/images/click-me.png")
     .attr("x", lineStartX - 8)
     .attr("y", lineY - 8)
     .attr("width", 16)

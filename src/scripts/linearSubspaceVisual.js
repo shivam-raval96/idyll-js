@@ -180,7 +180,7 @@ export function createLinearSubspaceVisual(containerId) {
   // Add mouse icon that follows the slider thumb
   const mouseIcon = sliderContainer
     .append("img")
-    .attr("src", "/assets/images/click-me.png")
+    .attr("src", "assets/images/click-me.png")
     .style("position", "absolute")
     .style("top", "45%")
     .style("left", "50%")
