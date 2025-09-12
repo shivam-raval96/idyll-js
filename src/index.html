@@ -5,6 +5,7 @@
     <script src="distill.bundle.js" type="module" fetchpriority="high" blocking></script>
     <script src="main.bundle.js" type="module" fetchpriority="low" defer></script>
     <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf8">
     <base target="_blank">
@@ -136,8 +137,20 @@
 	</d-math>
 	
 	<p>
-		<strong>Neural Network Connection:</strong> Imagine a simple neural network that learns to represent cyclic data, like hours of the day or days of the week. The network's internal representations might naturally organize themselves along a circular manifold, where similar times are close together and the representation "wraps around" smoothly.
+		Imagine a simple neural network that learns to represent cyclic data, like hours of the day or days of the week. The network's internal representations might naturally organize themselves along a circular manifold, where similar times are close together and the representation "wraps around" smoothly.
 	</p>
+
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+			 The visualization shows how a 1D parameter (angle θ) maps to a 2D circle. Move your mouse over either the circle or the line to see how they're connected. The red dot shows the current position, and the blue line shows the mapping between the 1D parameter space and the 2D embedding.
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="circle-manifold-visual"></div>
+		</div>
+                </div>
 
 	<h3>Example 2: The Sphere and High-Dimensional Embeddings</h3>
 	
@@ -154,8 +167,20 @@
 	</p>
 	
 	<p>
-		<strong>AI Interpretability Insight:</strong> In language models, word embeddings often lie approximately on high-dimensional spheres. When we normalize embeddings to unit length, we're projecting them onto a sphere. The cosine similarity between words then corresponds to the geodesic distance on this spherical manifold.
+		In language models, word embeddings often lie approximately on high-dimensional spheres. When we normalize embeddings to unit length, we're projecting them onto a sphere. The cosine similarity between words then corresponds to the geodesic distance on this spherical manifold.
 	</p>
+
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+				The visualization shows how a 2D parameter space (flat grid) maps to a 3D sphere. Move your mouse over either the sphere or the flat grid to see how they're connected. The red dot shows the current position, and the blue line shows the mapping between the 2D parameter space and the 3D sphere.
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="sphere-manifold-visual"></div>
+		</div>
+	</div>
 
 	<h3>Example 3: The Manifold Hypothesis in Action</h3>
 	
@@ -189,6 +214,18 @@
 		The key difference: linear subspaces have constant curvature (zero), while general manifolds can have varying curvature. In neural networks, early layers might learn approximately linear representations, while deeper layers often capture curved, non-linear manifolds.
 	</p>
 
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+				The visualization shows the difference between a linear subspace (straight line) and a curved manifold (helix). Move your mouse over either structure to see how they differ in curvature. The linear subspace has zero curvature everywhere, while the curved manifold has varying curvature.
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="linear-subspace-visual"></div>
+		</div>
+	</div>
+
 	<h3>Example 5: Local Charts and Coordinate Systems</h3>
 	
 	<p>
@@ -204,7 +241,7 @@
 	</d-math>
 	
 	<p>
-		<strong>Deep Learning Application:</strong> When we use techniques like t-SNE or UMAP to visualize high-dimensional neural network activations in 2D, we're essentially finding local charts that map pieces of the high-dimensional representation manifold to the 2D plane.
+		When we use techniques like t-SNE or UMAP to visualize high-dimensional neural network activations in 2D, we're essentially finding local charts that map pieces of the high-dimensional representation manifold to the 2D plane.
 	</p>
 
 	<h3>Example 6: The Curse of Dimensionality and Manifold Structure</h3>
@@ -222,7 +259,7 @@
 	</p>
 	
 	<p>
-		<strong>Implication for AI:</strong> This suggests that high-dimensional data naturally tends to lie on or near lower-dimensional manifolds. Neural networks exploit this structure—they don't need to represent every possible point in the high-dimensional space, just the manifold where real data lives.
+		This suggests that high-dimensional data naturally tends to lie on or near lower-dimensional manifolds. Neural networks exploit this structure—they don't need to represent every possible point in the high-dimensional space, just the manifold where real data lives.
 	</p>
 
 	<h3>Example 7: Tangent Spaces and Local Linearization</h3>
@@ -244,7 +281,7 @@
 	</p>
 	
 	<p>
-		<strong>Neural Network Interpretation:</strong> When we compute gradients during backpropagation, we're essentially working in tangent spaces. The gradient at a point in the loss landscape tells us the direction of steepest increase in the tangent space to the loss manifold at that point.
+		When we compute gradients during backpropagation, we're essentially working in tangent spaces. The gradient at a point in the loss landscape tells us the direction of steepest increase in the tangent space to the loss manifold at that point.
 	</p>
 
 	<h3>Connecting to AI Interpretability</h3>
@@ -262,6 +299,23 @@
 
 	<p>
 		Understanding these geometric structures helps us interpret what neural networks learn and how they generalize to new data.
+	</p>
+
+    	<h2>Open Problems and Emerging Directions</h2>
+	<p>
+		Open questions remain around the limits of linearity in learned features
+		<span class="citation" data-key="engels2024not"></span>, the geometry of categorical and hierarchical concepts
+		<span class="citation" data-key="park2024geometry"></span>, and the validity of the Linear Representation Hypothesis across domains
+		<span class="citation" data-key="park2024linear"></span>.
+	</p>
+	<p>
+		There is also growing interest in whether token embeddings truly lie on well-formed manifolds
+		<span class="citation" data-key="robinson2024token"></span>, and how localized, stratified manifold structures emerge in practice
+		<span class="citation" data-key="li2025unraveling"></span>.
+	</p>
+	<p>
+		Community syntheses and evolving benchmarks continue to shape our collective understanding
+		<span class="citation" data-key="lesswrong2024intricacies"></span><span class="citation" data-key="lampinen2024learned"></span>.
 	</p>
         
     </d-article>
@@ -289,11 +343,11 @@
         <h3 id="citation">Citation</h3>
         <p>For attribution in academic contexts, please cite this work as</p>
         <pre
-            class="citation short">"The Distill Blog Template", 2025.</pre>
+            class="citation short">"TBD", 2025.</pre>
         <p>BibTeX citation</p>
-        <pre class="citation long">@misc{distill_blog_template,
-      title={The Distill Blog Template},
-      author={Some Authors et al},
+        <pre class="citation long">@article{raval2025manifolds,
+      title={TBD},
+      author={Shivam Raval et al},
       year={2025},
 }</pre>
     </d-appendix>

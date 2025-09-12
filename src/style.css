@@ -630,3 +630,35 @@ select[name="presets"] {
     }
 }
 
+/* Example Container Styles */
+.example-container {
+    display: flex;
+    gap: 20px;
+    margin: 20px 0;
+    align-items: flex-start;
+}
+
+.example-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.example-visual {
+    flex: 0 0 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Responsive example container */
+@media (max-width: 800px) {
+    .example-container {
+        flex-direction: column;
+    }
+    
+    .example-visual {
+        flex: none;
+        width: 100%;
+    }
+}
+

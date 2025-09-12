@@ -2,6 +2,9 @@ import { generateTableOfContents } from "./scripts/tocGenerator.js";
 import { toggleTOC } from "./scripts/tocToggle.js";
 import { setupScrollMonitoring } from "./scripts/scrollMonitor.js";
 import { createManifoldVisualization } from "./scripts/heroVisual.js";
+import { createCircleManifoldVisual } from "./scripts/circleManifoldVisual.js";
+import { createSphereManifoldVisual } from "./scripts/sphereManifoldVisual.js";
+import { createLinearSubspaceVisual } from "./scripts/linearSubspaceVisual.js";
 
 document.addEventListener(
   "DOMContentLoaded",
@@ -16,6 +19,15 @@ document.addEventListener(
 
     // Create the D3 floating grid banner
     createManifoldVisualization("banner-container");
+
+    // Create the circle manifold visualization
+    createCircleManifoldVisual("circle-manifold-visual");
+
+    // Create the sphere manifold visualization
+    createSphereManifoldVisual("sphere-manifold-visual");
+
+    // Create the linear subspace visualization
+    createLinearSubspaceVisual("linear-subspace-visual");
   },
   { once: true }
 );
