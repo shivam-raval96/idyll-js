@@ -1,6 +1,6 @@
 /**
  * Interactive Sphere Manifold Visualization
- * Shows the mapping between 2D parameter space and 3D sphere
+ * Shows the mapping between 2D parameter space and 3D sphere using CSS
  */
 
 import * as d3 from "d3";
@@ -35,7 +35,10 @@ export function createSphereManifoldVisual(containerId) {
     .style("left", "0")
     .style("width", "100%")
     .style("height", "50%")
-    .style("background", "transparent");
+    .style("background", "transparent")
+    .style("display", "flex")
+    .style("justify-content", "center")
+    .style("align-items", "center");
 
   // Create 2D grid container (bottom half)
   const gridContainer = visualContainer
@@ -47,122 +50,58 @@ export function createSphereManifoldVisual(containerId) {
     .style("height", "50%")
     .style("background", "transparent");
 
-  // Initialize Three.js scene
-  let scene, camera, renderer, sphere, spherePoint;
+  // Initialize CSS sphere and point
+  let sphere, spherePoint;
   let currentPhi = Math.PI / 2; // latitude (0 to π)
   let currentTheta = 0; // longitude (0 to 2π)
 
-  // Check if Three.js is available
-  if (typeof THREE === "undefined") {
-    console.error("Three.js is required for 3D sphere visualization");
-    // Fallback to 2D representation
-    createFallbackVisualization();
-    return;
-  }
-
-  initThreeJS();
+  initCSSsphere();
   init2DGrid();
 
-  function initThreeJS() {
-    // Scene setup
-    scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(75, width / (height / 2), 0.1, 1000);
-    renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  function initCSSsphere() {
+    // Create sphere container for positioning
+    const sphereContainer = sceneContainer
+      .append("div")
+      .style("position", "relative")
+      .style("width", "120px")
+      .style("height", "120px");
 
-    renderer.setSize(width, height / 2);
-    renderer.setClearColor(0x000000, 0);
-    sceneContainer.node().appendChild(renderer.domElement);
+    // Create the sphere with CSS gradients
+    sphere = sphereContainer
+      .append("div")
+      .style("width", "120px")
+      .style("height", "120px")
+      .style("border-radius", "50%")
+      .style("position", "relative")
+      .style(
+        "background",
+        `radial-gradient(circle at 30% 30%, 
+        #87ceeb 0%, 
+        #20b2aa 30%, 
+        #008b8b 60%, 
+        #2f4f4f 100%)`
+      )
+      .style(
+        "box-shadow",
+        `
+        inset -15px -15px 40px rgba(0,0,0,0.4),
+        inset 15px 15px 20px rgba(255,255,255,0.1),
+        15px 15px 30px rgba(0,0,0,0.3)`
+      )
+      .style("transform-style", "preserve-3d");
 
-    // Create sphere geometry
-    const sphereGeometry = new THREE.SphereGeometry(1.5, 15, 15);
-    const sphereMaterial = new THREE.MeshLambertMaterial({
-      color: 0x000000,
-      wireframe: true,
-      transparent: false,
-      opacity: 0.3,
-    });
-    sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-    scene.add(sphere);
-
-    // Create point on sphere
-    const pointGeometry = new THREE.SphereGeometry(0.08, 16, 16);
-    const pointMaterial = new THREE.MeshBasicMaterial({
-      color: 0xdc3545,
-      transparent: false,
-      wireframe: true,
-    });
-    spherePoint = new THREE.Mesh(pointGeometry, pointMaterial);
-    sphere.add(spherePoint); // Add as child of sphere so it rotates with it
-
-    // Add lighting
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-    directionalLight.position.set(1, 1, 1);
-    scene.add(directionalLight);
-
-    // Position camera
-    camera.position.z = 3;
-    camera.position.y = 0.5;
-    camera.lookAt(0, 0, 0);
-
-    // Add rotation controls
-    let isMouseDown = false;
-    let mouseX = 0,
-      mouseY = 0;
-    let rotationX = 0,
-      rotationY = 0;
-
-    renderer.domElement.addEventListener("mousedown", (event) => {
-      isMouseDown = true;
-      mouseX = event.clientX;
-      mouseY = event.clientY;
-    });
-
-    renderer.domElement.addEventListener("mouseup", () => {
-      isMouseDown = false;
-    });
-
-    renderer.domElement.addEventListener("mousemove", (event) => {
-      if (isMouseDown) {
-        const deltaX = event.clientX - mouseX;
-        const deltaY = event.clientY - mouseY;
-
-        rotationY += deltaX * 0.01;
-        rotationX += deltaY * 0.01;
-
-        sphere.rotation.y = rotationY;
-        sphere.rotation.x = rotationX;
-
-        mouseX = event.clientX;
-        mouseY = event.clientY;
-      }
-    });
-
-    // Animation loop
-    function animate() {
-      requestAnimationFrame(animate);
-      renderer.render(scene, camera);
-    }
-    animate();
-
-    // Add rotate icon above the sphere
-    const rotateIconGroup = d3
-      .select(sceneContainer.node())
+    // Create point on sphere surface
+    spherePoint = sphereContainer
       .append("div")
       .style("position", "absolute")
-      .style("top", "-3px")
-      .style("left", "50%")
-      .style("transform", "translateX(-50%)")
-      .style("z-index", "10");
-
-    rotateIconGroup
-      .append("img")
-      .attr("src", "assets/images/rotate-me.png")
-      .style("width", "24px")
-      .style("height", "24px")
-      .style("opacity", "0.7");
+      .style("width", "6px")
+      .style("height", "6px")
+      .style("border-radius", "50%")
+      .style("background", "#dc3545")
+      .style("border", "1px solid #000")
+      .style("box-shadow", "0 2px 4px rgba(0,0,0,0.3)")
+      .style("z-index", "10")
+      .style("transform", "translate(-50%, -50%)"); // Center the point
   }
 
   function init2DGrid() {
@@ -239,8 +178,8 @@ export function createSphereManifoldVisual(containerId) {
       .attr("href", "assets/images/click-me.png")
       .attr("x", gridStartX - 8)
       .attr("y", gridStartY - 8)
-      .attr("width", 16)
-      .attr("height", 16);
+      .attr("width", "16")
+      .attr("height", "16");
 
     // Add labels
     svg
@@ -325,52 +264,43 @@ export function createSphereManifoldVisual(containerId) {
     window.gridHeight = gridHeight;
   }
 
-  function createFallbackVisualization() {
-    // Fallback 2D visualization if Three.js is not available
-    const svg = d3
-      .select(sceneContainer.node())
-      .append("svg")
-      .attr("width", width)
-      .attr("height", height / 2);
-
-    const sphereGroup = svg.append("g").attr("class", "sphere-group");
-
-    sphereGroup
-      .append("circle")
-      .attr("cx", width / 2)
-      .attr("cy", height / 4)
-      .attr("r", 50)
-      .attr("fill", "none")
-      .attr("stroke", "#6c757d")
-      .attr("stroke-width", 2);
-
-    sphereGroup
-      .append("text")
-      .attr("x", width / 2)
-      .attr("y", height / 4 - 60)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "12px")
-      .attr("fill", "#6c757d")
-      .text("3D Sphere (Three.js required)");
-  }
-
   // Update positions based on spherical coordinates
   function updatePositions(phi, theta) {
     currentPhi = phi;
     currentTheta = theta;
 
-    // Update 3D sphere point position
+    // Update CSS sphere point position
     if (spherePoint) {
-      const x = Math.sin(phi) * Math.cos(theta);
-      const y = Math.cos(phi);
-      const z = Math.sin(phi) * Math.sin(theta);
+      // Convert spherical coordinates to 2D projection on the sphere face
+      const sphereRadius = 60; // Half of sphere width (120px / 2)
 
-      // Position the point slightly outside the sphere surface for visibility
-      // Since the point is now a child of the sphere, we use local coordinates
-      const pointRadius = 0.08;
-      const scale = 1 + pointRadius; // Scale relative to sphere radius of 1
+      // Adjust theta so that theta = π/2 on the flat surface faces the front
+      const adjustedTheta = theta - Math.PI / 2;
 
-      spherePoint.position.set(x * scale, y * scale, z * scale);
+      // Calculate 3D position
+      const x3d = Math.sin(phi) * Math.cos(adjustedTheta);
+      const y3d = Math.cos(phi);
+      const z3d = Math.sin(phi) * Math.sin(adjustedTheta);
+
+      // Project to 2D (simple orthographic projection, viewing from front)
+      const x2d = x3d * sphereRadius;
+      const y2d = -y3d * sphereRadius; // Negative because CSS y increases downward
+
+      // Position relative to sphere center (60px, 60px)
+      const pointX = 60 + x2d;
+      const pointY = 60 + y2d;
+
+      // Hide point if it's on the back side of the sphere (z3d < 0)
+      const isVisible = z3d >= -0.1; // Small threshold for smoother transition
+
+      spherePoint
+        .style("left", `${pointX}px`)
+        .style("top", `${pointY}px`)
+        .style("opacity", isVisible ? 1 : 0.3)
+        .style(
+          "transform",
+          `translate(-50%, -50%) scale(${isVisible ? 1 : 0.7})`
+        );
     }
 
     // Update 2D grid point position

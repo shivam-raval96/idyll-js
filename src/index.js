@@ -5,6 +5,10 @@ import { createManifoldVisualization } from "./scripts/heroVisual.js";
 import { createCircleManifoldVisual } from "./scripts/circleManifoldVisual.js";
 import { createSphereManifoldVisual } from "./scripts/sphereManifoldVisual.js";
 import { createLinearSubspaceVisual } from "./scripts/linearSubspaceVisual.js";
+import {
+  createCurvedManifold3D,
+  createCurvedManifold2D,
+} from "./scripts/curvedManifoldVisual.js";
 
 document.addEventListener(
   "DOMContentLoaded",
@@ -28,6 +32,12 @@ document.addEventListener(
 
     // Create the linear subspace visualization
     createLinearSubspaceVisual("linear-subspace-visual");
+
+    // Create the curved manifold visualizations
+    setTimeout(() => {
+      createCurvedManifold3D("curved-manifold-3d");
+      createCurvedManifold2D("curved-manifold-2d");
+    }, 100);
   },
   { once: true }
 );

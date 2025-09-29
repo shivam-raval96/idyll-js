@@ -9,7 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta charset="utf8">
     <base target="_blank">
-    <title>The Distill Blog Template</title>
+    <title>Manifolds and Subspaces in AI</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -300,6 +300,38 @@
 	<p>
 		Understanding these geometric structures helps us interpret what neural networks learn and how they generalize to new data.
 	</p>
+
+	<h2>Manifold Curvature and Data Distribution</h2>
+	
+	<p>
+		Real-world data often exhibits complex curvature patterns that cannot be captured by simple linear subspaces. Consider a dataset where points cluster around peaks and valleys in a 3D landscape—this creates a curved manifold structure that requires non-linear techniques to understand.
+	</p>
+	
+	<p>
+		The visualizations below demonstrate how data points can be distributed along a curved surface with varying elevation. Click and drag on the 2D projection to explore the 3D curved surface and see how the corresponding point moves.
+	</p>
+
+	<div class="main-plot-container l-screen" style="overflow-x: hidden; width: 100%; text-align: center;">
+		<div style="display: flex; justify-content: center; position: relative;">
+			<div id="curved-manifold-3d" style="width: 100%; max-width: 400px; margin-right: 10px;"></div>
+			<div id="curved-manifold-2d" style="width: 100%; max-width: 400px; margin-left: 10px;"></div>
+		</div>
+	</div>
+	
+	<p>
+		Such curved manifolds are common in machine learning applications. For example, in computer vision, images of the same object from different viewpoints form a curved manifold in pixel space. In natural language processing, word embeddings often lie on curved surfaces that reflect semantic relationships.
+	</p>
+
+	<p>
+		The key insight is that while the data lives in a high-dimensional space, it often concentrates on much lower-dimensional curved manifolds. Understanding these manifold structures helps us:
+	</p>
+	
+	<ul>
+		<li><strong>Reduce dimensionality:</strong> Project high-dimensional data onto the manifold</li>
+		<li><strong>Generate new samples:</strong> Interpolate along the manifold to create realistic data</li>
+		<li><strong>Detect anomalies:</strong> Points far from the manifold are likely outliers</li>
+		<li><strong>Understand relationships:</strong> Nearby points on the manifold share similar properties</li>
+	</ul>
 
     	<h2>Open Problems and Emerging Directions</h2>
 	<p>
