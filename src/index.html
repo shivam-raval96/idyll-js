@@ -199,6 +199,18 @@
 		So the manifold of "3"s might be approximately 5-6 dimensional, embedded in the 784-dimensional pixel space.
 	</p>
 
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+				The visualization shows 100 points in 3D space, each representing a 28×28 black and white image. Hover over points to see the corresponding images. The points cluster along a curved manifold, demonstrating how high-dimensional data (784D images) can be represented in much lower dimensions (3D).
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="manifold-scatterplot"></div>
+		</div>
+	</div>
+
 	<h3>Example 4: Linear Subspaces vs. Curved Manifolds</h3>
 	
 	<p>
@@ -283,6 +295,15 @@
 	<p>
 		When we compute gradients during backpropagation, we're essentially working in tangent spaces. The gradient at a point in the loss landscape tells us the direction of steepest increase in the tangent space to the loss manifold at that point.
 	</p>
+
+	<figure>
+		<div style="display: flex; justify-content: center; margin: 20px 0;">
+			<div id="tangent-space-visual" style="width: 100%; max-width: 500px;"></div>
+		</div>
+		<figcaption>
+			The visualization shows a sphere with a tangent plane touching at a single point. The red grid represents the tangent space—a flat plane that locally approximates the curved sphere surface. Click and drag to rotate the 3D scene and see how the tangent plane relates to the sphere's curvature.
+		</figcaption>
+	</figure>
 
 	<h3>Connecting to AI Interpretability</h3>
 	

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <script src="distill.bundle.js" type="module" fetchpriority="high" blocking></script>
+    <script src="main.bundle.js" type="module" fetchpriority="low" defer></script>
+    <script src="https://cdn.plot.ly/plotly-3.0.0.min.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf8">
+    <base target="_blank">
+    <title>Manifolds and Subspaces in AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <d-front-matter>
+        <script id='distill-front-matter' type="text/json">{
+    "title": "Why do curves matter for LLM interpretability?",
+    "description": "Exploring the importance of curves in understanding large language model behavior and interpretability.",
+    "published": "Feb 19, 2025",
+    "authors": [
+      {
+        "author":"Shivam Raval",
+        "authorURL":"https://shivam-raval96.github.io/",
+        "affiliation": "Harvard, Thoughtworks",
+        "affiliationURL": "https://"
+      }
+    ],
+    "katex": {
+      "delimiters": [
+        {"left": "$$", "right": "$$", "display": false}
+      ]
+    }
+  }
+    </script>
+    </d-front-matter>
+    <d-title>
+        <h1 class="l-page" style="text-align: center;">Why do curves matter for LLM interpretability?</h1>
+        <div id="title-plot" class="main-plot-container l-screen" style="overflow-x: hidden; width: 100%; text-align: center;">
+            <div style="display: flex; justify-content: center; position: relative;">
+                <div id="banner-container" style="width: 1000px; height: 200px;"></div>
+            </div>
+        </div>
+    </d-title>
+    <d-byline></d-byline>
+      <d-article>
+        <d-contents>
+        </d-contents>
+        
+        <p>
+            Manifolds are fundamental mathematical objects that have become increasingly important 
+            in machine learning and artificial intelligence. A manifold is a topological space 
+            that locally resembles Euclidean space near each point <d-cite bibtex-key="spivak2018comprehensive"></d-cite>. 
+            This local Euclidean structure makes manifolds particularly useful for understanding 
+            high-dimensional data and the internal representations of neural networks.
+        </p>
+        
+        <p>
+            The study of manifolds in machine learning has revealed that many high-dimensional 
+            datasets actually lie on or near low-dimensional manifolds embedded in the ambient space 
+            <d-cite bibtex-key="tenenbaum2000global"></d-cite>. This observation has led to the development 
+            of manifold learning algorithms such as Locally Linear Embedding <d-cite bibtex-key="roweis2000nonlinear"></d-cite> 
+            and Laplacian Eigenmaps <d-cite bibtex-key="belkin2003laplacian"></d-cite>, which aim to 
+            discover the underlying manifold structure of data.
+        </p>
+        
+        <p>
+            More recently, researchers have begun to understand that the internal representations 
+            of deep neural networks also exhibit manifold-like structures <d-cite bibtex-key="raghunathan2019understanding"></d-cite>. 
+            This has opened up new avenues for interpretability and understanding of how these 
+            models process information. The interactive visualization above demonstrates how 
+            neural network activations can be thought of as points on curved surfaces in 
+            high-dimensional space.
+        </p>
+    
+        <aside>Reading time: 10-15 minutes.</aside>
+    
+        <h2>Related Work</h2>
+    
+        <p>
+            The study of geometry in learning systems has roots in classical differential geometry texts
+            <d-cite bibtex-key="spivak2018comprehensive"></d-cite>, and has influenced modern perspectives on representation learning from early manifold learning frameworks such as ISOMAP
+            <d-cite bibtex-key="tenenbaum2000global"></d-cite>, LLE <d-cite bibtex-key="roweis2000nonlinear"></d-cite>, and Laplacian Eigenmaps <d-cite bibtex-key="belkin2003laplacian"></d-cite>.
+        </p>
+        <p>
+            In deep learning and interpretability, the idea that neural networks learn structured manifolds and sometimes nearly linear features has been explored in overviews and blog essays
+            <d-cite bibtex-key="olah2014neural"></d-cite><d-cite bibtex-key="olah2024linear"></d-cite>, as well as in empirical studies on linear representations in large language models (LLMs)
+            <d-cite bibtex-key="tigges2023linear"></d-cite><d-cite bibtex-key="jiang2024origins"></d-cite>.
+        </p>
+        <p>
+            Recent work evaluates the extent to which features are linear
+            <d-cite bibtex-key="engels2024not"></d-cite>, proposes the Linear Representation Hypothesis
+            <d-cite bibtex-key="park2024linear"></d-cite> and its broader geometric context
+            <d-cite bibtex-key="park2024geometry"></d-cite>, and investigates counterpoints where token embeddings may violate manifold assumptions
+            <d-cite bibtex-key="robinson2024token"></d-cite>.
+        </p>
+        <p>
+            Broader empirical phenomena like grokking <d-cite bibtex-key="power2022grokking"></d-cite> and mechanistic case studies using activation patching
+            <d-cite bibtex-key="heimersheim2024activation"></d-cite>, subspace methods and cautions
+            <d-cite bibtex-key="makelov2023subspace"></d-cite>, and nullspace-projection techniques for controlling protected attributes
+            <d-cite bibtex-key="ravfogel2020null"></d-cite> relate to the geometry and linearity of learned features.
+        </p>
+        <p>
+            Interpretability illusions and generalization challenges have been noted
+            <d-cite bibtex-key="friedman2024interpretability"></d-cite><d-cite bibtex-key="hase2023localization"></d-cite>, while complementary analyses of weight matrices via SVD
+            <d-cite bibtex-key="millidge2022singular"></d-cite> and discussions of near-orthogonality in high dimensions connect theory and intuition
+            <d-cite bibtex-key="johnson1984extensions"></d-cite><d-cite bibtex-key="3blue1brown2024high"></d-cite><d-cite bibtex-key="yoder2025johnson"></d-cite>.
+        </p>
+        <p>
+            Finally, several works highlight non-linear structure and stratification in learned representations
+            <d-cite bibtex-key="li2025unraveling"></d-cite>, as well as emerging directions in numerical reasoning geometry
+            <d-cite bibtex-key="numerical2024geometry"></d-cite> and non-linear probing
+            <d-cite bibtex-key="white2023nonlinear"></d-cite>, complementing trend reports and community syntheses
+            <d-cite bibtex-key="lesswrong2024intricacies"></d-cite><d-cite bibtex-key="lampinen2024learned"></d-cite>.
+        </p>
+
+
+        <h2>Toy Examples: Understanding Manifolds and Subspaces</h2>
+	
+	<p>
+		To build intuition about manifolds and subspaces in the context of neural networks, let's work through some concrete examples that illustrate these geometric concepts.
+	</p>
+
+	<h3>Example 1: The Circle as a 1-Manifold</h3>
+	
+	<p>
+		The simplest non-trivial manifold is the circle, denoted <d-math>S^1</d-math>. While embedded in 2D space, the circle is intrinsically 1-dimensional—you only need one parameter (an angle) to specify any point on it.
+	</p>
+	
+	<p>
+		Mathematically, we can parameterize the unit circle as:
+	</p>
+	
+	<d-math block>
+		\gamma(\theta) = (\cos \theta, \sin \theta), \quad \theta \in [0, 2\pi)
+	</d-math>
+	
+	<p>
+		Imagine a simple neural network that learns to represent cyclic data, like hours of the day or days of the week. The network's internal representations might naturally organize themselves along a circular manifold, where similar times are close together and the representation "wraps around" smoothly.
+	</p>
+
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+			 The visualization shows how a 1D parameter (angle θ) maps to a 2D circle. Move your mouse over either the circle or the line to see how they're connected. The red dot shows the current position, and the blue line shows the mapping between the 1D parameter space and the 2D embedding.
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="circle-manifold-visual"></div>
+		</div>
+                </div>
+
+	<h3>Example 2: The Sphere and High-Dimensional Embeddings</h3>
+	
+	<p>
+		Consider the 2-sphere <d-math>S^2</d-math> embedded in 3D space. Points on the sphere satisfy the constraint:
+	</p>
+	
+	<d-math block>
+		x^2 + y^2 + z^2 = 1
+	</d-math>
+	
+	<p>
+		Despite living in 3D space, the sphere is intrinsically 2-dimensional. Any point can be specified by just two coordinates (like latitude and longitude).
+	</p>
+	
+	<p>
+		In language models, word embeddings often lie approximately on high-dimensional spheres. When we normalize embeddings to unit length, we're projecting them onto a sphere. The cosine similarity between words then corresponds to the geodesic distance on this spherical manifold.
+	</p>
+
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+				The visualization shows how a 2D parameter space (flat grid) maps to a 3D sphere. Move your mouse over either the sphere or the flat grid to see how they're connected. The red dot shows the current position, and the blue line shows the mapping between the 2D parameter space and the 3D sphere.
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="sphere-manifold-visual"></div>
+		</div>
+	</div>
+
+	<h3>Example 3: The Manifold Hypothesis in Action</h3>
+	
+	<p>
+		Consider a dataset of handwritten digits. Each 28×28 pixel image lives in a 784-dimensional space, but the actual "digit manifold" is much lower-dimensional. A handwritten "3" can vary in:
+	</p>
+	
+	<ul>
+		<li>Rotation (1 degree of freedom)</li>
+		<li>Scale (1 degree of freedom)</li>
+		<li>Stroke thickness (1 degree of freedom)</li>
+		<li>Writing style variations (perhaps 2-3 degrees of freedom)</li>
+	</ul>
+	
+	<p>
+		So the manifold of "3"s might be approximately 5-6 dimensional, embedded in the 784-dimensional pixel space.
+	</p>
+
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+				The visualization shows 100 points in 3D space, each representing a 28×28 black and white image. Hover over points to see the corresponding images. The points cluster along a curved manifold, demonstrating how high-dimensional data (784D images) can be represented in much lower dimensions (3D).
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="manifold-scatterplot"></div>
+		</div>
+	</div>
+
+	<h3>Example 4: Linear Subspaces vs. Curved Manifolds</h3>
+	
+	<p>
+		Not all low-dimensional structures are manifolds. Consider two cases:
+	</p>
+	
+	<p>
+		<strong>Linear Subspace:</strong> The set of all vectors of the form <d-math>(a, 2a, 3a)</d-math> for real <d-math>a</d-math> forms a 1-dimensional linear subspace (a line through the origin) in <d-math>R^3</d-math>.
+	</p>
+	
+	
+	<p>
+		The key difference: linear subspaces have constant curvature (zero), while general manifolds can have varying curvature. In neural networks, early layers might learn approximately linear representations, while deeper layers often capture curved, non-linear manifolds.
+	</p>
+
+	<div class="example-container">
+		<div class="example-content">
+			<p>
+				The visualization shows the difference between a linear subspace (straight line) and a curved manifold (helix). Move your mouse over either structure to see how they differ in curvature. The linear subspace has zero curvature everywhere, while the curved manifold has varying curvature.
+			</p>
+		</div>
+		
+		<div class="example-visual">
+			<div id="linear-subspace-visual"></div>
+		</div>
+	</div>
+
+	<h3>Example 5: Local Charts and Coordinate Systems</h3>
+	
+	<p>
+		One of the key properties of manifolds is that they look "locally Euclidean." Consider the Earth's surface—while globally curved, any small region can be mapped to a flat coordinate system (like a local map).
+	</p>
+	
+	<p>
+		Mathematically, we define local charts <d-math>\phi: U \subset M \to R^n</d-math> that map open sets of the manifold <d-math>M</d-math> to Euclidean space.
+	</p>
+	
+	<d-math block>
+		\phi: U \to R^n  \text{ is a homeomorphism}
+	</d-math>
+	
+	<p>
+		When we use techniques like t-SNE or UMAP to visualize high-dimensional neural network activations in 2D, we're essentially finding local charts that map pieces of the high-dimensional representation manifold to the 2D plane.
+	</p>
+
+	<h3>Example 6: The Curse of Dimensionality and Manifold Structure</h3>
+	
+	<p>
+		Consider random points in high-dimensional space. In a <d-math>d</d-math>-dimensional unit hypersphere, most of the volume is concentrated near the surface when <d-math>d</d-math> is large. Specifically, the ratio of volumes is:
+	</p>
+	
+	<d-math block>
+		\frac{V_{surface}}{V_{ball}} = 1 - (1-\epsilon)^d
+	</d-math>
+	
+	<p>
+		For <d-math>d = 1000</d-math> and <d-math>\epsilon = 0.01</d-math>, this ratio is approximately <d-math>1 - e^{-10} \approx 0.99995</d-math>.
+	</p>
+	
+	<p>
+		This suggests that high-dimensional data naturally tends to lie on or near lower-dimensional manifolds. Neural networks exploit this structure—they don't need to represent every possible point in the high-dimensional space, just the manifold where real data lives.
+	</p>
+
+	<h3>Example 7: Tangent Spaces and Local Linearization</h3>
+	
+	<p>
+		At any point <d-math>p</d-math> on a smooth manifold <d-math>M</d-math>, we can define the tangent space <d-math>T_p M</d-math>—the best linear approximation to the manifold at that point.
+	</p>
+	
+	<p>
+		For the sphere <d-math>S^2</d-math> at point <d-math>p = (0, 0, 1)</d-math> (north pole), the tangent space is:
+	</p>
+	
+	<d-math block>
+		T_p S^2 = R^2
+	</d-math>
+	
+	<p>
+		This is just the <d-math>xy</d-math>-plane—the horizontal plane tangent to the sphere at the north pole.
+	</p>
+	
+	<p>
+		When we compute gradients during backpropagation, we're essentially working in tangent spaces. The gradient at a point in the loss landscape tells us the direction of steepest increase in the tangent space to the loss manifold at that point.
+	</p>
+
+	<figure>
+		<div style="display: flex; justify-content: center; margin: 20px 0;">
+			<div id="tangent-space-visual" style="width: 100%; max-width: 500px;"></div>
+		</div>
+		<figcaption>
+			The visualization shows a sphere with a tangent plane touching at a single point. The red grid represents the tangent space—a flat plane that locally approximates the curved sphere surface. Click and drag to rotate the 3D scene and see how the tangent plane relates to the sphere's curvature.
+		</figcaption>
+	</figure>
+
+	<h3>Connecting to AI Interpretability</h3>
+	
+	<p>
+		These toy examples illustrate fundamental concepts that appear throughout AI systems:
+	</p>
+	
+	<ul>
+		<li><strong>Representation Learning:</strong> Neural networks learn to map inputs to points on meaningful manifolds</li>
+		<li><strong>Dimensionality Reduction:</strong> Techniques like autoencoders learn to encode high-dimensional data on lower-dimensional manifolds</li>
+		<li><strong>Feature Disentanglement:</strong> Good representations separate different factors of variation along different directions in the manifold</li>
+		<li><strong>Interpolation and Extrapolation:</strong> Moving along manifolds corresponds to meaningful transformations of the data</li>
+        </ul>
+
+	<p>
+		Understanding these geometric structures helps us interpret what neural networks learn and how they generalize to new data.
+	</p>
+
+	<h2>Manifold Curvature and Data Distribution</h2>
+	
+	<p>
+		Real-world data often exhibits complex curvature patterns that cannot be captured by simple linear subspaces. Consider a dataset where points cluster around peaks and valleys in a 3D landscape—this creates a curved manifold structure that requires non-linear techniques to understand.
+	</p>
+	
+	<p>
+		The visualizations below demonstrate how data points can be distributed along a curved surface with varying elevation. Click and drag on the 2D projection to explore the 3D curved surface and see how the corresponding point moves.
+	</p>
+
+	<div class="main-plot-container l-screen" style="overflow-x: hidden; width: 100%; text-align: center;">
+		<div style="display: flex; justify-content: center; position: relative;">
+			<div id="curved-manifold-3d" style="width: 100%; max-width: 400px; margin-right: 10px;"></div>
+			<div id="curved-manifold-2d" style="width: 100%; max-width: 400px; margin-left: 10px;"></div>
+		</div>
+	</div>
+	
+	<p>
+		Such curved manifolds are common in machine learning applications. For example, in computer vision, images of the same object from different viewpoints form a curved manifold in pixel space. In natural language processing, word embeddings often lie on curved surfaces that reflect semantic relationships.
+	</p>
+
+	<p>
+		The key insight is that while the data lives in a high-dimensional space, it often concentrates on much lower-dimensional curved manifolds. Understanding these manifold structures helps us:
+	</p>
+	
+	<ul>
+		<li><strong>Reduce dimensionality:</strong> Project high-dimensional data onto the manifold</li>
+		<li><strong>Generate new samples:</strong> Interpolate along the manifold to create realistic data</li>
+		<li><strong>Detect anomalies:</strong> Points far from the manifold are likely outliers</li>
+		<li><strong>Understand relationships:</strong> Nearby points on the manifold share similar properties</li>
+	</ul>
+
+    	<h2>Open Problems and Emerging Directions</h2>
+	<p>
+		Open questions remain around the limits of linearity in learned features
+		<span class="citation" data-key="engels2024not"></span>, the geometry of categorical and hierarchical concepts
+		<span class="citation" data-key="park2024geometry"></span>, and the validity of the Linear Representation Hypothesis across domains
+		<span class="citation" data-key="park2024linear"></span>.
+	</p>
+	<p>
+		There is also growing interest in whether token embeddings truly lie on well-formed manifolds
+		<span class="citation" data-key="robinson2024token"></span>, and how localized, stratified manifold structures emerge in practice
+		<span class="citation" data-key="li2025unraveling"></span>.
+	</p>
+	<p>
+		Community syntheses and evolving benchmarks continue to shape our collective understanding
+		<span class="citation" data-key="lesswrong2024intricacies"></span><span class="citation" data-key="lampinen2024learned"></span>.
+	</p>
+        
+    </d-article>
+
+    <d-appendix>
+        <d-bibliography src="bibliography.bib"></d-bibliography>
+        <style>
+            d-appendix .citation {
+                font-size: 11px;
+                line-height: 15px;
+                border-left: 1px solid rgba(0, 0, 0, 0.1);
+                padding-left: 18px;
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                background: rgba(0, 0, 0, 0.02);
+                padding: 10px 18px;
+                border-radius: 3px;
+                color: rgba(150, 150, 150, 1);
+                overflow: hidden;
+                margin-top: -12px;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+        </style>
+
+        <h3 id="citation">Citation</h3>
+        <p>For attribution in academic contexts, please cite this work as</p>
+        <pre
+            class="citation short">"TBD", 2025.</pre>
+        <p>BibTeX citation</p>
+        <pre class="citation long">@article{raval2025manifolds,
+      title={TBD},
+      author={Shivam Raval et al},
+      year={2025},
+}</pre>
+    </d-appendix>
+
+</body>
+
+</html>

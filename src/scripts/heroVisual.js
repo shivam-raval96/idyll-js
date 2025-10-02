@@ -1,17 +1,24 @@
 /**
- * D3.js Floating Curved Grid Banner
- * Creates an animated curved grid surface that floats and moves
- */
-
-import * as d3 from "d3";
-
-/**
- * 3D Manifold Visualization
+ * 3D Manifold Visualization with Geodesic Path
  * Creates an interactive 3D wireframe landscape with data points
- * Replacement for the D3.js floating curved grid banner
+ * and a geodesic line connecting two points with tooltips
  */
 
-export function createManifoldVisualization(containerId) {
+export function createManifoldVisualization(containerId, config = {}) {
+  // Default configuration
+  const defaultConfig = {
+    startPoint: { x: -4, y: 9, z: null }, // z will be calculated from surface
+    endPoint: { x: -4, y: -8.8, z: null },
+    tooltipTexts: [
+      "Response: This is a test",
+      "Response: This is a test",
+      "Response: This is a test",
+      "Response: This is a test",
+    ],
+  };
+
+  const settings = { ...defaultConfig, ...config };
+
   // Get the container element
   const container = document.getElementById(containerId);
   if (!container) {
@@ -89,6 +96,9 @@ export function createManifoldVisualization(containerId) {
     // Clear container and set up structure
     container.innerHTML = "";
 
+    // Declare redoButton here
+    let redoButton;
+
     // Set up container styles
     container.style.cssText = `
         position: relative;
@@ -162,8 +172,46 @@ export function createManifoldVisualization(containerId) {
       `;
     container.appendChild(visualContainer);
 
-    // Initialize 3D scene
-    init3DScene(visualContainer);
+    // Initialize 3D scene first
+    const sceneControls = init3DScene(visualContainer);
+
+    // Create redo button after scene is initialized
+    redoButton = document.createElement("button");
+    redoButton.textContent = "↻ Redo";
+    redoButton.style.cssText = `
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        z-index: 100;
+        background: rgba(255, 165, 0, 0.9);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+        transition: all 0.3s;
+      `;
+
+    redoButton.onmouseover = function () {
+      this.style.background = "rgba(255, 165, 0, 1)";
+      this.style.transform = "scale(1.05)";
+    };
+
+    redoButton.onmouseout = function () {
+      this.style.background = "rgba(255, 165, 0, 0.9)";
+      this.style.transform = "scale(1)";
+    };
+
+    redoButton.onclick = function () {
+      if (sceneControls && sceneControls.restart) {
+        sceneControls.restart();
+      }
+    };
+
+    container.appendChild(redoButton);
   }
 
   function init3DScene(visualContainer) {
@@ -181,6 +229,15 @@ export function createManifoldVisualization(containerId) {
     let geometry, vertices;
     const gridSize = 50;
     const spacing = 0.5;
+    let geodesicLine,
+      geodesicMarkers = [];
+    let pathTooltipElements = [];
+    let isHoveringDataPoint = false;
+    let animationProgress = 0;
+    let isAnimating = true;
+    let animationComplete = false;
+    let pathPoints = [];
+    // Remove redoButton from here since it's now in initVisualization scope
 
     // Scene setup
     scene = new THREE.Scene();
@@ -209,6 +266,8 @@ export function createManifoldVisualization(containerId) {
     // Create the landscape
     createLandscape();
     createSurfacePoints();
+    createGeodesicPath();
+    createPathTooltips();
 
     // Camera position
     camera.position.set(0, 8, 12);
@@ -376,11 +435,253 @@ export function createManifoldVisualization(containerId) {
           z: y.toFixed(2),
           height: z.toFixed(2),
           vertexIndex: vertexIndex,
+          isDataPoint: true,
         };
 
         points.push(point);
         wireframe.add(point);
       }
+    }
+
+    function createGeodesicPath() {
+      // Use configured start and end points
+      const startX = settings.startPoint.x;
+      const startY = settings.startPoint.y;
+      const startZ =
+        settings.startPoint.z !== null
+          ? settings.startPoint.z
+          : sampleSurfaceHeight(startX, startY);
+
+      const endX = settings.endPoint.x;
+      const endY = settings.endPoint.y;
+      const endZ =
+        settings.endPoint.z !== null
+          ? settings.endPoint.z
+          : sampleSurfaceHeight(endX, endY);
+
+      const start = new THREE.Vector3(startX, startY, startZ);
+      const end = new THREE.Vector3(endX, endY, endZ);
+
+      // Create endpoint markers
+      const startPointGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+      const startPointMaterial = new THREE.MeshBasicMaterial({
+        color: 0x893101,
+        transparent: true,
+        opacity: 0.9,
+      });
+
+      const startMarker = new THREE.Mesh(
+        startPointGeometry,
+        startPointMaterial
+      );
+      startMarker.position.copy(start);
+      startMarker.userData = { isPathEndpoint: true };
+      wireframe.add(startMarker);
+
+      const endPointGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+      const endPointMaterial = new THREE.MeshBasicMaterial({
+        color: 0x893101,
+        transparent: true,
+        opacity: 0,
+      });
+      const endMarker = new THREE.Mesh(endPointGeometry, endPointMaterial);
+      endMarker.position.copy(end);
+      endMarker.userData = { isPathEndpoint: true, isEndMarker: true };
+      wireframe.add(endMarker);
+
+      // Create a path along the surface
+      pathPoints = [];
+      const numSegments = 50;
+
+      for (let i = 0; i <= numSegments; i++) {
+        const t = i / numSegments;
+
+        // Linear interpolation in XY plane
+        const x = start.x + (end.x - start.x) * t;
+        const y = start.y + (end.y - start.y) * t;
+
+        // Sample the height from the surface
+        const z = sampleSurfaceHeight(x, y);
+
+        pathPoints.push(new THREE.Vector3(x, y, z));
+      }
+
+      // Create the line as a tube - initially empty
+      const curve = new THREE.CatmullRomCurve3([pathPoints[0], pathPoints[0]]);
+      const tubeGeometry = new THREE.TubeGeometry(curve, 2, 0.08, 8, false);
+      const tubeMaterial = new THREE.MeshBasicMaterial({
+        color: 0xffa500,
+        transparent: true,
+        opacity: 0.8,
+      });
+
+      geodesicLine = new THREE.Mesh(tubeGeometry, tubeMaterial);
+      wireframe.add(geodesicLine);
+      const positions = [0.05, 0.3, 0.7, 1];
+      // Create 4 tooltip markers along the path (initially hidden)
+      for (let i = 0; i < 4; i++) {
+        const t = positions[i]; // Positions at 0.2, 0.4, 0.6, 0.8
+        const index = Math.floor(t * (pathPoints.length - 1));
+        const position = pathPoints[index];
+
+        // Create marker
+        const markerGeometry = new THREE.SphereGeometry(0.08, 8, 8);
+        const markerMaterial = new THREE.MeshBasicMaterial({
+          color: 0xffa500,
+          transparent: true,
+          opacity: 0,
+        });
+
+        const marker = new THREE.Mesh(markerGeometry, markerMaterial);
+        marker.position.copy(position);
+        marker.userData = {
+          isPathMarker: true,
+          text: settings.tooltipTexts[i] || "Response: This is a test",
+          index: i,
+          worldPosition: position.clone(),
+          threshold: t,
+          visible: false,
+        };
+
+        geodesicMarkers.push(marker);
+        wireframe.add(marker);
+      }
+    }
+
+    function createPathTooltips() {
+      // Create tooltip elements for each marker
+      geodesicMarkers.forEach((marker, index) => {
+        const tooltipElement = document.createElement("div");
+        tooltipElement.style.cssText = `
+          position: absolute;
+          z-index: 999;
+          pointer-events: none;
+          background: white;
+          color: #333;
+          padding: 6px 10px;
+          border-radius: 4px;
+          font-size: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          white-space: nowrap;
+          opacity: 0;
+          transition: opacity 0.3s;
+        `;
+        tooltipElement.textContent = marker.userData.text;
+        visualContainer.appendChild(tooltipElement);
+        pathTooltipElements.push(tooltipElement);
+      });
+    }
+
+    function updatePathTooltipPositions() {
+      geodesicMarkers.forEach((marker, index) => {
+        const tooltipElement = pathTooltipElements[index];
+
+        // Get the marker's world position
+        const worldPos = new THREE.Vector3();
+        marker.getWorldPosition(worldPos);
+
+        // Project to screen coordinates
+        const screenPos = worldPos.clone().project(camera);
+
+        const x = (screenPos.x * 0.5 + 0.5) * visualContainer.clientWidth;
+        const y = (screenPos.y * -0.5 + 0.5) * visualContainer.clientHeight;
+
+        tooltipElement.style.left = x + 10 + "px";
+        tooltipElement.style.top = y - 20 + "px";
+
+        // Show/hide based on hover state and marker visibility
+        if (isHoveringDataPoint || !marker.userData.visible) {
+          tooltipElement.style.opacity = "0";
+        } else {
+          tooltipElement.style.opacity = "1";
+        }
+      });
+    }
+
+    function updateLineAnimation() {
+      if (!isAnimating || animationComplete) return;
+
+      // Increment animation progress (adjust speed here: 0.005 = slower, 0.02 = faster)
+      animationProgress += 0.005;
+
+      if (animationProgress >= 1) {
+        animationProgress = 1;
+        isAnimating = false;
+        animationComplete = true;
+
+        // Show end marker when animation completes
+        wireframe.children.forEach((child) => {
+          if (child.userData.isEndMarker) {
+            child.material.opacity = 0.9;
+          }
+        });
+      }
+
+      // Calculate how many points to include in the line
+      const numPoints = Math.floor(animationProgress * pathPoints.length);
+      if (numPoints < 2) return;
+
+      const visiblePoints = pathPoints.slice(0, numPoints);
+
+      // Update the tube geometry with visible points
+      const curve = new THREE.CatmullRomCurve3(visiblePoints);
+      const newGeometry = new THREE.TubeGeometry(
+        curve,
+        Math.max(2, visiblePoints.length),
+        0.08,
+        8,
+        false
+      );
+
+      geodesicLine.geometry.dispose();
+      geodesicLine.geometry = newGeometry;
+
+      // Check if we've reached any markers
+      geodesicMarkers.forEach((marker) => {
+        if (
+          animationProgress >= marker.userData.threshold &&
+          !marker.userData.visible
+        ) {
+          marker.userData.visible = true;
+          marker.material.opacity = 0.9;
+        }
+      });
+    }
+
+    function restartAnimation() {
+      // Reset animation state
+      animationProgress = 0;
+      isAnimating = true;
+      animationComplete = false;
+
+      // Hide all markers
+      geodesicMarkers.forEach((marker) => {
+        marker.userData.visible = false;
+        marker.material.opacity = 0;
+      });
+
+      // Hide end marker
+      wireframe.children.forEach((child) => {
+        if (child.userData.isEndMarker) {
+          child.material.opacity = 0;
+        }
+      });
+
+      // Reset line to single point
+      const curve = new THREE.CatmullRomCurve3([pathPoints[0], pathPoints[0]]);
+      const newGeometry = new THREE.TubeGeometry(curve, 2, 0.08, 8, false);
+
+      geodesicLine.geometry.dispose();
+      geodesicLine.geometry = newGeometry;
+    }
+
+    function sampleSurfaceHeight(x, y) {
+      // Sample the height from the surface using the wave function
+      const wave1 = Math.sin(x * 0.3) * Math.cos(y * 0.3) * 3;
+      const wave2 = Math.sin(x * 0.15 + y * 0.15) * 2;
+      const wave3 = Math.cos(x * 0.6) * Math.sin(y * 0.4) * 1.5;
+
+      return wave1 + wave2 + wave3;
     }
 
     function setupEventListeners() {
@@ -405,11 +706,21 @@ export function createManifoldVisualization(containerId) {
       mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
-      const intersects = raycaster.intersectObjects(points);
 
-      if (intersects.length > 0) {
-        showTooltip(intersects[0].object, event.clientX, event.clientY);
+      // Check for data points
+      const dataPointIntersects = raycaster.intersectObjects(
+        points.filter((p) => p.userData.isDataPoint)
+      );
+
+      if (dataPointIntersects.length > 0) {
+        isHoveringDataPoint = true;
+        showTooltip(
+          dataPointIntersects[0].object,
+          event.clientX,
+          event.clientY
+        );
       } else {
+        isHoveringDataPoint = false;
         hideTooltip();
       }
     }
@@ -565,6 +876,9 @@ export function createManifoldVisualization(containerId) {
     function animate() {
       animationId = requestAnimationFrame(animate);
 
+      // Update line drawing animation
+      updateLineAnimation();
+
       // Smooth rotation interpolation
       currentRotationX += (targetRotationX - currentRotationX) * 0.05;
       currentRotationY += (targetRotationY - currentRotationY) * 0.05;
@@ -577,18 +891,25 @@ export function createManifoldVisualization(containerId) {
       const time = Date.now() * 0.0005;
       camera.position.y = 8 + Math.sin(time) * 1;
 
+      // Update path tooltip positions
+      updatePathTooltipPositions();
+
       renderer.render(scene, camera);
     }
 
     // Cleanup function
-    return function cleanup() {
-      if (animationId) {
-        cancelAnimationFrame(animationId);
-      }
-      if (renderer) {
-        renderer.dispose();
-      }
-      hideTooltip();
+    return {
+      cleanup: function () {
+        if (animationId) {
+          cancelAnimationFrame(animationId);
+        }
+        if (renderer) {
+          renderer.dispose();
+        }
+        hideTooltip();
+        pathTooltipElements.forEach((el) => el.remove());
+      },
+      restart: restartAnimation,
     };
   }
 }

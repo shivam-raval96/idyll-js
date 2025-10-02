@@ -9,6 +9,8 @@ import {
   createCurvedManifold3D,
   createCurvedManifold2D,
 } from "./scripts/curvedManifoldVisual.js";
+import { createManifoldScatterplot } from "./scripts/manifoldScatterplot.js";
+import { createTangentSpaceVisual } from "./scripts/tangentSpaceVisual.js";
 
 document.addEventListener(
   "DOMContentLoaded",
@@ -32,6 +34,12 @@ document.addEventListener(
 
     // Create the linear subspace visualization
     createLinearSubspaceVisual("linear-subspace-visual");
+
+    // Create the manifold scatterplot visualization
+    createManifoldScatterplot("manifold-scatterplot");
+
+    // Create the tangent space visualization
+    createTangentSpaceVisual("tangent-space-visual");
 
     // Create the curved manifold visualizations
     setTimeout(() => {
